@@ -7,6 +7,23 @@ const { formatTeamWithFlag } = require('../services/countryFlagsService');
 const betTrackingEngine = require('../services/betTrackingEngine');
 
 /**
+ * Helper para enviar mensajes de forma segura (maneja errores de Puppeteer/WhatsApp)
+ */
+async function safeReply(message, text) {
+  try {
+    await safeReply(text);
+  } catch (error) {
+    if (error.message?.includes('Execution context') ||
+        error.message?.includes('Protocol error') ||
+        error.message?.includes('target closed')) {
+      console.error('⚠️ WhatsApp desconectado, no se pudo enviar respuesta');
+    } else {
+      console.error('Error enviando mensaje:', error.message);
+    }
+  }
+}
+
+/**
  * Procesa una imagen de apuesta
  * @param {object} client - Cliente de WhatsApp
  * @param {object} message - Mensaje de WhatsApp
@@ -19,7 +36,7 @@ async function procesarImagenApuesta(client, message, media) {
   // Verificar conexión a BD
   const dbOk = await testConnection();
   if (!dbOk) {
-    await message.reply(
+    await safeReply(
       '⚠️ No hay conexión a la base de datos.\n\n' +
       'El módulo de apuestas requiere base de datos activa.\n' +
       'Intenta más tarde.'
@@ -29,13 +46,13 @@ async function procesarImagenApuesta(client, message, media) {
 
   try {
     // 1. OCR - Extraer texto de la imagen
-    await message.reply('🔍 Analizando imagen...');
+    await safeReply('🔍 Analizando imagen...');
 
     const ocrResult = await ocrService.procesarImagen(mediaBuffer);
     const textoExtraido = ocrResult.text;
 
     if (!textoExtraido || textoExtraido.trim().length < 10) {
-      await message.reply(
+      await safeReply(
         '⚠️ No pude leer texto en la imagen.\n\n' +
         'Asegúrate de que:\n' +
         '• La imagen sea clara y legible\n' +
@@ -46,14 +63,14 @@ async function procesarImagenApuesta(client, message, media) {
     }
 
     // 2. Parsear texto a estructura
-    await message.reply('📋 Extrayendo datos de la apuesta...');
+    await safeReply('📋 Extrayendo datos de la apuesta...');
 
     const apuestaExtraida = parseBetText(textoExtraido);
     const datosApuesta = toJSON(apuestaExtraida);
 
     // 3. Verificar que se detectó un partido
     if (!datosApuesta.partido_detectado) {
-      await message.reply(
+      await safeReply(
         '⚠️ No pude identificar el partido en la imagen.\n\n' +
         'Asegúrate de que la imagen muestre claramente:\n' +
         '• Los nombres de los equipos (ej: "Brasil vs Argentina")\n' +
@@ -64,7 +81,7 @@ async function procesarImagenApuesta(client, message, media) {
     }
 
     // 4. Buscar el partido real en la API
-    await message.reply('🔎 Buscando partido en la API...');
+    await safeReply('🔎 Buscando partido en la API...');
 
     const partidoReal = await buscarPartidoReal(datosApuesta.partido_detectado);
 
@@ -86,7 +103,7 @@ async function procesarImagenApuesta(client, message, media) {
     }
 
     // 5. Guardar en base de datos (primero para obtener ID)
-    await message.reply('💾 Guardando apuesta...');
+    await safeReply('💾 Guardando apuesta...');
 
     const result = await pool.query(`
       INSERT INTO apuestas (
@@ -149,17 +166,17 @@ async function procesarImagenApuesta(client, message, media) {
       `\n📊 Confianza OCR: ${(datosApuesta.confianza_ocr * 100).toFixed(0)}%\n\n` +
       `🔔 Recibirás notificaciones cuando se cumplan o fallen las selecciones.`;
 
-    await message.reply(resumen);
+    await safeReply(resumen);
 
     // 8. Iniciar tracking si hay partido real
     if (idPartidoApi && !betTrackingEngine.isRunning()) {
       betTrackingEngine.iniciar(60); // 60 segundos
-      await message.reply('✅ Sistema de seguimiento activado (actualización cada 60s)');
+      await safeReply('✅ Sistema de seguimiento activado (actualización cada 60s)');
     }
 
   } catch (error) {
     console.error('[BetImage] Error procesando imagen:', error);
-    await message.reply(
+    await safeReply(
       '⚠️ Ocurrió un error procesando la imagen.\n\n' +
       'Error: ' + error.message
     );

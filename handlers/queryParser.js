@@ -244,8 +244,14 @@ function parse(text) {
   // === TABLA ===
   if ((normalized.includes('tabla') || normalized.includes('clasificación') || normalized.includes('clasificacion') ||
        normalized.includes('posición') || normalized.includes('posicion'))) {
+    // Detectar grupo específico del Mundial
+    const grupoMatch = normalized.match(/grupo\s+([a-j])/i);
+    if (grupoMatch) {
+      return { intent: INTENTOS.TABLA_GRUPO, grupo: grupoMatch[1].toUpperCase() };
+    }
+
     if (normalized.includes('mundial')) {
-      return { intent: INTENTOS.TABLA, liga: LIGAS.MUNDIAL };
+      return { intent: INTENTOS.TABLA_MUNDIAL };
     }
     if (normalized.includes('premier') || normalized.includes('inglaterra')) {
       return { intent: INTENTOS.TABLA, liga: LIGAS.PREMIER_LEAGUE };
@@ -253,7 +259,7 @@ function parse(text) {
     if (normalized.includes('laliga') || normalized.includes('la liga') || normalized.includes('españa')) {
       return { intent: INTENTOS.TABLA, liga: LIGAS.LA_LIGA };
     }
-    return { intent: INTENTOS.TABLA, liga: LIGAS.PREMIER_LEAGUE };
+    return { intent: INTENTOS.TABLA_MUNDIAL };
   }
 
   // === SEGUIR EQUIPO ===

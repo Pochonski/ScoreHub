@@ -17,7 +17,7 @@ async function getStatsPartido(matchId) {
  */
 function getStatKey(tipo) {
   const keys = {
-    'corners': 'Corner kicks',
+    'corners': 'Corners',
     'yellow_cards': 'Yellow cards',
     'red_cards': 'Red cards',
     'shots': 'Total shots',

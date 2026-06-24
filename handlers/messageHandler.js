@@ -15,6 +15,24 @@ const MAX_MAP_SIZE = 1000; // Límite para prevenir memory leak
 const userStates = new Map();
 const demoUsers = new Map(); // Para modo demo sin DB
 
+/**
+ * Helper para enviar mensajes de forma segura (maneja errores de Puppeteer/WhatsApp)
+ */
+async function safeReply(message, text) {
+  try {
+    await message.reply(text);
+  } catch (error) {
+    // Ignorar errores de "Execution context was destroyed" o desconexión
+    if (error.message?.includes('Execution context') ||
+        error.message?.includes('Protocol error') ||
+        error.message?.includes('target closed')) {
+      console.error('⚠️ WhatsApp desconectado, no se pudo enviar respuesta');
+    } else {
+      console.error('Error enviando mensaje:', error.message);
+    }
+  }
+}
+
 // Cleanup periódico de Maps para prevenir memory leak
 function cleanupMaps() {
   // Limpiar userStates entries antiguas (más de 1 hora)
@@ -69,12 +87,12 @@ async function getUserData(userId) {
   // Esperar a que DB esté lista si aún se está verificando
   await waitForDb();
   if (!dbAvailable) {
-    // Modo demo: crear usuario temporal
+    // Modo demo: crear usuario temporal ya registrado automáticamente
     if (!demoUsers.has(userId)) {
       demoUsers.set(userId, {
         id: userId,
         alias: 'Usuario',
-        estado: ESTADOS_USUARIO.ESPERANDO_ALIAS,
+        estado: ESTADOS_USUARIO.REGISTRADO, // Ya registrado en modo demo
         lastAccess: Date.now()
       });
     }
@@ -93,7 +111,7 @@ async function getUserData(userId) {
       demoUsers.set(userId, {
         id: userId,
         alias: 'Usuario',
-        estado: ESTADOS_USUARIO.ESPERANDO_ALIAS,
+        estado: ESTADOS_USUARIO.REGISTRADO,
         lastAccess: Date.now()
       });
     }
@@ -172,18 +190,18 @@ async function messageHandler(client, message) {
     if (state?.value === ESTADOS_USUARIO.ESPERANDO_ALIAS) {
       const alias = text;
       if (await aliasYaExiste(alias)) {
-        await message.reply('❌ Ese alias ya está en uso. Prueba con otro:');
+        await safeReply(message, '❌ Ese alias ya está en uso. Prueba con otro:');
       } else {
         await registrarUsuario(userId, alias);
         userStates.delete(userId);
-        await message.reply(`✅ ¡Perfecto ${alias}! Soy *BotMundialista*, tu asistente de fútbol y apuestas.\n\nEscribe *ayuda* para ver qué puedo hacer.`);
+        await safeReply(message, `✅ ¡Perfecto ${alias}! Soy *BotMundialista*, tu asistente de fútbol y apuestas.\n\nEscribe *ayuda* para ver qué puedo hacer.`);
       }
       return;
     }
 
     // Primer mensaje - pedir alias
     userStates.set(userId, { value: ESTADOS_USUARIO.ESPERANDO_ALIAS, lastAccess: Date.now() });
-    await message.reply('¡Hola! 👋 Soy *BotMundialista*, tu asistente de fútbol.\n\n¿Cómo quieres que te llame? Escribe tu alias:');
+    await safeReply(message, '¡Hola! 👋 Soy *BotMundialista*, tu asistente de fútbol.\n\n¿Cómo quieres que te llame? Escribe tu alias:');
     return;
   }
 
@@ -197,7 +215,7 @@ async function messageHandler(client, message) {
       }
     } catch (error) {
       console.error('Error processing image:', error);
-      await message.reply('⚠️ No pude procesar la imagen. Intenta de nuevo.');
+      await safeReply(message, '⚠️ No pude procesar la imagen. Intenta de nuevo.');
       return;
     }
   }
@@ -267,6 +285,14 @@ async function messageHandler(client, message) {
         response = await tableHandler.getTabla(parsed.liga);
         break;
 
+      case INTENTOS.TABLA_MUNDIAL:
+        response = await tableHandler.getTablaMundial();
+        break;
+
+      case INTENTOS.TABLA_GRUPO:
+        response = await tableHandler.getTablaGrupoMundial(parsed.grupo);
+        break;
+
       case INTENTOS.ANALISIS:
         if (parsed.home && parsed.away) {
           response = await bettingHandler.analizarEnfrentamiento(parsed.home, parsed.away);
@@ -309,8 +335,12 @@ async function messageHandler(client, message) {
     }
   }
 
-  // Send response
-  await message.reply(response);
+  // Send response (con manejo de errores de Puppeteer)
+  try {
+    await message.reply(response);
+  } catch (replyError) {
+    console.error('Error enviando respuesta (posible desconexión de WhatsApp):', replyError.message);
+  }
 }
 
 module.exports = messageHandler;

@@ -11,6 +11,7 @@ BotMundialista es un bot de WhatsApp inteligente que combina información deport
 ### Características Principales
 
 **📊 Información de Fútbol**
+
 - Resultados en vivo y pasados de cualquier equipo
 - Estadísticas detalladas de equipos y jugadores
 - Análisis de enfrentamientos históricos
@@ -18,6 +19,7 @@ BotMundialista es un bot de WhatsApp inteligente que combina información deport
 - Información de todos los equipos del Mundial 2026
 
 **🎰 Seguimiento de Apuestas**
+
 - Envía una captura de pantalla de tu apuesta y el bot la procesa automáticamente
 - Utiliza OCR para extraer datos de imágenes de Bet365, Betway, y otras casas de apuestas
 - Normaliza mercados: Over/Under, Corners, Tarjetas, Resultado Final, Ambos Marcan, Handicaps
@@ -25,6 +27,7 @@ BotMundialista es un bot de WhatsApp inteligente que combina información deport
 - Notificaciones automáticas cuando se cumplen o fallan tus selecciones
 
 **🇺🇸 Banderas de Países**
+
 - El bot muestra automáticamente la bandera del país junto al nombre de cada equipo
 - Notificaciones más visuales y fáciles de identificar
 
@@ -85,16 +88,16 @@ Esta es la función más poderosa. Envía una captura de pantalla de tu apuesta 
 
 El normalizador reconoce automáticamente estos tipos de apuestas:
 
-| Tipo | Ejemplos |
-|------|----------|
-| **Goles** | Over 2.5, Under 3, Más de 2, Menos de 3.5 |
-| **Corners** | Over 5 corners, Under 10 corners, Más de 7 córners |
-| **Tarjetas** | Over 3.5 tarjetas, Under 5 cards |
-| **Ambos Marcan** | Both Teams To Score (BTTS), Ambos marcan |
-| **Resultado Final** | Gana Brasil, Local, Visitante, Empate |
-| **Handicaps** | Handicap -1, Handicap +2 |
-| **Tiros** | Shots on target Over/Under |
-| **Posesión** | Over 55% posesión |
+| Tipo                | Ejemplos                                           |
+| ------------------- | -------------------------------------------------- |
+| **Goles**           | Over 2.5, Under 3, Más de 2, Menos de 3.5          |
+| **Corners**         | Over 5 corners, Under 10 corners, Más de 7 córners |
+| **Tarjetas**        | Over 3.5 tarjetas, Under 5 cards                   |
+| **Ambos Marcan**    | Both Teams To Score (BTTS), Ambos marcan           |
+| **Resultado Final** | Gana Brasil, Local, Visitante, Empate              |
+| **Handicaps**       | Handicap -1, Handicap +2                           |
+| **Tiros**           | Shots on target Over/Under                         |
+| **Posesión**        | Over 55% posesión                                  |
 
 ---
 
@@ -103,6 +106,7 @@ El normalizador reconoce automáticamente estos tipos de apuestas:
 El bot tiene personalidad propia y envía notificaciones entusiastas:
 
 **🎉 ¡Selección Cumplida!**
+
 ```
 📐 ¡¡¡ Increíble! 🔥 !!!
 
@@ -113,6 +117,7 @@ El bot tiene personalidad propia y envía notificaciones entusiastas:
 ```
 
 **⚽ ¡GOOOL!**
+
 ```
 ⚽ ¡¡¡ GOOOOOOOL de 🇧🇷 Brasil !!!
 
@@ -123,6 +128,7 @@ El bot tiene personalidad propia y envía notificaciones entusiastas:
 ```
 
 **❌ Selección Fallida**
+
 ```
 📋 No fue esta vez...
 
@@ -212,15 +218,15 @@ BotMundialista/
 
 ## Tecnologías Utilizadas
 
-| Categoría | Tecnología | Propósito |
-|-----------|------------|-----------|
-| **WhatsApp** | whatsapp-web.js | Conexión a WhatsApp Web |
-| **OCR** | Tesseract.js | Reconocimiento de texto en imágenes |
-| **Base de Datos** | Supabase (PostgreSQL) | Persistencia de datos |
-| **API Fútbol** | SportAPI7 (RapidAPI) | Datos de partidos y estadísticas |
-| **Servidor** | Express.js | Panel administrativo |
-| **Programación** | Node.js | Runtime JavaScript |
-| **Scheduling** | node-cron | Tareas programadas cada 60s |
+| Categoría         | Tecnología            | Propósito                           |
+| ----------------- | --------------------- | ----------------------------------- |
+| **WhatsApp**      | whatsapp-web.js       | Conexión a WhatsApp Web             |
+| **OCR**           | Tesseract.js          | Reconocimiento de texto en imágenes |
+| **Base de Datos** | Supabase (PostgreSQL) | Persistencia de datos               |
+| **API Fútbol**    | SportAPI7 (RapidAPI)  | Datos de partidos y estadísticas    |
+| **Servidor**      | Express.js            | Panel administrativo                |
+| **Programación**  | Node.js               | Runtime JavaScript                  |
+| **Scheduling**    | node-cron             | Tareas programadas cada 60s         |
 
 ---
 
@@ -237,29 +243,34 @@ BotMundialista/
 ## Instalación
 
 1. **Clonar el repositorio**
+
 ```bash
 git clone <repo-url>
 cd BotMundialista
 ```
 
 2. **Instalar dependencias**
+
 ```bash
 pnpm install
 ```
 
 3. **Configurar variables de entorno**
+
 ```bash
 cp .env.example .env
 # Editar .env con tus credenciales
 ```
 
 4. **Configurar base de datos**
+
 ```bash
 # Ejecutar schema en Supabase o PostgreSQL
 psql -h your-host -U postgres -d your-db -f database/schema.sql
 ```
 
 5. **Iniciar el bot**
+
 ```bash
 node bot.js
 ```
@@ -267,6 +278,7 @@ node bot.js
 6. **Escanear QR** con WhatsApp
 
 7. **Iniciar panel admin** (opcional, en otra terminal)
+
 ```bash
 node admin/server.js
 ```
@@ -372,18 +384,18 @@ El bot incluye un panel web para administrators en `http://localhost:3001`:
 
 ## Comandos Disponibles
 
-| Comando | Descripción |
-|---------|-------------|
-| `ayuda` | Muestra todos los comandos |
-| `¿Cómo quedó [equipo]?` | Resultado del último partido |
-| `[equipo] vs [equipo]` | Resultado de enfrentamiento |
-| `Analiza [eq1] vs [eq2]` | Análisis detallado del partido |
-| `Dame info de [equipo]` | Información del equipo |
-| `Estadísticas de [equipo]` | Estadísticas completas |
-| `Seguir [equipo]` | Agregar a favoritos |
-| `Mis equipos` | Ver equipos seguidos |
-| `Tabla del Mundial` | Clasificación del Mundial |
-| `Tabla de [liga]` | Tabla de cualquier liga |
+| Comando                    | Descripción                    |
+| -------------------------- | ------------------------------ |
+| `ayuda`                    | Muestra todos los comandos     |
+| `¿Cómo quedó [equipo]?`    | Resultado del último partido   |
+| `[equipo] vs [equipo]`     | Resultado de enfrentamiento    |
+| `Analiza [eq1] vs [eq2]`   | Análisis detallado del partido |
+| `Dame info de [equipo]`    | Información del equipo         |
+| `Estadísticas de [equipo]` | Estadísticas completas         |
+| `Seguir [equipo]`          | Agregar a favoritos            |
+| `Mis equipos`              | Ver equipos seguidos           |
+| `Tabla del Mundial`        | Clasificación del Mundial      |
+| `Tabla de [liga]`          | Tabla de cualquier liga        |
 
 ---
 
