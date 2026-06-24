@@ -41,6 +41,139 @@ async function sendMessage(chatId, text, options = {}) {
 }
 
 /**
+ * Maneja comandos de Telegram (que empiezan con /)
+ */
+async function handleCommand(chatId, command, userName) {
+  const cmd = command.toLowerCase();
+  const alias = userName || 'Usuario';
+
+  switch (cmd) {
+    case '/start':
+    case '/inicio':
+      await sendMessage(chatId,
+        `🏆 *BotMundialista* - Asistente del Mundial 2026\n\n` +
+        `¡Hola ${alias}! 👋 Soy tu asistente de fútbol.\n\n` +
+        `📱 *Comandos disponibles:*\n` +
+        `  /start - Iniciar\n` +
+        `  /help - Ver comandos\n` +
+        `  /partidos - Partidos de hoy\n` +
+        `  /tabla - Tabla del Mundial\n` +
+        `  /resultado [equipo] - Resultado de un equipo\n` +
+        `  /analizar [eq1] vs [eq2] - Análisis de partido\n\n` +
+        `O escribe normalmente: "¿Cómo quedó Brasil?"`
+      );
+      return true;
+
+    case '/help':
+    case '/ayuda':
+      await sendMessage(chatId,
+        `📖 *COMANDOS - MUNDIAL 2026*\n\n` +
+        `⚽ *Resultados:*\n` +
+        `  /resultado Brasil\n` +
+        `  "Brasil vs Argentina"\n\n` +
+        `📊 *Análisis:*\n` +
+        `  /analizar Brasil vs Francia\n` +
+        `  /stats España\n\n` +
+        `👥 *Equipos:*\n` +
+        `  /info Alemania\n` +
+        `  /seguir Brasil\n` +
+        `  /miequipos\n\n` +
+        `🏆 *Tablas:*\n` +
+        `  /tabla - Tabla general\n` +
+        `  /grupo A - Tabla grupo A`
+      );
+      return true;
+
+    case '/partidos':
+    case '/hoy':
+      // Crear objeto para messageHandler
+      const msgPartidos = {
+        from: chatId.toString(),
+        body: 'partidos de hoy',
+        hasMedia: false,
+        reply: async (text) => await sendMessage(chatId, text)
+      };
+      await messageHandler(null, msgPartidos);
+      return true;
+
+    case '/tabla':
+    case '/clasificacion':
+      const msgTabla = {
+        from: chatId.toString(),
+        body: 'tabla del mundial',
+        hasMedia: false,
+        reply: async (text) => await sendMessage(chatId, text)
+      };
+      await messageHandler(null, msgTabla);
+      return true;
+
+    default:
+      // Comandos con argumentos: /resultado, /analizar, /info, /seguir
+      if (cmd.startsWith('/resultado ')) {
+        const equipo = text.replace('/resultado ', '').replace('/Resultado ', '');
+        const msgRes = {
+          from: chatId.toString(),
+          body: `como quedo ${equipo}`,
+          hasMedia: false,
+          reply: async (t) => await sendMessage(chatId, t)
+        };
+        await messageHandler(null, msgRes);
+        return true;
+      }
+
+      if (cmd.startsWith('/analizar ')) {
+        const vsText = text.replace('/analizar ', '').replace('/Analizar ', '');
+        const msgAna = {
+          from: chatId.toString(),
+          body: `analiza ${vsText}`,
+          hasMedia: false,
+          reply: async (t) => await sendMessage(chatId, t)
+        };
+        await messageHandler(null, msgAna);
+        return true;
+      }
+
+      if (cmd.startsWith('/info ')) {
+        const equipo = text.replace('/info ', '').replace('/Info ', '');
+        const msgInfo = {
+          from: chatId.toString(),
+          body: `dame info de ${equipo}`,
+          hasMedia: false,
+          reply: async (t) => await sendMessage(chatId, t)
+        };
+        await messageHandler(null, msgInfo);
+        return true;
+      }
+
+      if (cmd.startsWith('/seguir ')) {
+        const equipo = text.replace('/seguir ', '').replace('/Seguir ', '');
+        const msgSeg = {
+          from: chatId.toString(),
+          body: `seguir ${equipo}`,
+          hasMedia: false,
+          reply: async (t) => await sendMessage(chatId, t)
+        };
+        await messageHandler(null, msgSeg);
+        return true;
+      }
+
+      if (cmd.startsWith('/grupo ')) {
+        const grupo = text.replace('/grupo ', '').replace('/Grupo ', '').toUpperCase();
+        const msgGrupo = {
+          from: chatId.toString(),
+          body: `tabla grupo ${grupo}`,
+          hasMedia: false,
+          reply: async (t) => await sendMessage(chatId, t)
+        };
+        await messageHandler(null, msgGrupo);
+        return true;
+      }
+
+      return false;
+  }
+}
+
+/**
  * Procesa las actualizaciones (mensajes)
  */
 async function processUpdates(updates) {
@@ -62,6 +195,13 @@ async function processUpdates(updates) {
     const user = message.from.username || message.from.first_name;
 
     console.log(`📩 Telegram: [${user}] ${text}`);
+
+    // Si es un comando, intentar manejarlo
+    if (text.startsWith('/')) {
+      const handled = await handleCommand(chatId, text, user);
+      if (handled) continue;
+      // Si no se reconoció el comando, pasar al messageHandler como texto normal
+    }
 
     try {
       // Crear objeto message simulado para reutilizar messageHandler
