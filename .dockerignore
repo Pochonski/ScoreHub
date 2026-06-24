@@ -1,0 +1,24 @@
+# Dependencies
+node_modules/
+
+# WhatsApp session (not needed for Telegram only)
+.wwebjs_auth/
+
+# Environment (use GitHub Secrets instead)
+.env
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# Cache
+.wwebjs_cache/
+.claude/
