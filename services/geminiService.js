@@ -62,9 +62,11 @@ Responde con JSON válido:`;
     const jsonMatch = text.match(/\{[\s\S]*\}/);
     if (jsonMatch) {
       const parsed = JSON.parse(jsonMatch[0]);
+      // Normalizar intent a minúsculas y guiones bajos para que coincida con INTENTOS
+      const normalizedIntent = (parsed.intent || 'UNKNOWN').toLowerCase().replace(/[-\s]/g, '_');
       return {
         success: true,
-        intent: parsed.intent || 'UNKNOWN',
+        intent: normalizedIntent,
         equipo: parsed.equipo || null,
         home: parsed.home || null,
         away: parsed.away || null,
