@@ -83,10 +83,6 @@ async function getInfoEquipo(equipo) {
       });
     }
 
-    // Logo URL (Telegram lo muestra como preview si el mensaje es el primero)
-    const logoUrl = `https://images.fotmob.com/teamlogos/${teamId}.png`;
-    msg += `\n🔗 _Logo:_ ${logoUrl}`;
-
     return msg;
   } catch (error) {
     console.error('Error getInfoEquipo:', error);
