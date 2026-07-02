@@ -1,5 +1,6 @@
 // BotMundialista - Telegram Bot (usando API directa)
 require('dotenv').config();
+const http = require('http');
 const fetch = require('node-fetch');
 const messageHandler = require('./handlers/messageHandler');
 const { pool, testConnection } = require('./database/connection');
@@ -14,6 +15,30 @@ let isRunning = false;
 
 // Flag para saber si la DB está disponible
 let dbAvailable = false;
+
+// Mini servidor HTTP para health checks de Azure App Service
+// Azure Linux requiere que el proceso escuche en PORT para considerarlo saludable
+const PORT = process.env.PORT || 8080;
+const server = http.createServer((req, res) => {
+  const url = req.url || '/';
+  if (url === '/health' || url === '/') {
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({
+      status: 'ok',
+      bot: 'BotMundialista',
+      uptime: process.uptime(),
+      db: dbAvailable ? 'connected' : 'demo',
+      timestamp: new Date().toISOString()
+    }));
+  } else {
+    res.writeHead(404);
+    res.end('Not found');
+  }
+});
+
+server.listen(PORT, () => {
+  console.log(`🌐 Health server listening on port ${PORT}`);
+});
 
 /**
  * Hace una solicitud a la API de Telegram
