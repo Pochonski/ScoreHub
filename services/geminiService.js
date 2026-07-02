@@ -111,6 +111,21 @@ Usuario: "Última vez que se enfrentaron México y Argentina"
 
 Usuario: "Ya no quiero seguir a Chile"
 → {"intent":"DEJAR_SEGUIR","equipo":"Chile","home":null,"away":null,"fecha":null,"liga":null,"grupo":null}
+
+Usuario: "Cómo va la premier"
+→ {"intent":"TABLA","equipo":null,"home":null,"away":null,"fecha":null,"liga":"premier","grupo":null}
+
+Usuario: "Tabla de la champions"
+→ {"intent":"TABLA","equipo":null,"home":null,"away":null,"fecha":null,"liga":"champions","grupo":null}
+
+Usuario: "Como va la liga española"
+→ {"intent":"TABLA","equipo":null,"home":null,"away":null,"fecha":null,"liga":"la liga","grupo":null}
+
+Usuario: "Cómo va el grupo C del mundial"
+→ {"intent":"TABLA_GRUPO","equipo":null,"home":null,"away":null,"fecha":null,"liga":null,"grupo":"C"}
+
+Usuario: "Tabla del mundial"
+→ {"intent":"TABLA_MUNDIAL","equipo":null,"home":null,"away":null,"fecha":null,"liga":null,"grupo":null}
 `;
 
 /**

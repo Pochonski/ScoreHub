@@ -5,26 +5,89 @@ const { LIGAS } = require('../utils/constants');
 
 /**
  * Obtiene tabla de posiciones de una liga
+ * Acepta: string ("premier", "la liga") u objeto {id, nombre}
  */
 async function getTabla(liga) {
   try {
-    // Si es Mundial, usar tabla de grupo
-    if (liga.id === LIGAS.MUNDIAL.id) {
+    let ligaId;
+    let ligaNombre;
+
+    if (typeof liga === 'string') {
+      // Mapeo de nombres comunes a IDs
+      const lower = liga.toLowerCase().trim();
+      // Primero intentar con getLeagueId de la API service
+      const apiId = footballApi.getLeagueId(lower);
+      if (apiId) {
+        ligaId = apiId;
+        ligaNombre = capitalizeFirst(liga);
+      } else {
+        // Mapeo de fallback para variantes coloquiales
+        const fallback = matchLeagueName(lower);
+        if (!fallback) {
+          return `⚠️ No reconocí la liga "${liga}". Prueba: "premier", "la liga", "bundesliga", "champions", "serie a", "libertadores".`;
+        }
+        ligaId = fallback.id;
+        ligaNombre = fallback.nombre;
+      }
+    } else if (liga && typeof liga === 'object') {
+      ligaId = liga.id;
+      ligaNombre = liga.nombre;
+    }
+
+    if (!ligaId) {
+      return `⚠️ Liga no reconocida. Prueba: "premier", "la liga", "bundesliga", "champions".`;
+    }
+
+    // Si es Mundial, usar tabla general
+    if (ligaId === LIGAS.MUNDIAL.id) {
       return await getTablaMundial();
     }
 
-    // Para otras ligas, usar standings normal
-    const data = await footballApi.getStandings(liga.id);
+    const data = await footballApi.getStandings(ligaId);
 
     if (!data || data.length === 0) {
-      return `⚠️ No hay tabla disponible para ${liga.nombre}.`;
+      return `⚠️ No hay tabla disponible para ${ligaNombre}.`;
     }
 
-    return formatTabla(data, liga.nombre);
+    return formatTabla(data, ligaNombre);
   } catch (error) {
     console.error('Error getTabla:', error);
-    return `⚠️ No pude obtener la tabla de ${liga.nombre}.`;
+    return `⚠️ No pude obtener la tabla.`;
   }
+}
+
+/**
+ * Fallback: mapea nombres coloquiales de ligas a objetos {id, nombre}
+ */
+function matchLeagueName(name) {
+  const map = {
+    'premier': { id: 47, nombre: 'Premier League' },
+    'premier league': { id: 47, nombre: 'Premier League' },
+    'inglaterra': { id: 47, nombre: 'Premier League' },
+    'laliga': { id: 87, nombre: 'La Liga' },
+    'la liga': { id: 87, nombre: 'La Liga' },
+    'liga': { id: 87, nombre: 'La Liga' },
+    'españa': { id: 87, nombre: 'La Liga' },
+    'espanol': { id: 87, nombre: 'La Liga' },
+    'serie a': { id: 55, nombre: 'Serie A' },
+    'italia': { id: 55, nombre: 'Serie A' },
+    'bundesliga': { id: 54, nombre: 'Bundesliga' },
+    'alemania': { id: 54, nombre: 'Bundesliga' },
+    'ligue 1': { id: 53, nombre: 'Ligue 1' },
+    'francia': { id: 53, nombre: 'Ligue 1' },
+    'champions': { id: 42, nombre: 'Champions League' },
+    'champions league': { id: 42, nombre: 'Champions League' },
+    'libertadores': { id: 134, nombre: 'Copa Libertadores' },
+    'europa league': { id: 73, nombre: 'Europa League' },
+    'copa america': { id: 13, nombre: 'Copa América' },
+    'mundial': { id: 77, nombre: 'Copa Mundial' },
+  };
+  return map[name] || null;
+}
+
+function capitalizeFirst(s) {
+  if (!s) return s;
+  return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
 /**

@@ -172,7 +172,8 @@ async function getResultadoEquipo(equipo) {
 }
 
 /**
- * Resultado de un enfrentamiento específico
+ * Resultado de un enfrentamiento específico entre dos equipos
+ * Busca en los partidos de AMBOS equipos para mayor覆盖率
  */
 async function getResultadoVS(home, away) {
   try {
@@ -199,24 +200,51 @@ async function getResultadoVS(home, away) {
       return `⚠️ No encontré al equipo "${typeof away === 'string' ? away : (away && away.nombre) || ''}"`;
     }
 
-    const homeMatches = await footballApi.getTeamMatches(homeTeam.id, 15);
+    // Buscar en paralelo los partidos de ambos equipos (mayor cobertura)
+    const [homeMatches, awayMatches] = await Promise.all([
+      footballApi.getTeamMatches(homeTeam.id, 30),
+      footballApi.getTeamMatches(awayTeam.id, 30)
+    ]);
 
-    const h2h = homeMatches.find(m =>
-      (m.homeTeam?.toLowerCase().includes(awayTeam.name.toLowerCase()) ||
-       m.awayTeam?.toLowerCase().includes(awayTeam.name.toLowerCase()))
-    );
+    const homeLower = homeTeam.name.toLowerCase();
+    const awayLower = awayTeam.name.toLowerCase();
 
-    if (h2h) {
-      const score = h2h.homeScore !== null ? `${h2h.homeScore} - ${h2h.awayScore}` : 'vs';
-      const date = new Date(h2h.date).toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' });
-      return `⚽ *ENFRENTAMIENTO*\n\n${h2h.homeTeam} ${score} ${h2h.awayTeam}\n📅 ${date}\n🏆 ${h2h.tournament}`;
+    // Función para detectar si un partido es entre estos dos equipos
+    const isH2H = (m) => {
+      const ht = (m.homeTeam || '').toLowerCase();
+      const at = (m.awayTeam || '').toLowerCase();
+      return (ht.includes(homeLower) && at.includes(awayLower)) ||
+             (ht.includes(awayLower) && at.includes(homeLower));
+    };
+
+    // Combinar y deduplicar partidos jugados, ordenados por fecha DESC
+    const allCandidates = [...(homeMatches || []), ...(awayMatches || [])]
+      .filter(m => m.homeScore != null && m.awayScore != null && isH2H(m));
+
+    const seen = new Set();
+    const unique = [];
+    allCandidates.sort((a, b) => new Date(b.date) - new Date(a.date));
+    for (const m of unique.length < 5 ? allCandidates : allCandidates) {
+      if (!seen.has(m.id) && unique.length < 5) {
+        seen.add(m.id);
+        unique.push(m);
+      }
     }
 
-    return `⚠️ No encontré enfrentamientos recientes entre ${homeTeam.name} y ${awayTeam.name}.\n\n` +
-      `Pueden no haberse enfrentado en este Mundial.`;
+    if (unique.length === 0) {
+      return `⚠️ No encontré enfrentamientos recientes entre *${homeTeam.name}* y *${awayTeam.name}*.\n\n` +
+        `💡 Puede que no se hayan enfrentado recientemente, o los datos no estén disponibles en mi fuente.`;
+    }
+
+    let msg = `⚽ *ENFRENTAMIENTOS — ${homeTeam.name.toUpperCase()} VS ${awayTeam.name.toUpperCase()}*\n\n`;
+    msg += `📅 *Últimos ${unique.length} enfrentamientos:*\n`;
+    unique.forEach(m => {
+      msg += formatMatchLine(m, homeTeam.id).line + '\n';
+    });
+    return msg;
   } catch (error) {
     console.error('Error getResultadoVS:', error);
-    return `⚠️ No pude obtener el resultado.`;
+    return `⚠️ No pude obtener el resultado del enfrentamiento.`;
   }
 }
 

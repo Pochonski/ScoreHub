@@ -94,22 +94,39 @@ function formatEquipo(info) {
 }
 
 /**
- * Formatea una tabla de posiciones
+ * Formatea una tabla de posiciones con alineación clara y emojis de posición
  */
 function formatTabla(standings, liga) {
   if (!standings || standings.length === 0) {
     return `📊 No hay información de tabla para ${liga}.`;
   }
 
-  let msg = `📊 *TABLA - ${liga}*\n\n`;
-  msg += 'Pos | Equipo          | PJ | PG | PE | PP | Pts\n';
-  msg += '---------------------------------------------\n';
+  const data = standings.slice(0, 12);
 
-  standings.slice(0, 10).forEach((team, i) => {
-    const nombre = team.team?.name || team.name || '?';
-    msg += `${team.rank || i+1}   | ${nombre.padEnd(15)} | ${team.played || 0}  | ${team.win || 0}  | ${team.draw || 0}  | ${team.lose || 0}  | ${team.points || 0}\n`;
+  // Calcular anchos dinámicos para el nombre
+  const maxNameLen = Math.min(18, Math.max(...data.map(t => (t.team?.name || t.name || '?').length)));
+
+  let msg = `📊 *TABLA — ${liga.toUpperCase()}*\n\n`;
+
+  data.forEach((team, i) => {
+    const rank = team.rank || (i + 1);
+    const emoji = rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : '  ';
+    const nombre = (team.team?.name || team.name || '?').substring(0, maxNameLen);
+    const pj = team.played || team.matchesPlayed || 0;
+    const v  = team.wins || team.win || 0;
+    const e  = team.draws || team.draw || 0;
+    const d  = team.losses || team.lose || 0;
+    const gf = team.goalsFor || team.scoresFor || 0;
+    const gc = team.goalsAgainst || team.scoresAgainst || 0;
+    const gd = (team.goalDiff != null ? team.goalDiff : (gf - gc));
+    const gdStr = gd > 0 ? `+${gd}` : `${gd}`;
+    const pts = team.points || 0;
+
+    msg += `${emoji} *${rank}.* ${nombre}\n`;
+    msg += `     PJ ${pj}  |  V${v} E${e} D${d}  |  Goles ${gf}-${gc} (${gdStr})  |  *${pts} pts*\n`;
   });
 
+  msg += `\n_Leyenda: V=victorias · E=empates · D=derrotas · GD=goles diferencia_`;
   return msg;
 }
 
