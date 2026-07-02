@@ -26,11 +26,11 @@ DR Congo, Mali, Uganda, New Zealand
 Intents posibles:
 - SALUDO: saludos, hola, buenos dias, buenas
 - HELP: ayuda, comandos, que puedes hacer
-- PARTIDOS_HOY: partidos de hoy, que hay hoy
-- PARTIDO_FECHA: partidos del [fecha], cuando juega
-- RESULTADO: resultado de [equipo], como quedo [equipo], lego [equipo]
+- PARTIDOS_HOY: partidos de hoy, que hay hoy, que se juega hoy
+- PARTIDO_FECHA: partidos del [fecha específica explícita como "5 de julio", "el viernes", "mañana"]. NO uses esto para "últimos partidos".
+- RESULTADO: resultado de [equipo], como quedo [equipo], como le fue a [equipo], ultimo partido de [equipo], últimos partidos de [equipo], partidos recientes de [equipo], últimos resultados de [equipo]
 - RESULTADO_VS: [equipo] vs [equipo], [equipo] contra [equipo]
-- INFO_EQUIPO: info de [equipo], informacion de [equipo], datos de [equipo]
+- INFO_EQUIPO: info de [equipo], informacion de [equipo], datos de [equipo], quien es [equipo]
 - ESTADISTICA: estadisticas de [equipo], corners de [equipo], goles de [equipo]
 - TABLA: tabla de posiciones, clasificacion
 - TABLA_MUNDIAL: tabla del mundial, grupo [letra]
@@ -38,6 +38,11 @@ Intents posibles:
 - SEGUIR_EQUIPO: seguir [equipo], notificar [equipo]
 - DEJAR_SEGUIR: dejar de seguir [equipo]
 - MIS_EQUIPOS: mis equipos, equipos seguidos
+
+Reglas importantes para distinguir RESULTADO vs PARTIDO_FECHA:
+- "últimos partidos de X", "partidos recientes de X", "último resultado de X", "cómo quedó X", "cómo le fue a X" → SIEMPRE es RESULTADO
+- "partidos del 5 de julio", "qué juega X el viernes", "cuándo juega X" → es PARTIDO_FECHA
+- Si NO hay fecha explícita (día, "el viernes", "mañana") → usa RESULTADO
 
 Responde SOLO con JSON:
 {"intent": "INTENT", "equipo": "nombre del equipo o null", "home": "equipo local o null", "away": "equipo visitante o null", "fecha": "fecha en YYYYMMDD o null", "liga": "liga o null", "grupo": "grupo A-H o null"}

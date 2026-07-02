@@ -62,9 +62,41 @@ async function getPartidosHoy(parsed = {}) {
 
 /**
  * Partidos de una fecha específica
+ * Acepta: string YYYYMMDD o null/empty
  */
 async function getPartidosFecha(tipoFecha) {
-  return `📅 Usa "Cómo quedó [equipo]" para ver el último resultado`;
+  if (!tipoFecha || tipoFecha === 'null' || tipoFecha === 'undefined') {
+    return '📅 *PARTIDOS POR FECHA*\n\n' +
+      'Para ver partidos de una fecha específica, indícala:\n' +
+      '• "Partidos del 5 de julio"\n' +
+      '• "Qué juega el viernes"\n' +
+      '• "Partidos del 20260705"\n\n' +
+      '💡 Para *últimos resultados* de un equipo, usa:\n' +
+      '   "Cómo quedó [equipo]" o "Últimos partidos de [equipo]"';
+  }
+
+  // Formato YYYYMMDD -> YYYY-MM-DD para el usuario
+  let fechaFmt = tipoFecha;
+  if (/^\d{8}$/.test(tipoFecha)) {
+    fechaFmt = `${tipoFecha.slice(0,4)}-${tipoFecha.slice(4,6)}-${tipoFecha.slice(6,8)}`;
+  }
+
+  try {
+    const matches = await footballApi.getMatchesByDate(tipoFecha);
+    if (!matches || matches.length === 0) {
+      return `📅 No encontré partidos para el ${fechaFmt}.`;
+    }
+
+    let msg = `📅 *PARTIDOS - ${fechaFmt}*\n\n`;
+    matches.slice(0, 20).forEach(m => {
+      const score = m.homeScore != null ? `${m.homeScore} - ${m.awayScore}` : m.time || '';
+      msg += `⚽ ${m.homeTeam} ${score} ${m.awayTeam}\n`;
+    });
+    return msg;
+  } catch (error) {
+    console.error('Error getPartidosFecha:', error.message);
+    return `⚠️ No pude obtener partidos para ${fechaFmt}.`;
+  }
 }
 
 /**
