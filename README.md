@@ -412,3 +412,5 @@ Desarrollado con 🤖 Claude (Anthropic) + ❤️ para el fútbol
 ---
 
 **¿Preguntas o problemas?** Abre un issue en el repositorio.
+ 
+ 
