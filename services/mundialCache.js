@@ -120,7 +120,28 @@ async function getTeamByName(name) {
     }
     const norm = (s) => (s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
     const target = norm(name);
-    return competitors.find((c) => norm(c.name) === target || norm(c.name).includes(target) || norm(c.symbolicName || '').includes(target)) || null;
+    let found = competitors.find((c) => norm(c.name) === target || norm(c.name).includes(target) || norm(c.symbolicName || '').includes(target)) || null;
+    if (!found) {
+      const games = await cosmos.queryAll('games',
+        { query: 'SELECT c.homeCompetitor, c.awayCompetitor FROM c WHERE c.competitionId = @cid',
+          parameters: [{ name: '@cid', value: MUNDIAL_ID }] }).catch(() => []);
+      for (const g of games) {
+        for (const comp of [g.homeCompetitor, g.awayCompetitor]) {
+          if (comp && norm(comp.name) === target) {
+            found = { id: comp.id, name: comp.name, symbolicName: comp.symbolicName, countryId: comp.countryId, imageVersion: comp.imageVersion };
+            cosmos.upsert('catalog', {
+              id: `competitors-${comp.id}`,
+              entityType: 'competitors',
+              ...found,
+              _fetchedAt: new Date().toISOString(),
+            }).catch(() => {});
+            break;
+          }
+        }
+        if (found) break;
+      }
+    }
+    return found;
   });
 }
 

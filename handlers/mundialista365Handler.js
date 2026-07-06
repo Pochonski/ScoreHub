@@ -358,6 +358,7 @@ async function getAlineacion(gameId) {
     return `⚠️ No encontré el partido con gameId \`${gid}\` en el Mundial.`;
   }
 
+  const scores365 = require('../services/scores365Service');
   let overview = null;
   try {
     overview = await cosmos.queryOne('game_overviews',
@@ -371,7 +372,27 @@ async function getAlineacion(gameId) {
     } catch (_) { /* ignore */ }
   }
 
-  if (!overview || !overview.game) {
+  let g = overview?.game || null;
+  if (g) {
+    const homeLineup = g.homeCompetitor?.lineups?.members || [];
+    const awayLineup = g.awayCompetitor?.lineups?.members || [];
+    if (homeLineup.length === 0 && awayLineup.length === 0) {
+      try {
+        const matchupId = `${game.homeCompetitor?.id || 0}-${game.awayCompetitor?.id || 0}-${MUNDIAL_ID}`;
+        const fresh = await scores365.getGameOverview(gid, matchupId);
+        if (fresh?.game?.homeCompetitor?.lineups?.members?.length || fresh?.game?.awayCompetitor?.lineups?.members?.length) {
+          g = fresh.game;
+          overview = { game: g, lastUpdateId: fresh.lastUpdateId };
+          cosmos.upsert('game_overviews', {
+            id: `${gid}-${fresh.lastUpdateId || 0}`,
+            gameId: gid, lastUpdateId: fresh.lastUpdateId, ...fresh, _fetchedAt: new Date().toISOString(),
+          }).catch(() => {});
+        }
+      } catch (_) { /* ignore */ }
+    }
+  }
+
+  if (!g) {
     if (game.statusGroup === 2) {
       return `ℹ️ Las alineaciones de *${fmtGameTitle(game)}* se publican cerca del partido. ` +
         `Volvé a probar 1h antes del kickoff.`;
@@ -379,7 +400,6 @@ async function getAlineacion(gameId) {
     return `ℹ️ No tengo alineaciones guardadas para \`${gid}\`.`;
   }
 
-  const g = overview.game;
   const home = g.homeCompetitor?.name || game.homeCompetitor?.name || 'Local';
   const away = g.awayCompetitor?.name || game.awayCompetitor?.name || 'Visitante';
   const homeLineup = g.homeCompetitor?.lineups?.members || [];
