@@ -8,7 +8,7 @@ const conversationalHandler = require('./handlers/conversationalHandler');
 const mundialista365 = require('./handlers/mundialista365Handler');
 const mundialistaStats = require('./handlers/mundialistaStatsHandler');
 const cache = require('./services/mundialCache');
-const { getAthletePhotoUrl, getCountryFlagUrl } = require('./services/images');
+const { getAthletePhotoUrl, getCountryFlagUrl, getTeamBadgeUrl } = require('./services/images');
 const { pool, testConnection } = require('./database/connection');
 const userStorage = require('./utils/userStorage');
 const telegramNotifier = require('./services/telegramNotifier');
@@ -593,15 +593,19 @@ async function handleCommand(chatId, text, userName, userId) {
       if (cmd.startsWith('/info ')) {
         const equipo = text.replace(/^\/info(?:@\w+)? /i, '').trim();
         const team = await cache.getTeamByName(equipo);
-        let flagPhoto = null;
-        if (team && team.countryId) flagPhoto = getCountryFlagUrl(team.countryId);
+        let photoUrl = null;
+        if (team && team.id) {
+          photoUrl = getTeamBadgeUrl(team.id, team.imageVersion) || getCountryFlagUrl(team.countryId);
+        } else if (team && team.countryId) {
+          photoUrl = getCountryFlagUrl(team.countryId);
+        }
         const msgInfo = {
           from: chatId.toString(),
           body: `dame info de ${equipo}`,
           hasMedia: false,
           reply: async (t) => {
-            if (flagPhoto) {
-              await sendPhoto(chatId, flagPhoto, t);
+            if (photoUrl) {
+              await sendPhoto(chatId, photoUrl, t);
             } else {
               await sendMessage(chatId, t);
             }

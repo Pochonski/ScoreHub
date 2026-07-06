@@ -2,12 +2,13 @@ const CDN = 'https://imagecache.365scores.com/image/upload';
 
 const transforms = {
   athlete: 'f_png,w_200,h_200,c_limit,q_auto:eco,dpr_1,d_Athletes:{id}.png,r_max,c_thumb,g_face,z_0.65',
-  team: 'f_auto,q_auto',
+  team: 'f_png,w_96,h_96,c_limit,q_auto:eco,dpr_1,d_Competitors:default1.png',
   countryFlag: 'f_auto,q_auto',
 };
 
 const folders = {
   athlete: 'Athletes/NationalTeam',
+  team: 'Competitors',
   countryFlag: 'Countries',
 };
 
@@ -21,4 +22,9 @@ function getCountryFlagUrl(countryId) {
   return `${CDN}/${transforms.countryFlag}/${folders.countryFlag}/${countryId}.png`;
 }
 
-module.exports = { getAthletePhotoUrl, getCountryFlagUrl };
+function getTeamBadgeUrl(competitorId, imageVersion = 1) {
+  if (!competitorId) return null;
+  return `${CDN}/${transforms.team}/v${imageVersion}/${folders.team}/${competitorId}`;
+}
+
+module.exports = { getAthletePhotoUrl, getCountryFlagUrl, getTeamBadgeUrl };
