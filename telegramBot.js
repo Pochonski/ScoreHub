@@ -818,9 +818,8 @@ async function handleCommand(chatId, text, userName, userId) {
       }
 
       // /alineacion [gameId | eq1 vs eq2] — titulares y formación + fotos de jugadores
-      if (cmd === '/alineacion' || cmd === '/alineacion@botmundialistabot' ||
-          cmd === '/lineup' || cmd === '/lineup@botmundialistabot' ||
-          cmd === '/titulares' || cmd === '/titulares@botmundialistabot') {
+      const alineacionRe = /^\/(alineaci[oó]n|lineup|titulares)(?:@\w+)?/i;
+      if (alineacionRe.test(cmd) && !text.includes(' ')) {
         await sendMessage(chatId,
           `👥 *ALINEACIONES*\n\n` +
           `Uso: \`/alineacion <gameId>\` o \`/alineacion <eq1> vs <eq2>\`\n\n` +
@@ -831,8 +830,8 @@ async function handleCommand(chatId, text, userName, userId) {
         );
         return true;
       }
-      if (cmd.startsWith('/alineacion ') || cmd.startsWith('/lineup ') || cmd.startsWith('/titulares ')) {
-        const arg = text.replace(/^\/(alineacion|lineup|titulares)(?:@\w+)?\s+/i, '').trim();
+      if (alineacionRe.test(cmd) && text.includes(' ')) {
+        const arg = text.replace(alineacionRe, '').trim();
         let gameId = arg;
         const isGameId = /^\d+$/.test(arg);
 
