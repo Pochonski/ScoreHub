@@ -61,7 +61,7 @@ server.listen(PORT, () => {
 /**
  * Hace una solicitud a la API de Telegram (https nativo, sin node-fetch)
  */
-async function telegramRequest(method, params = {}) {
+async function telegramRequest(method, params = {}, timeoutMs = 60000) {
   const url = new URL(`${API_URL}/${method}`);
   const body = JSON.stringify(params);
   return new Promise((resolve, reject) => {
@@ -71,6 +71,7 @@ async function telegramRequest(method, params = {}) {
         'Content-Type': 'application/json',
         'Content-Length': Buffer.byteLength(body),
       },
+      timeout: timeoutMs,
     }, (res) => {
       let data = '';
       res.on('data', (chunk) => { data += chunk; });
@@ -83,6 +84,7 @@ async function telegramRequest(method, params = {}) {
       });
     });
     req.on('error', reject);
+    req.on('timeout', () => { req.destroy(); reject(new Error(`Telegram API (${method}): timeout after ${timeoutMs}ms`)); });
     req.write(body);
     req.end();
   });
@@ -1169,8 +1171,8 @@ async function pollingCycle() {
   try {
     const updates = await telegramRequest('getUpdates', {
       offset,
-      timeout: 30
-    });
+      timeout: 5
+    }, 12000);
     if (updates?.result?.length > 0) {
       console.log(`📩 Recibidos ${updates.result.length} update(s)`);
     }
@@ -1182,7 +1184,7 @@ async function pollingCycle() {
 
   // Continuar el loop
   if (isRunning) {
-    setTimeout(pollingCycle, 500);
+    setTimeout(pollingCycle, 2000);
   }
 }
 
