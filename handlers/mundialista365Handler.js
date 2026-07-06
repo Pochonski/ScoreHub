@@ -411,6 +411,9 @@ async function getAlineacion(gameId) {
     return `ℹ️ Todavía no hay alineaciones publicadas para *${fmtGameTitle(game)}*.`;
   }
 
+  const memberMap = {};
+  (g.members || []).forEach(m => { if (m.id != null) memberMap[m.id] = m; });
+
   let msg = `👥 *ALINEACIONES — ${fmtGameTitle(game).toUpperCase()}*\n\n`;
   msg += `🆔 Game ID: \`${gid}\` · 📅 ${fmtDateTime(game.startTime)}\n\n`;
 
@@ -429,7 +432,10 @@ async function getAlineacion(gameId) {
     Object.keys(byPos).forEach((pos) => {
       if (!byPos[pos].length) return;
       out += `   _${pos}:_ `;
-      out += byPos[pos].map((m) => m.shortName || m.name).join(', ');
+      out += byPos[pos].map((m) => {
+        const info = memberMap[m.id];
+        return info?.shortName || info?.name || m.shortName || m.name || '?';
+      }).join(', ');
       out += `\n`;
     });
     return out + '\n';

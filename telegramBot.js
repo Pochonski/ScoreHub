@@ -868,29 +868,41 @@ async function handleCommand(chatId, text, userName, userId) {
         if (badges.length > 0) await sendMediaGroup(chatId, badges);
         await sendMessage(chatId, t);
 
-        const sides = [
-          { comp: homeComp, label: 'home' },
-          { comp: awayComp, label: 'away' }
-        ];
-        for (const { comp } of sides) {
-          if (!comp?.lineups?.members?.length) continue;
-          const byPos = {};
-          for (const m of comp.lineups.members) {
-            const pos = m.position?.name || 'Otros';
-            if (!byPos[pos]) byPos[pos] = [];
-            byPos[pos].push(m);
-          }
-          for (const [pos, members] of Object.entries(byPos)) {
-            if (!members.length) continue;
-            const media = members.map(m => ({
-              type: 'photo',
-              media: getAthleteThumbUrl(m.athleteId, m.imageVersion),
-              caption: m.shortName || m.name
-            }));
-            for (let i = 0; i < media.length; i += 10) {
-              await sendMediaGroup(chatId, media.slice(i, i + 10));
+        // Build member name/photo lookup from full squad
+        const squadMembers = overview?.members || gameData?.members || [];
+        const memberMap = {};
+        squadMembers.forEach(m => { if (m.id != null) memberMap[m.id] = m; });
+
+        try {
+          const sides = [
+            { comp: homeComp, label: 'home' },
+            { comp: awayComp, label: 'away' }
+          ];
+          for (const { comp } of sides) {
+            if (!comp?.lineups?.members?.length) continue;
+            const byPos = {};
+            for (const m of comp.lineups.members) {
+              const pos = m.position?.name || 'Otros';
+              if (!byPos[pos]) byPos[pos] = [];
+              byPos[pos].push(m);
+            }
+            for (const [pos, members] of Object.entries(byPos)) {
+              if (!members.length) continue;
+              const media = members.map(m => {
+                const info = memberMap[m.id];
+                return {
+                  type: 'photo',
+                  media: getAthleteThumbUrl(info?.athleteId || m.athleteId, info?.imageVersion || m.imageVersion),
+                  caption: info?.shortName || info?.name || m.shortName || m.name || '?'
+                };
+              });
+              for (let i = 0; i < media.length; i += 10) {
+                await sendMediaGroup(chatId, media.slice(i, i + 10));
+              }
             }
           }
+        } catch (e) {
+          console.error('[alineacion] error sending photos:', e.message);
         }
         return true;
       }
