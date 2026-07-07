@@ -97,7 +97,6 @@ async function handleAdminRoute(req, res, url) {
   // API endpoints
   if (pathname.startsWith('/admin/api/')) {
     res.setHeader('Content-Type', 'application/json');
-    const telFilter = "WHERE h.id_usuario NOT LIKE '%@%'";
 
     // POST: rename user
     if (req.method === 'POST' && pathname === '/admin/api/users/rename') {
@@ -122,14 +121,23 @@ async function handleAdminRoute(req, res, url) {
       return;
     }
 
+    // Build platform filter
+    const platform = parsedUrl.searchParams.get('platform') || 'telegram';
+    const userCond = platform === 'whatsapp' ? "LIKE '%@%'" : platform === 'all' ? 'IS NOT NULL' : "NOT LIKE '%@%'";
+    const userFilter = `id ${userCond}`;
+    const uFilter = `u.id ${userCond}`;
+    const hFilter = `h.id_usuario ${userCond}`;
+
     try {
       let data;
       switch (pathname) {
         case '/admin/api/stats': {
-          const users = await pool.query("SELECT COUNT(*) as total FROM usuarios WHERE id NOT LIKE '%@%'");
-          const queries = await pool.query("SELECT COUNT(*) as total FROM historial_consultas h " + telFilter);
-          const todayQueries = await pool.query("SELECT COUNT(*) as total FROM historial_consultas h " + telFilter + " AND DATE(fecha) = CURRENT_DATE");
-          const teamsFollowed = await pool.query("SELECT COUNT(*) as total FROM equipos_seguidos e JOIN usuarios u ON e.id_usuario = u.id WHERE u.id NOT LIKE '%@%'");
+          const [users, queries, todayQueries, teamsFollowed] = await Promise.all([
+            pool.query(`SELECT COUNT(*) as total FROM usuarios WHERE ${userFilter}`),
+            pool.query(`SELECT COUNT(*) as total FROM historial_consultas h WHERE ${hFilter}`),
+            pool.query(`SELECT COUNT(*) as total FROM historial_consultas h WHERE ${hFilter} AND DATE(fecha) = CURRENT_DATE`),
+            pool.query(`SELECT COUNT(*) as total FROM equipos_seguidos e JOIN usuarios u ON e.id_usuario = u.id WHERE ${uFilter}`)
+          ]);
           data = {
             totalUsers: parseInt(users.rows[0].total),
             totalQueries: parseInt(queries.rows[0].total),
@@ -139,21 +147,32 @@ async function handleAdminRoute(req, res, url) {
           break;
         }
         case '/admin/api/users': {
-          const result = await pool.query("SELECT id, alias, fecha_registro FROM usuarios WHERE id NOT LIKE '%@%' ORDER BY fecha_registro DESC LIMIT 50");
+          const result = await pool.query(`SELECT id, alias, fecha_registro FROM usuarios WHERE ${userFilter} ORDER BY fecha_registro DESC LIMIT 50`);
           data = result.rows;
           break;
         }
         case '/admin/api/queries': {
           const limit = parseInt(parsedUrl.searchParams.get('limit')) || 50;
+          const offset = parseInt(parsedUrl.searchParams.get('offset')) || 0;
+          const search = parsedUrl.searchParams.get('search') || '';
+          let where = hFilter;
+          const params = [];
+          let paramIdx = 1;
+          if (search) {
+            where += ` AND (h.consulta ILIKE $${paramIdx} OR u.alias ILIKE $${paramIdx})`;
+            params.push(`%${search}%`);
+            paramIdx++;
+          }
+          params.push(limit, offset);
           const result = await pool.query(
             `SELECT h.id, h.consulta, h.tipo, h.respuesta, h.fecha, u.alias
              FROM historial_consultas h
              JOIN usuarios u ON h.id_usuario = u.id
-             WHERE h.id_usuario NOT LIKE '%@%'
+             WHERE ${where}
              ORDER BY h.fecha DESC
-             LIMIT $1`, [limit]
+             LIMIT $${paramIdx} OFFSET $${paramIdx + 1}`, params
           );
-          data = result.rows;
+          data = { rows: result.rows, total: result.rows.length };
           break;
         }
         case '/admin/api/followed-teams': {
@@ -161,7 +180,7 @@ async function handleAdminRoute(req, res, url) {
             `SELECT e.nombre_equipo, u.alias, e.fecha_seguimiento
              FROM equipos_seguidos e
              JOIN usuarios u ON e.id_usuario = u.id
-             WHERE e.id_usuario NOT LIKE '%@%'
+             WHERE ${uFilter}
              ORDER BY e.fecha_seguimiento DESC
              LIMIT 100`
           );
@@ -172,9 +191,24 @@ async function handleAdminRoute(req, res, url) {
           const result = await pool.query(
             `SELECT tipo, COUNT(*) as total
              FROM historial_consultas h
-             WHERE h.id_usuario NOT LIKE '%@%'
+             WHERE ${hFilter}
              GROUP BY tipo
              ORDER BY total DESC`
+          );
+          data = result.rows;
+          break;
+        }
+        case '/admin/api/apuestas': {
+          const limit = parseInt(parsedUrl.searchParams.get('limit')) || 50;
+          const result = await pool.query(
+            `SELECT a.id, a.id_usuario, a.partido_extrado, a.partido_normalizado,
+                    a.marcador_local, a.marcador_visitante, a.estado, a.resultado_final,
+                    a.fecha_creacion, a.fecha_partido, a.fecha_cierre,
+                    u.alias
+             FROM apuestas a
+             JOIN usuarios u ON a.id_usuario = u.id
+             ORDER BY a.fecha_creacion DESC
+             LIMIT $1`, [limit]
           );
           data = result.rows;
           break;
@@ -1238,6 +1272,21 @@ async function handleCommand(chatId, text, userName, userId) {
 }
 
 /**
+ * Guarda consulta en historial_consultas (solo si DB disponible)
+ */
+async function saveHistory(userId, text, tipo, response) {
+  if (!dbAvailable) return;
+  try {
+    await pool.query(
+      'INSERT INTO historial_consultas (id_usuario, consulta, tipo, respuesta, fecha) VALUES ($1, $2, $3, $4, NOW())',
+      [String(userId), text, tipo || 'comando', response || '']
+    );
+  } catch (e) {
+    console.error('[saveHistory] error:', e.message);
+  }
+}
+
+/**
  * Procesa un mensaje de Telegram (comando o chat)
  */
 async function processMessage(chatId, userId, text, user) {
@@ -1274,7 +1323,11 @@ async function processMessage(chatId, userId, text, user) {
       await sendMessage(chatId, `❌ Error procesando el comando: ${e.message}`);
       return;
     }
-    if (handled) return;
+    if (handled) {
+      const tipo = cleaned === '/start' ? 'inicio' : cleaned.replace('/', '').split(' ')[0];
+      saveHistory(String(userId), text, tipo, '');
+      return;
+    }
     const textSinComando = text.replace(/^\/[a-z@0-9_]+\s*/i, '').trim();
     if (textSinComando) {
       const msgObj = {
@@ -1291,6 +1344,7 @@ async function processMessage(chatId, userId, text, user) {
       const result = await conversationalHandler.handleMessage(String(userId), text);
       if (result.handled && result.message) {
         await sendMessage(chatId, result.message);
+        saveHistory(String(userId), text, 'conversacion', result.message);
         return;
       }
     } catch (e) {
@@ -1347,13 +1401,19 @@ async function handlePartidosCallback(chatId, callbackData) {
     try {
       const game = await cache.getGameById(gameId);
       if (game?.homeCompetitor?.name && game?.awayCompetitor?.name) {
-        const tip = mundialista365.formatTipForGame(game);
-        await sendMessage(chatId, tip);
+        const tip = await mundialista365.formatTipForGame(game);
+        if (tip) {
+          await sendMessage(chatId, tip);
+        } else {
+          console.error('[callback tip] formatTipForGame returned empty for gameId:', gameId);
+          await sendMessage(chatId, '⚠️ No hay tip disponible para ese partido.');
+        }
       } else {
+        console.error('[callback tip] no game data for gameId:', gameId, 'game:', JSON.stringify(game).substring(0, 200));
         await sendMessage(chatId, '⚠️ No pude obtener información de ese partido.');
       }
     } catch (e) {
-      console.error('[callback tip] error:', e);
+      console.error('[callback tip] error:', e.message, e.stack?.substring(0, 300));
       await sendMessage(chatId, '⚠️ Error al obtener tip de ese partido.');
     }
   } else if (action === 'trends') {

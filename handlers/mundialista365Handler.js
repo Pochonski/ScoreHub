@@ -77,7 +77,12 @@ async function formatTipForGame(game) {
   if (!game || !game.id) return '⚠️ Partido no encontrado.';
 
   const gameId = Number(game.id);
-  const tipDoc = await cosmos.getById('betting_tips', `${gameId}-composite`, gameId);
+  let tipDoc = null;
+  try {
+    tipDoc = await cosmos.getById('betting_tips', `${gameId}-composite`, gameId);
+  } catch (_) {
+    tipDoc = null;
+  }
 
   let msg = `🎯 *TIP — ${fmtGameTitle(game).toUpperCase()}*\n\n`;
   msg += `🆔 Game ID: \`${gameId}\`\n`;
