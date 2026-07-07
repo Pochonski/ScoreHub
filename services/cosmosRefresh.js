@@ -116,6 +116,60 @@ async function refreshGameTrends() {
   }
 }
 
+async function refreshOddsLines() {
+  log('refresh odds lines for upcoming/live games...');
+  const today = new Date();
+  const future = addDays(today, 7);
+  const res = await api.getGamesAllScores(ddmmyyyy(today), ddmmyyyy(future), 1, { onlyMajorGames: true, withTop: true });
+  const target = (res.games || []).filter((g) => g.competitionId === MUNDIAL_ID && (g.statusGroup === 1 || g.statusGroup === 2));
+  log(`  → ${target.length} partidos (vivos+próximos), consultando odds...`);
+  for (const g of target) {
+    try {
+      const odds = await api.getOddsLines(g.id);
+      await cosmos.upsert('odds_lines', {
+        id: `${g.id}-${odds.lastUpdateId || 0}`,
+        gameId: Number(g.id),
+        ...odds,
+        _fetchedAt: now(),
+      });
+    } catch (e) {
+      log(`    ! odds game ${g.id}: ${e.message.substring(0, 80)}`);
+    }
+    await new Promise((r) => setTimeout(r, 150));
+  }
+}
+
+async function refreshAthleteNextGames() {
+  log('refresh athlete next games...');
+  try {
+    const athletes = await cosmos.queryAll('athletes', { query: 'SELECT c.id, c.name FROM c' });
+    log(`  → ${athletes.length} atletas, consultando nextGame...`);
+    let count = 0;
+    for (const a of athletes) {
+      try {
+        const next = await api.getAthleteNextGame(a.id);
+        if (next) {
+          await cosmos.upsert('athlete_next_games', {
+            id: `${a.id}-${next.lastUpdateId || 0}`,
+            athleteId: Number(a.id),
+            ...next,
+            _fetchedAt: now(),
+          });
+          count++;
+        }
+      } catch (e) {
+        if (!e.message?.includes('404') && !e.message?.includes('400')) {
+          log(`    ! nextGame athlete ${a.id}: ${e.message.substring(0, 60)}`);
+        }
+      }
+      await new Promise((r) => setTimeout(r, 100));
+    }
+    log(`  → ${count} atletas con nextGame actualizado`);
+  } catch (e) {
+    log(`  ! ERROR querying athletes: ${e.message.substring(0, 80)}`);
+  }
+}
+
 async function tick() {
   try {
     await refreshCatalog();
@@ -125,6 +179,8 @@ async function tick() {
     await refreshStandings();
     await refreshPredictions();
     await refreshGameTrends();
+    await refreshOddsLines();
+    await refreshAthleteNextGames();
     log('refresh completo ✓');
   } catch (e) {
     log(`ERROR: ${e.message}`);

@@ -112,6 +112,18 @@ async function bootstrapMundialStructure() {
     });
     log(`  → team of the week (key=${key})`);
   }
+  const fixtures = await api.getFixtures(MUNDIAL_ID);
+  await cosmos.upsert('fixtures', {
+    id: `${MUNDIAL_ID}-fixtures`, competitionId: MUNDIAL_ID, ...fixtures, _fetchedAt: now(),
+  });
+  log(`  → fixtures`);
+
+  const outrights = await api.getOutrights(MUNDIAL_ID);
+  await cosmos.upsert('odds_misc', {
+    id: `outrights-${MUNDIAL_ID}`, kind: 'outrights', competitionId: MUNDIAL_ID, ...outrights, _fetchedAt: now(),
+  });
+  log(`  → outrights`);
+
   state.markMundialStructureDone();
 }
 
@@ -350,6 +362,23 @@ async function bootstrapAthletes(games) {
           };
         });
         if (cdocs.length) await cosmos.bulkInsert('athlete_careers', cdocs);
+
+        const gamesRes = await api.getAthleteGames(id);
+        if (gamesRes.games?.length) {
+          const gdocs = gamesRes.games.map((g) => ({
+            id: `${id}-${g.gameId || g.id}`, athleteId: id, ...g, _fetchedAt: now(),
+          }));
+          await cosmos.bulkInsert('athlete_games', gdocs);
+        }
+
+        const chartRes = await api.getAthleteChartEvents(id);
+        if (chartRes) {
+          const { id: _ci, ...cRest } = chartRes;
+          await cosmos.upsert('athlete_chart_events', {
+            id: String(id), athleteId: id, ...cRest, _fetchedAt: now(),
+          });
+        }
+
         state.markAthleteFetched(id);
         count++;
       } catch (e) {

@@ -5,6 +5,8 @@ const https = require('https');
 const path = require('path');
 const fs = require('fs');
 const messageHandler = require('./handlers/messageHandler');
+const matchSearch = require('./services/matchSearch');
+const cosmos = require('./database/cosmos');
 const followHandler = require('./handlers/followHandler');
 const conversationalHandler = require('./handlers/conversationalHandler');
 const mundialista365 = require('./handlers/mundialista365Handler');
@@ -348,13 +350,17 @@ async function handleCommand(chatId, text, userName, userId) {
         `  /analizar [eq1] vs [eq2] - Análisis _(ej: /analizar brasil vs argentina)_\n` +
         `  /info [equipo] · /seguir [equipo] - Info / seguir equipo\n` +
         `  /cambiarusuario [nombre] - Cambiar apodo\n\n` +
-        `🎯 *Tips y tendencias (365scores):*\n` +
+        `🎯 *Tips, cuotas y tendencias:*\n` +
+        `  /fixture - Próximos partidos del Mundial\n` +
+        `  /outrights - Cuotas de campeón, goleador y más\n` +
+        `  /odds <gameId> - Cuotas detalladas de un partido\n` +
         `  /tip [eq1] vs [eq2] - Tip con confianza _(ej: /tip brasil vs argentina)_\n` +
-        `  /tendencias - Top 10 tendencias del Mundial\n` +
-        `  /tendencias [eq1] vs [eq2] - Trends de un partido _(ej: /tendencias brasil vs argentina)_\n` +
+        `  /tendencias - Top tendencias + cuotas del Mundial\n` +
+        `  /tendencias [eq1] vs [eq2] - Trends de un partido\n` +
         `  /predicciones <gameId> - Predicciones de la comunidad\n\n` +
-        `📡 *Stats en vivo (365scores):*\n` +
-        `  /live - Partidos en vivo ahora\n` +
+        `📡 *Stats y partidos:*\n` +
+        `  /partidos - Partidos de hoy (tips + trends + odds)\n` +
+        `  /live - Partidos en vivo con stats y odds\n` +
         `  /stats-vivo <gameId> - Stats del último snapshot\n` +
         `  /alineacion <gameId> - Titulares y formación\n` +
         `  /previa <gameId> - Pre-match stats\n` +
@@ -395,13 +401,16 @@ async function handleCommand(chatId, text, userName, userId) {
         `  /seguir [equipo] - Seguir equipo\n` +
         `  /cambiarusuario [nombre] - Cambiar apodo\n` +
         `  /yo · /reset - Perfil / borrar datos\n\n` +
-        `🎯 *Tips y tendencias:*\n` +
+        `🎯 *Tips, cuotas y tendencias:*\n` +
+        `  /fixture - Próximos partidos del Mundial\n` +
+        `  /outrights - Cuotas de campeón, goleador y más\n` +
+        `  /odds <gameId> - Cuotas detalladas de un partido\n` +
         `  /tip [eq1] vs [eq2] - Tip con % de confianza\n` +
-        `  /tendencias - Top 10 Mundial\n` +
+        `  /tendencias - Top tendencias + cuotas outright\n` +
         `  /tendencias [eq1] vs [eq2] - Trends de un partido\n` +
         `  /predicciones <gameId> - Predicciones comunidad\n\n` +
         `📡 *Stats en vivo:*\n` +
-        `  /live - En vivo ahora\n` +
+        `  /live - Partidos en vivo (con stats + odds)\n` +
         `  /stats-vivo <gameId> - Stats del último snapshot\n` +
         `  /alineacion <gameId> - Titulares y formación\n` +
         `  /previa <gameId> - Pre-match stats\n` +
@@ -476,7 +485,7 @@ async function handleCommand(chatId, text, userName, userId) {
         const today = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Costa_Rica' }).replace(/-/g, '');
         const games = await cache.getWorldCupGames({ date: today });
         if (games && games.length > 0) {
-          const keyboard = buildPartidosKeyboard(games);
+          const keyboard = buildGameKeyboard(games, ['tip', 'trends', 'odds']);
           await sendMessage(chatId, text, { reply_markup: { inline_keyboard: keyboard } });
         } else {
           await sendMessage(chatId, text);
@@ -502,7 +511,7 @@ async function handleCommand(chatId, text, userName, userId) {
           return true;
         }
         const porGrupo = {};
-        mundialMatches.forEach(m => {
+        matches.forEach(m => {
           const letra = (m.stageName || '').match(/Group\s+([A-L])/i)?.[1]?.toUpperCase() || '?';
           if (!porGrupo[letra]) porGrupo[letra] = [];
           porGrupo[letra].push(m);
@@ -511,13 +520,17 @@ async function handleCommand(chatId, text, userName, userId) {
         Object.keys(porGrupo).sort().forEach(g => {
           msg += `📋 *GRUPO ${g}*\n`;
           porGrupo[g].forEach(m => {
-            msg += `⚽ ${m.homeTeam} vs ${m.awayTeam}`;
-            if (m.time) msg += `  _(${m.time})_`;
+            const home = m.homeCompetitor?.name || m.homeTeam || '?';
+            const away = m.awayCompetitor?.name || m.awayTeam || '?';
+            msg += `⚽ ${home} vs ${away}`;
+            const t = m.startTime || m.time || '';
+            if (t) msg += `  _(${t.includes('T') ? t.split('T')[1]?.slice(0,5) : t})_`;
             msg += '\n';
           });
           msg += '\n';
         });
-        await sendMessage(chatId, msg.trim());
+        const keyboard = buildGameKeyboard(matches, ['tip', 'trends', 'odds']);
+        await sendMessage(chatId, msg.trim(), { reply_markup: { inline_keyboard: keyboard } });
       } catch (e) {
         await sendMessage(chatId, '⚠️ No pude obtener partidos de mañana.');
       }
@@ -607,11 +620,13 @@ async function handleCommand(chatId, text, userName, userId) {
         const equipoText = text.replace('/resultado ', '').replace('/Resultado ', '');
         const vsMatch = equipoText.match(/^(.+?)\s+(?:vs\.?|y|contra|c\/)\s+(.+)$/i);
         let photoUrls = null;
+        let vsHomeName = null, vsAwayName = null;
         if (vsMatch) {
-          const [_, homeName, awayName] = vsMatch;
+          vsHomeName = vsMatch[1].trim();
+          vsAwayName = vsMatch[2].trim();
           const [homeTeam, awayTeam] = await Promise.all([
-            cache.getTeamByName(homeName.trim()),
-            cache.getTeamByName(awayName.trim())
+            cache.getTeamByName(vsHomeName),
+            cache.getTeamByName(vsAwayName)
           ]);
           const homeBadge = homeTeam?.id ? getTeamBadgeUrl(homeTeam.id, homeTeam.imageVersion) : null;
           const awayBadge = awayTeam?.id ? getTeamBadgeUrl(awayTeam.id, awayTeam.imageVersion) : null;
@@ -635,6 +650,12 @@ async function handleCommand(chatId, text, userName, userId) {
             } else {
               await sendMessage(chatId, t);
             }
+            if (vsHomeName && vsAwayName) {
+              const game = await matchSearch.findGameByTeams(vsHomeName, vsAwayName).catch(() => null);
+              if (game?.id) {
+                await sendMessage(chatId, '📊 Acciones:', { reply_markup: { inline_keyboard: buildSingleGameKeyboard(game.id, ['tip', 'trends', 'odds']) } });
+              }
+            }
           }
         };
         await messageHandler(null, msgRes);
@@ -655,11 +676,20 @@ async function handleCommand(chatId, text, userName, userId) {
 
       if (cmd.startsWith('/analizar ')) {
         const vsText = text.replace('/analizar ', '').replace('/Analizar ', '');
+        const vsM = vsText.match(/^(.+?)\s+(?:vs\.?|y|contra|c\/)\s+(.+)$/i);
         const msgAna = {
           from: chatId.toString(),
           body: `analiza ${vsText}`,
           hasMedia: false,
-          reply: async (t) => await sendMessage(chatId, t)
+          reply: async (t) => {
+            await sendMessage(chatId, t);
+            if (vsM) {
+              const game = await matchSearch.findGameByTeams(vsM[1].trim(), vsM[2].trim()).catch(() => null);
+              if (game?.id) {
+                await sendMessage(chatId, '📊 Acciones:', { reply_markup: { inline_keyboard: buildSingleGameKeyboard(game.id, ['h2h', 'odds']) } });
+              }
+            }
+          }
         };
         await messageHandler(null, msgAna);
         return true;
@@ -777,6 +807,9 @@ async function handleCommand(chatId, text, userName, userId) {
             await sendPhoto(chatId, badgeUrl, `🏆 ${team.name}`);
           }
           await sendMessage(chatId, msg.trim());
+          if (upcoming.length > 0) {
+            await sendMessage(chatId, '🎲 Ver cuotas:', { reply_markup: { inline_keyboard: buildGameKeyboard(upcoming, ['odds']) } });
+          }
         } catch (e) {
           await sendMessage(chatId, '⚠️ No pude obtener próximos partidos.');
         }
@@ -860,6 +893,9 @@ async function handleCommand(chatId, text, userName, userId) {
             `🏆 ${m.leagueName || m.tournament || 'Competición'}\n\n` +
             `ℹ️ Los derechos de transmisión varían por país. Te sugiero consultar la guía de TV de tu país (ej: "TyC Sports" o "ESPN" en Argentina, "TUDN" en México, "Movistar+" en España).`
           );
+          if (m.id) {
+            await sendMessage(chatId, '🎲 Cuotas:', { reply_markup: { inline_keyboard: buildSingleGameKeyboard(m.id, ['odds']) } });
+          }
         } catch (e) {
           await sendMessage(chatId, '⚠️ No pude obtener info.');
         }
@@ -885,6 +921,14 @@ async function handleCommand(chatId, text, userName, userId) {
             } else {
               await sendMessage(chatId, t);
             }
+            if (team?.id) {
+              const allM = await cache.getRecentWorldCupMatchesByTeam(team.id).catch(() => []);
+              const now = Date.now();
+              const next = allM.filter((gm) => new Date(gm.startTime || gm.date || 0) > now).sort((a, b) => new Date(a.startTime || a.date) - new Date(b.startTime || b.date)).slice(0, 1);
+              if (next.length && next[0].id) {
+                await sendMessage(chatId, '🎲 Cuotas del próximo partido:', { reply_markup: { inline_keyboard: buildSingleGameKeyboard(next[0].id, ['odds']) } });
+              }
+            }
           }
         };
         await messageHandler(null, msgInfo);
@@ -893,11 +937,22 @@ async function handleCommand(chatId, text, userName, userId) {
 
       if (cmd.startsWith('/seguir ')) {
         const equipo = text.replace('/seguir ', '').replace('/Seguir ', '');
+        const team = await cache.getTeamByName(equipo).catch(() => null);
         const msgSeg = {
           from: chatId.toString(),
           body: `seguir ${equipo}`,
           hasMedia: false,
-          reply: async (t) => await sendMessage(chatId, t)
+          reply: async (t) => {
+            await sendMessage(chatId, t);
+            if (team?.id) {
+              const allM = await cache.getRecentWorldCupMatchesByTeam(team.id).catch(() => []);
+              const now = Date.now();
+              const next = allM.filter((gm) => new Date(gm.startTime || gm.date || 0) > now).sort((a, b) => new Date(a.startTime || a.date) - new Date(b.startTime || b.date)).slice(0, 3);
+              if (next.length) {
+                await sendMessage(chatId, '🎲 Próximos partidos:', { reply_markup: { inline_keyboard: buildGameKeyboard(next, ['odds']) } });
+              }
+            }
+          }
         };
         await messageHandler(null, msgSeg);
         return true;
@@ -934,13 +989,46 @@ async function handleCommand(chatId, text, userName, userId) {
       }
 
       // ===========================================================
+      // FASE 1.5: Fixtures y Outrights
+      // ===========================================================
+
+      // /fixture — próximos partidos agrupados por fecha
+      if (cmd === '/fixture' || cmd === '/fixture@botmundialistabot' || cmd === '/fixtures' || cmd === '/calendario') {
+        const text = await mundialista365.getFixture();
+        try {
+          const doc = await cosmos.getById('fixtures', `${process.env.SCORES365_COMPETITION_MUNDIAL || '5930'}-fixtures`, parseInt(process.env.SCORES365_COMPETITION_MUNDIAL || '5930', 10));
+          const games = (doc?.games || []).filter((g) => new Date(g.startTime || g.date || 0) > new Date()).sort((a, b) => new Date(a.startTime || a.date) - new Date(b.startTime || b.date)).slice(0, 10);
+          if (games.length) {
+            await sendMessage(chatId, text, { reply_markup: { inline_keyboard: buildGameKeyboard(games, ['odds']) } });
+          } else {
+            await sendMessage(chatId, text);
+          }
+        } catch (_) {
+          await sendMessage(chatId, text);
+        }
+        return true;
+      }
+
+      // /outrights — cuotas de campeón, goleador, etc.
+      if (cmd === '/outrights' || cmd === '/outrights@botmundialistabot' || cmd === '/cuotas') {
+        const text = await mundialista365.getOutrights();
+        await sendMessage(chatId, text);
+        return true;
+      }
+
+      // ===========================================================
       // FASE 2: Tips y Tendencias (365scores via Cosmos)
       // ===========================================================
 
       // /live — partidos en vivo ahora
       if (cmd === '/live' || cmd === '/live@botmundialistabot' || cmd === '/envivo' || cmd === '/envivo@botmundialistabot') {
         const text = await mundialista365.getLiveGames();
-        await sendMessage(chatId, text);
+        const games = await matchSearch.findLiveGames();
+        if (games && games.length > 0) {
+          await sendMessage(chatId, text, { reply_markup: { inline_keyboard: buildGameKeyboard(games, ['stats', 'odds']) } });
+        } else {
+          await sendMessage(chatId, text);
+        }
         return true;
       }
 
@@ -971,13 +1059,18 @@ async function handleCommand(chatId, text, userName, userId) {
         const away = m[2].trim();
         const t = await mundialista365.getTipPartido(home, away);
         await sendMessage(chatId, t);
+        const game = await matchSearch.findGameByTeams(home, away).catch(() => null);
+        if (game?.id) {
+          await sendMessage(chatId, '💡 Más opciones:', { reply_markup: { inline_keyboard: buildSingleGameKeyboard(game.id, ['trends', 'odds']) } });
+        }
         return true;
       }
 
       // /tendencias — top Mundial o por equipos (eq1 vs eq2)
       if (cmd === '/tendencias' || cmd === '/tendencias@botmundialistabot' || cmd === '/trends' || cmd === '/trends@botmundialistabot') {
         const t = await mundialista365.getTendencias('competition', null, 10);
-        await sendMessage(chatId, t);
+        const o = await mundialista365.getOutrights();
+        await sendMessage(chatId, t + '\n\n━━━━━━━━━━━━━━━━\n' + o);
         return true;
       }
       if (cmd.startsWith('/tendencias ') || cmd.startsWith('/trends ')) {
@@ -992,6 +1085,10 @@ async function handleCommand(chatId, text, userName, userId) {
         if (m) {
           const t = await mundialista365.getTendenciasByTeams(m[1].trim(), m[2].trim(), 10);
           await sendMessage(chatId, t);
+          const game = await matchSearch.findGameByTeams(m[1].trim(), m[2].trim()).catch(() => null);
+          if (game?.id) {
+            await sendMessage(chatId, '💡 Más opciones:', { reply_markup: { inline_keyboard: buildSingleGameKeyboard(game.id, ['tip', 'odds']) } });
+          }
           return true;
         }
         // Fallback: usage
@@ -1019,6 +1116,7 @@ async function handleCommand(chatId, text, userName, userId) {
         const arg = text.replace(/^\/(predicciones|prediccion)(?:@\w+)?\s+/i, '').trim();
         const t = await mundialista365.getPredicciones(arg);
         await sendMessage(chatId, t);
+        await sendMessage(chatId, '💡 Más opciones:', { reply_markup: { inline_keyboard: buildSingleGameKeyboard(arg, ['odds']) } });
         return true;
       }
 
@@ -1043,6 +1141,24 @@ async function handleCommand(chatId, text, userName, userId) {
       if (cmd.startsWith('/stats-vivo ') || cmd.startsWith('/statsvivo ') || cmd.startsWith('/live-stats ')) {
         const arg = text.replace(/^\/(stats-vivo|statsvivo|live-stats)(?:@\w+)?\s+/i, '').trim();
         const t = await mundialista365.getStatsVivo(arg);
+        await sendMessage(chatId, t);
+        await sendMessage(chatId, '💡 Más opciones:', { reply_markup: { inline_keyboard: buildSingleGameKeyboard(arg, ['odds']) } });
+        return true;
+      }
+
+      // /odds <gameId> — cuotas detalladas de un partido
+      if (cmd === '/odds' || cmd === '/odds@botmundialistabot') {
+        await sendMessage(chatId,
+          `🎲 *CUOTAS DE PARTIDO*\n\n` +
+          `Uso: \`/odds <gameId>\`\n\n` +
+          `Ejemplo: \`/odds 4749268\`\n\n` +
+          `💡 Para encontrar el gameId, usá \`/partidos\`, \`/fixture\` o \`/live\`.`
+        );
+        return true;
+      }
+      if (cmd.startsWith('/odds ')) {
+        const arg = text.replace(/^\/odds(?:@\w+)?\s+/i, '').trim();
+        const t = await mundialista365.getOdds(arg);
         await sendMessage(chatId, t);
         return true;
       }
@@ -1097,6 +1213,7 @@ async function handleCommand(chatId, text, userName, userId) {
         if (awayBadge) badges.push({ type: 'photo', media: awayBadge });
         if (badges.length > 0) await sendMediaGroup(chatId, badges);
         await sendMessage(chatId, t);
+        await sendMessage(chatId, '💡 Más opciones:', { reply_markup: { inline_keyboard: buildSingleGameKeyboard(gameId, ['previa', 'odds']) } });
 
         // Build member name/photo lookup from full squad
         const squadMembers = overview?.members || gameData?.members || [];
@@ -1151,6 +1268,7 @@ async function handleCommand(chatId, text, userName, userId) {
         const arg = text.replace(/^\/(previa|preview)(?:@\w+)?\s+/i, '').trim();
         const t = await mundialista365.getPrevia(arg);
         await sendMessage(chatId, t);
+        await sendMessage(chatId, '💡 Más opciones:', { reply_markup: { inline_keyboard: buildSingleGameKeyboard(arg, ['lineup', 'h2h', 'odds']) } });
         return true;
       }
 
@@ -1223,6 +1341,8 @@ async function handleCommand(chatId, text, userName, userId) {
         } else {
           await sendMessage(chatId, t.text);
         }
+        const o = await mundialista365.getOutrights().catch(() => null);
+        if (o) await sendMessage(chatId, o);
         return true;
       }
 
@@ -1241,7 +1361,38 @@ async function handleCommand(chatId, text, userName, userId) {
         const athlete = matches[0];
         const position = athlete.formationPosition?.name || athlete.position?.name || '';
         const age = athlete.age ? `, ${athlete.age} años` : '';
-        const msg = `⚽ *${athlete.name}*\n📌 ${position}${age}\n🆔 ID: ${athlete.id}`;
+        let msg = `⚽ *${athlete.name}*\n📌 ${position}${age}\n🆔 ID: ${athlete.id}`;
+
+        // Next game
+        try {
+          const nextDoc = await cosmos.queryOne('athlete_next_games',
+            { query: 'SELECT TOP 1 * FROM c WHERE c.athleteId = @aid ORDER BY c._ts DESC', parameters: [{ name: '@aid', value: Number(athlete.id) }] });
+          if (nextDoc?.game) {
+            const g = nextDoc.game;
+            const h = g.homeCompetitor?.name || g.homeTeam || '?';
+            const a = g.awayCompetitor?.name || g.awayTeam || '?';
+            const d = g.startTime ? new Date(g.startTime).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' }) : '';
+            msg += `\n📅 *Próximo:* ${h} vs ${a} ${d ? '(' + d + ')' : ''}`;
+          }
+        } catch (_) {}
+
+        // Chart events (form)
+        try {
+          const chart = await cosmos.getById('athlete_chart_events', String(athlete.id), Number(athlete.id));
+          if (chart?.events?.length) {
+            const recent = chart.events.slice(-5);
+            const icons = recent.map((e) => {
+              if (e.type === 'goal' || e.type === 'assist') return '⚽';
+              if (e.type === 'yellow') return '🟨';
+              if (e.type === 'red') return '🟥';
+              if (e.type === 'subin') return '⬆';
+              if (e.type === 'subout') return '⬇';
+              return '·';
+            }).join(' ');
+            msg += `\n📈 *Últimos eventos:* ${icons}`;
+          }
+        } catch (_) {}
+
         const photoUrl = getAthletePhotoUrl(athlete.id);
         if (photoUrl) {
           await sendPhoto(chatId, photoUrl, msg);
@@ -1264,6 +1415,7 @@ async function handleCommand(chatId, text, userName, userId) {
         const arg = text.replace(/^\/(h2h|historial-partido)(?:@\w+)?\s+/i, '').trim();
         const t = await mundialista365.getH2H(arg);
         await sendMessage(chatId, t);
+        await sendMessage(chatId, '💡 Más opciones:', { reply_markup: { inline_keyboard: buildSingleGameKeyboard(arg, ['previa', 'odds']) } });
         return true;
       }
 
@@ -1368,25 +1520,51 @@ async function processMessage(chatId, userId, text, user) {
   }
 }
 
+const ACTION_LABELS = {
+  tip: '🎯 Tip',
+  trends: '📊 Trends',
+  odds: '🎲 Odds',
+  h2h: '🤝 H2H',
+  previa: '📊 Previa',
+  lineup: '📋 Alineación',
+  stats: '📈 Stats Vivo',
+};
+
 /**
- * Construye el teclado inline para /partidos
+ * Construye teclado inline para una lista de partidos.
+ * @param {Array} games
+ * @param {string[]} actions - acciones por partido (tip, trends, odds, h2h, previa, lineup, stats)
  */
-function buildPartidosKeyboard(games) {
+function buildGameKeyboard(games, actions = ['tip', 'trends', 'odds']) {
   const keyboard = [];
   for (const m of games) {
     const gameId = m.id;
-    const home = (m.homeCompetitor?.name || '???').substring(0, 3).toUpperCase();
-    const away = (m.awayCompetitor?.name || '???').substring(0, 3).toUpperCase();
-    keyboard.push([
-      { text: `🎯 Tip ${home}-${away}`, callback_data: `tip_${gameId}` },
-      { text: `📊 Trends ${home}-${away}`, callback_data: `trends_${gameId}` },
-    ]);
+    const home = (m.homeCompetitor?.name || m.homeTeam || '???').substring(0, 3).toUpperCase();
+    const away = (m.awayCompetitor?.name || m.awayTeam || '???').substring(0, 3).toUpperCase();
+    const row = actions.map((a) => ({
+      text: `${ACTION_LABELS[a] || a} ${home}-${away}`,
+      callback_data: `${a}_${gameId}`,
+    }));
+    keyboard.push(row);
   }
   return keyboard;
 }
 
 /**
- * Maneja callback queries del teclado inline de /partidos
+ * Construye teclado inline para un solo partido (una fila).
+ * @param {string|number} gameId
+ * @param {string[]} actions
+ */
+function buildSingleGameKeyboard(gameId, actions = ['odds']) {
+  const row = actions.map((a) => ({
+    text: ACTION_LABELS[a] || a,
+    callback_data: `${a}_${gameId}`,
+  }));
+  return [row];
+}
+
+/**
+ * Maneja callback queries del teclado inline de partidos
  */
 async function handlePartidosCallback(chatId, callbackData) {
   const idx = callbackData.indexOf('_');
@@ -1397,33 +1575,88 @@ async function handlePartidosCallback(chatId, callbackData) {
   const action = callbackData.substring(0, idx);
   const gameId = callbackData.substring(idx + 1);
 
-  if (action === 'tip') {
-    try {
-      const game = await cache.getGameById(gameId);
-      if (game?.homeCompetitor?.name && game?.awayCompetitor?.name) {
-        const tip = await mundialista365.formatTipForGame(game);
-        if (tip) {
-          await sendMessage(chatId, tip);
+  const handlers = {
+    tip: async () => {
+      try {
+        const game = await cache.getGameById(gameId);
+        if (game?.homeCompetitor?.name && game?.awayCompetitor?.name) {
+          const tip = await mundialista365.formatTipForGame(game);
+          if (tip) {
+            await sendMessage(chatId, tip);
+            if (gameId) {
+              await sendMessage(chatId, '💡 Más opciones:', { reply_markup: { inline_keyboard: buildSingleGameKeyboard(gameId, ['trends', 'odds']) } });
+            }
+          } else {
+            await sendMessage(chatId, '⚠️ No hay tip disponible para ese partido.');
+          }
         } else {
-          console.error('[callback tip] formatTipForGame returned empty for gameId:', gameId);
-          await sendMessage(chatId, '⚠️ No hay tip disponible para ese partido.');
+          await sendMessage(chatId, '⚠️ No pude obtener información de ese partido.');
         }
-      } else {
-        console.error('[callback tip] no game data for gameId:', gameId, 'game:', JSON.stringify(game).substring(0, 200));
-        await sendMessage(chatId, '⚠️ No pude obtener información de ese partido.');
+      } catch (e) {
+        console.error('[callback tip] error:', e.message);
+        await sendMessage(chatId, '⚠️ Error al obtener tip de ese partido.');
       }
-    } catch (e) {
-      console.error('[callback tip] error:', e.message, e.stack?.substring(0, 300));
-      await sendMessage(chatId, '⚠️ Error al obtener tip de ese partido.');
-    }
-  } else if (action === 'trends') {
-    try {
-      const t = await mundialista365.getTendencias('game', gameId);
-      await sendMessage(chatId, t);
-    } catch (e) {
-      console.error('[callback trends] error:', e);
-      await sendMessage(chatId, '⚠️ Error al obtener tendencias.');
-    }
+    },
+    trends: async () => {
+      try {
+        const t = await mundialista365.getTendencias('game', gameId);
+        await sendMessage(chatId, t);
+        await sendMessage(chatId, '💡 Más opciones:', { reply_markup: { inline_keyboard: buildSingleGameKeyboard(gameId, ['tip', 'odds']) } });
+      } catch (e) {
+        await sendMessage(chatId, '⚠️ Error al obtener tendencias.');
+      }
+    },
+    odds: async () => {
+      try {
+        const t = await mundialista365.getOdds(gameId);
+        await sendMessage(chatId, t);
+        await sendMessage(chatId, '💡 Más opciones:', { reply_markup: { inline_keyboard: buildSingleGameKeyboard(gameId, ['tip', 'trends']) } });
+      } catch (e) {
+        console.error('[callback odds] error:', e);
+        await sendMessage(chatId, '⚠️ Error al obtener cuotas.');
+      }
+    },
+    h2h: async () => {
+      try {
+        const t = await mundialista365.getH2H(gameId);
+        await sendMessage(chatId, t);
+        await sendMessage(chatId, '💡 Más opciones:', { reply_markup: { inline_keyboard: buildSingleGameKeyboard(gameId, ['previa', 'odds']) } });
+      } catch (e) {
+        await sendMessage(chatId, '⚠️ Error al obtener historial.');
+      }
+    },
+    previa: async () => {
+      try {
+        const t = await mundialista365.getPrevia(gameId);
+        await sendMessage(chatId, t);
+        await sendMessage(chatId, '💡 Más opciones:', { reply_markup: { inline_keyboard: buildSingleGameKeyboard(gameId, ['lineup', 'h2h', 'odds']) } });
+      } catch (e) {
+        await sendMessage(chatId, '⚠️ Error al obtener previa.');
+      }
+    },
+    lineup: async () => {
+      try {
+        const t = await mundialista365.getAlineacion(gameId);
+        await sendMessage(chatId, t);
+        await sendMessage(chatId, '💡 Más opciones:', { reply_markup: { inline_keyboard: buildSingleGameKeyboard(gameId, ['previa', 'odds']) } });
+      } catch (e) {
+        await sendMessage(chatId, '⚠️ Error al obtener alineación.');
+      }
+    },
+    stats: async () => {
+      try {
+        const t = await mundialista365.getStatsVivo(gameId);
+        await sendMessage(chatId, t);
+        await sendMessage(chatId, '💡 Más opciones:', { reply_markup: { inline_keyboard: buildSingleGameKeyboard(gameId, ['odds']) } });
+      } catch (e) {
+        await sendMessage(chatId, '⚠️ Error al obtener stats.');
+      }
+    },
+  };
+
+  const handler = handlers[action];
+  if (handler) {
+    await handler();
   } else {
     await sendMessage(chatId, '⚠️ Acción no reconocida.');
   }
@@ -1440,7 +1673,9 @@ async function handleWebhookUpdate(update) {
     const cbData = cb.data || '';
     const cbId = cb.id;
     await telegramRequest('answerCallbackQuery', { callback_query_id: cbId }).catch(() => {});
-    if (cbData.startsWith('tip_') || cbData.startsWith('trends_')) {
+    const actionPrefix = cbData.split('_')[0];
+    const knownActions = ['tip', 'trends', 'odds', 'h2h', 'previa', 'lineup', 'stats'];
+    if (knownActions.includes(actionPrefix)) {
       await handlePartidosCallback(chatId, cbData);
     }
     return;

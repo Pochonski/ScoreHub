@@ -6,16 +6,15 @@ El bot lee las variables de `.env` (local) o **App Service Configuration → App
 
 ### 1. Bases de datos
 
-#### Supabase PostgreSQL (DB principal)
+#### Azure PostgreSQL Flexible Server (DB principal)
 | Var | Ejemplo | Notas |
 |---|---|---|
-| `DB_HOST` | `aws-1-us-east-1.pooler.supabase.com` | Pooler Supavisor (IPv4, recomendado serverless) |
-| `DB_PORT` | `6543` | Pooler usa 6543, directo usa 5432 |
-| `DB_USER` | `postgres.qetymshaihtbtrpuecov` | Pooler requiere `<user>.<project_ref>` |
-| `DB_PROJECT_REF` | `qetymshaihtbtrpuecov` | Solo para formatear `DB_USER` si es `postgres` |
+| `DB_HOST` | `botmundialista-pg-srv.postgres.database.azure.com` | FQDN del servidor Azure PostgreSQL |
+| `DB_PORT` | `5432` | Puerto estándar PostgreSQL |
+| `DB_USER` | `postgres` | Admin user del servidor |
 | `DB_PASSWORD` | `xxxxx` | |
-| `DB_NAME` | `postgres` | |
-| `DB_SSL` | `true` | |
+| `DB_NAME` | `botmundialista` | Nombre de la base de datos |
+| `DB_SSL` | `true` | Requerido por Azure |
 
 #### Azure Cosmos DB (DB secundaria - cache 365scores)
 | Var | Ejemplo | Notas |
@@ -81,11 +80,11 @@ $ht = @{
   ENABLE_LIVE_NOTIFIER  = 'false'
   TELEGRAM_BOT_TOKEN    = '<token>'
   GEMINI_API_KEY        = '<key>'
-  DB_HOST               = 'aws-1-us-east-1.pooler.supabase.com'
-  DB_PORT               = '6543'
-  DB_USER               = 'postgres.<ref>'
+  DB_HOST               = 'botmundialista-pg-srv.postgres.database.azure.com'
+  DB_PORT               = '5432'
+  DB_USER               = 'postgres'
   DB_PASSWORD           = '<password>'
-  DB_NAME               = 'postgres'
+  DB_NAME               = 'botmundialista'
   DB_SSL                = 'true'
 }
 Set-AzWebApp -ResourceGroupName 'botmundialista-rg' -Name 'botmundialista' -AppSettings $ht
@@ -102,13 +101,12 @@ Restart-AzWebApp -ResourceGroupName 'botmundialista-rg' -Name 'botmundialista'
 # WhatsApp Session
 WA_SESSION_DIR=.wwebjs_auth
 
-# Database Supabase PostgreSQL
-DB_HOST=aws-1-us-east-1.pooler.supabase.com
-DB_PORT=6543
+# Database Azure PostgreSQL Flexible Server
+DB_HOST=botmundialista-pg-srv.postgres.database.azure.com
+DB_PORT=5432
 DB_USER=postgres
 DB_PASSWORD=your-password
-DB_PROJECT_REF=your-ref
-DB_NAME=postgres
+DB_NAME=botmundialista
 DB_SSL=true
 
 # Football API (Free API Live Football Data - RapidAPI) - legacy
@@ -169,7 +167,7 @@ ENABLE_LIVE_NOTIFIER=false
 |---|---|---|
 | Azure App Service | Free | $0 |
 | Azure Cosmos DB | Free | $0 (1000 RU/s, 25 GB) |
-| Supabase PostgreSQL | Free | $0 (500 MB, 2 GB transfer) |
+| Azure PostgreSQL Flexible Server | Burstable B1ms | ~$14.50/mes |
 | Gemini 2.5 Flash | Free | $0 (~1,500 req/día) |
 | 365scores (web) | — | $0 (público) |
 | **TOTAL** | | **$0/mes** |

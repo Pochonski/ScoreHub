@@ -4,120 +4,73 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>BotMundialista - Admin Panel</title>
-
-  <!-- Google Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Fira+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-
-  <!-- Tailwind CSS -->
   <link rel="stylesheet" href="css/tailwind.css">
-
-  <!-- Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-
-  <!-- Lucide Icons -->
   <script src="https://unpkg.com/lucide@latest"></script>
-
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-
-    body {
-      font-family: 'Fira Sans', sans-serif;
-      background: #020617;
-      color: #F8FAFC;
-      min-height: 100vh;
-    }
-
-    /* Scrollbar styling */
+    body { font-family: 'Fira Sans', sans-serif; background: #020617; color: #F8FAFC; min-height: 100vh; }
     ::-webkit-scrollbar { width: 6px; height: 6px; }
     ::-webkit-scrollbar-track { background: #0F172A; }
     ::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
     ::-webkit-scrollbar-thumb:hover { background: #475569; }
-
-    /* Skeleton animation */
-    @keyframes shimmer {
-      0% { background-position: -200% 0; }
-      100% { background-position: 200% 0; }
-    }
-    .skeleton {
-      background: linear-gradient(90deg, #1E293B 25%, #334155 50%, #1E293B 75%);
-      background-size: 200% 100%;
-      animation: shimmer 1.5s infinite;
-      border-radius: 4px;
-    }
-
-    /* Glass card effect */
-    .glass-card {
-      background: rgba(30, 41, 59, 0.5);
-      backdrop-filter: blur(10px);
-      border: 1px solid rgba(51, 65, 85, 0.5);
-    }
-
-    /* Table row hover glow */
-    .table-row:hover {
-      background: rgba(34, 197, 94, 0.05);
-      box-shadow: 0 0 20px rgba(34, 197, 94, 0.1);
-    }
-
-    /* Sidebar transition */
+    @keyframes shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
+    .skeleton { background: linear-gradient(90deg, #1E293B 25%, #334155 50%, #1E293B 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; border-radius: 4px; }
+    .glass-card { background: rgba(30, 41, 59, 0.5); backdrop-filter: blur(10px); border: 1px solid rgba(51, 65, 85, 0.5); }
+    .table-row:hover { background: rgba(34, 197, 94, 0.05); box-shadow: 0 0 20px rgba(34, 197, 94, 0.1); }
     .sidebar { transition: width 0.3s ease, transform 0.3s ease; }
-
-    /* Focus states */
-    button:focus-visible, a:focus-visible {
-      outline: 2px solid #22C55E;
-      outline-offset: 2px;
-    }
+    button:focus-visible, a:focus-visible { outline: 2px solid #22C55E; outline-offset: 2px; }
+    .toast { position: fixed; bottom: 24px; right: 24px; z-index: 100; padding: 12px 20px; border-radius: 12px; font-size: 14px; max-width: 400px; transform: translateY(20px); opacity: 0; transition: all 0.3s ease; pointer-events: none; }
+    .toast.show { transform: translateY(0); opacity: 1; }
+    .toast.error { background: rgba(239, 68, 68, 0.9); color: white; border: 1px solid rgba(239, 68, 68, 0.5); }
+    .toast.success { background: rgba(34, 197, 94, 0.9); color: white; border: 1px solid rgba(34, 197, 94, 0.5); }
+    .nav-link.active { background: rgba(34, 197, 94, 0.1); color: #22C55E; }
+    .spinner { width: 20px; height: 20px; border: 2px solid #334155; border-top-color: #22C55E; border-radius: 50%; animation: spin 0.6s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .response-expand { max-height: 0; overflow: hidden; transition: max-height 0.3s ease; }
+    .response-expand.open { max-height: 400px; overflow-y: auto; }
+    .filter-btn { padding: 6px 14px; border-radius: 8px; font-size: 13px; cursor: pointer; transition: all 0.2s; border: 1px solid transparent; }
+    .filter-btn.active { background: rgba(34, 197, 94, 0.2); color: #22C55E; border-color: rgba(34, 197, 94, 0.3); }
+    .filter-btn:not(.active) { background: rgba(51, 65, 85, 0.3); color: #94A3B8; border-color: transparent; }
+    .filter-btn:not(.active):hover { background: rgba(51, 65, 85, 0.5); color: #F8FAFC; }
   </style>
 </head>
 <body>
+  <div id="toast" class="toast"></div>
   <div class="flex min-h-screen">
 
-    <!-- Sidebar -->
+    <!-- Sidebar desktop -->
     <aside id="sidebar" class="sidebar fixed left-0 top-0 h-full w-64 bg-surface-800 border-r border-surface-600 z-40 hidden lg:block">
       <div class="p-6 border-b border-surface-600">
         <div class="flex items-center gap-3">
-          <div class="w-10 h-10 rounded-xl bg-accent/20 flex items-center justify-center">
-            <i data-lucide="bot" class="w-6 h-6 text-accent"></i>
-          </div>
-          <div>
-            <h1 class="font-semibold text-lg">BotMundialista</h1>
-            <p class="text-xs text-slate-400">Admin Panel</p>
-          </div>
+          <div class="w-10 h-10 rounded-xl bg-accent/20 flex items-center justify-center"><i data-lucide="bot" class="w-6 h-6 text-accent"></i></div>
+          <div><h1 class="font-semibold text-lg">BotMundialista</h1><p class="text-xs text-slate-400">Admin Panel</p></div>
         </div>
       </div>
-
       <nav class="p-4 space-y-1">
-        <a href="#stats" class="flex items-center gap-3 px-4 py-3 rounded-lg bg-accent/10 text-accent cursor-pointer transition-all duration-200 hover:bg-accent/20">
-          <i data-lucide="layout-dashboard" class="w-5 h-5"></i>
-          <span>Dashboard</span>
+        <a href="#stats" class="nav-link flex items-center gap-3 px-4 py-3 rounded-lg text-slate-400 cursor-pointer transition-all duration-200 hover:bg-surface-700 hover:text-white" onclick="navigate('stats')">
+          <i data-lucide="layout-dashboard" class="w-5 h-5"></i><span>Dashboard</span>
         </a>
-        <a href="#queries" class="flex items-center gap-3 px-4 py-3 rounded-lg text-slate-400 cursor-pointer transition-all duration-200 hover:bg-surface-700 hover:text-white">
-          <i data-lucide="message-square" class="w-5 h-5"></i>
-          <span>Consultas</span>
+        <a href="#queries" class="nav-link flex items-center gap-3 px-4 py-3 rounded-lg text-slate-400 cursor-pointer transition-all duration-200 hover:bg-surface-700 hover:text-white" onclick="navigate('queries')">
+          <i data-lucide="message-square" class="w-5 h-5"></i><span>Consultas</span>
         </a>
-        <a href="#users" class="flex items-center gap-3 px-4 py-3 rounded-lg text-slate-400 cursor-pointer transition-all duration-200 hover:bg-surface-700 hover:text-white">
-          <i data-lucide="users" class="w-5 h-5"></i>
-          <span>Usuarios</span>
+        <a href="#users" class="nav-link flex items-center gap-3 px-4 py-3 rounded-lg text-slate-400 cursor-pointer transition-all duration-200 hover:bg-surface-700 hover:text-white" onclick="navigate('users')">
+          <i data-lucide="users" class="w-5 h-5"></i><span>Usuarios</span>
         </a>
-        <a href="#teams" class="flex items-center gap-3 px-4 py-3 rounded-lg text-slate-400 cursor-pointer transition-all duration-200 hover:bg-surface-700 hover:text-white">
-          <i data-lucide="heart" class="w-5 h-5"></i>
-          <span>Equipos</span>
+        <a href="#apuestas" class="nav-link flex items-center gap-3 px-4 py-3 rounded-lg text-slate-400 cursor-pointer transition-all duration-200 hover:bg-surface-700 hover:text-white" onclick="navigate('apuestas')">
+          <i data-lucide="dollar-sign" class="w-5 h-5"></i><span>Apuestas</span>
+        </a>
+        <a href="#teams" class="nav-link flex items-center gap-3 px-4 py-3 rounded-lg text-slate-400 cursor-pointer transition-all duration-200 hover:bg-surface-700 hover:text-white" onclick="navigate('teams')">
+          <i data-lucide="heart" class="w-5 h-5"></i><span>Equipos</span>
         </a>
       </nav>
-
       <div class="absolute bottom-0 left-0 right-0 p-4 border-t border-surface-600">
         <div class="flex items-center gap-3">
-          <div class="w-8 h-8 rounded-full bg-accent/30 flex items-center justify-center">
-            <i data-lucide="shield-check" class="w-4 h-4 text-accent"></i>
-          </div>
-          <div class="text-sm">
-            <p class="text-white">Sistema</p>
-            <p class="text-xs text-slate-400 flex items-center gap-1">
-              <span class="w-2 h-2 rounded-full bg-accent animate-pulse"></span>
-              Online
-            </p>
-          </div>
+          <div class="w-8 h-8 rounded-full bg-accent/30 flex items-center justify-center"><i data-lucide="shield-check" class="w-4 h-4 text-accent"></i></div>
+          <div class="text-sm"><p class="text-white">Sistema</p><p class="text-xs text-slate-400 flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-accent animate-pulse"></span>Online</p></div>
         </div>
       </div>
     </aside>
@@ -125,47 +78,26 @@
     <!-- Mobile header -->
     <header class="lg:hidden fixed top-0 left-0 right-0 h-16 bg-surface-800 border-b border-surface-600 z-40 flex items-center justify-between px-4">
       <div class="flex items-center gap-3">
-        <div class="w-8 h-8 rounded-lg bg-accent/20 flex items-center justify-center">
-          <i data-lucide="bot" class="w-5 h-5 text-accent"></i>
-        </div>
+        <div class="w-8 h-8 rounded-lg bg-accent/20 flex items-center justify-center"><i data-lucide="bot" class="w-5 h-5 text-accent"></i></div>
         <span class="font-semibold">BotMundialista</span>
       </div>
-      <button id="menuBtn" class="p-2 rounded-lg hover:bg-surface-700 cursor-pointer">
-        <i data-lucide="menu" class="w-6 h-6"></i>
-      </button>
+      <button id="menuBtn" class="p-2 rounded-lg hover:bg-surface-700 cursor-pointer"><i data-lucide="menu" class="w-6 h-6"></i></button>
     </header>
-
-    <!-- Mobile sidebar overlay -->
     <div id="mobileOverlay" class="fixed inset-0 bg-black/60 z-50 hidden lg:hidden" onclick="toggleSidebar()"></div>
     <aside id="mobileSidebar" class="sidebar fixed left-0 top-0 h-full w-72 bg-surface-800 z-50 transform -translate-x-full lg:hidden">
       <div class="p-4 border-b border-surface-600 flex items-center justify-between">
         <div class="flex items-center gap-3">
-          <div class="w-10 h-10 rounded-xl bg-accent/20 flex items-center justify-center">
-            <i data-lucide="bot" class="w-6 h-6 text-accent"></i>
-          </div>
+          <div class="w-10 h-10 rounded-xl bg-accent/20 flex items-center justify-center"><i data-lucide="bot" class="w-6 h-6 text-accent"></i></div>
           <span class="font-semibold">BotMundialista</span>
         </div>
-        <button onclick="toggleSidebar()" class="p-2 rounded-lg hover:bg-surface-700 cursor-pointer">
-          <i data-lucide="x" class="w-5 h-5"></i>
-        </button>
+        <button onclick="toggleSidebar()" class="p-2 rounded-lg hover:bg-surface-700 cursor-pointer"><i data-lucide="x" class="w-5 h-5"></i></button>
       </div>
       <nav class="p-4 space-y-1">
-        <a href="#stats" onclick="toggleSidebar()" class="flex items-center gap-3 px-4 py-3 rounded-lg bg-accent/10 text-accent cursor-pointer">
-          <i data-lucide="layout-dashboard" class="w-5 h-5"></i>
-          <span>Dashboard</span>
-        </a>
-        <a href="#queries" onclick="toggleSidebar()" class="flex items-center gap-3 px-4 py-3 rounded-lg text-slate-400 cursor-pointer hover:bg-surface-700">
-          <i data-lucide="message-square" class="w-5 h-5"></i>
-          <span>Consultas</span>
-        </a>
-        <a href="#users" onclick="toggleSidebar()" class="flex items-center gap-3 px-4 py-3 rounded-lg text-slate-400 cursor-pointer hover:bg-surface-700">
-          <i data-lucide="users" class="w-5 h-5"></i>
-          <span>Usuarios</span>
-        </a>
-        <a href="#teams" onclick="toggleSidebar()" class="flex items-center gap-3 px-4 py-3 rounded-lg text-slate-400 cursor-pointer hover:bg-surface-700">
-          <i data-lucide="heart" class="w-5 h-5"></i>
-          <span>Equipos</span>
-        </a>
+        <a href="#stats" onclick="toggleSidebar();navigate('stats')" class="nav-link flex items-center gap-3 px-4 py-3 rounded-lg text-slate-400 cursor-pointer hover:bg-surface-700"><i data-lucide="layout-dashboard" class="w-5 h-5"></i><span>Dashboard</span></a>
+        <a href="#queries" onclick="toggleSidebar();navigate('queries')" class="nav-link flex items-center gap-3 px-4 py-3 rounded-lg text-slate-400 cursor-pointer hover:bg-surface-700"><i data-lucide="message-square" class="w-5 h-5"></i><span>Consultas</span></a>
+        <a href="#users" onclick="toggleSidebar();navigate('users')" class="nav-link flex items-center gap-3 px-4 py-3 rounded-lg text-slate-400 cursor-pointer hover:bg-surface-700"><i data-lucide="users" class="w-5 h-5"></i><span>Usuarios</span></a>
+        <a href="#apuestas" onclick="toggleSidebar();navigate('apuestas')" class="nav-link flex items-center gap-3 px-4 py-3 rounded-lg text-slate-400 cursor-pointer hover:bg-surface-700"><i data-lucide="dollar-sign" class="w-5 h-5"></i><span>Apuestas</span></a>
+        <a href="#teams" onclick="toggleSidebar();navigate('teams')" class="nav-link flex items-center gap-3 px-4 py-3 rounded-lg text-slate-400 cursor-pointer hover:bg-surface-700"><i data-lucide="heart" class="w-5 h-5"></i><span>Equipos</span></a>
       </nav>
     </aside>
 
@@ -179,51 +111,42 @@
           <p class="text-slate-400 text-sm">Resumen de actividad del bot</p>
         </div>
 
-        <!-- Stats Bento Grid -->
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        <!-- Platform filter -->
+        <div class="flex items-center gap-2 mb-6">
+          <span class="text-xs text-slate-400 uppercase tracking-wider mr-1">Plataforma:</span>
+          <button class="filter-btn active" data-platform="telegram" onclick="setPlatform('telegram')">Telegram</button>
+          <button class="filter-btn" data-platform="whatsapp" onclick="setPlatform('whatsapp')">WhatsApp</button>
+          <button class="filter-btn" data-platform="all" onclick="setPlatform('all')">Todos</button>
+        </div>
 
-          <!-- Users Card -->
-          <div class="glass-card rounded-2xl p-6 cursor-pointer hover:border-accent/30 transition-all duration-200">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+          <div class="glass-card rounded-2xl p-6">
             <div class="flex items-start justify-between mb-4">
-              <div class="w-12 h-12 rounded-xl bg-blue-500/20 flex items-center justify-center">
-                <i data-lucide="users" class="w-6 h-6 text-blue-400"></i>
-              </div>
+              <div class="w-12 h-12 rounded-xl bg-blue-500/20 flex items-center justify-center"><i data-lucide="users" class="w-6 h-6 text-blue-400"></i></div>
               <span class="text-xs text-slate-400 uppercase tracking-wide">Total</span>
             </div>
             <div id="stat-users" class="skeleton h-8 w-20 mb-2"></div>
             <p class="text-slate-400 text-sm">Usuarios registrados</p>
           </div>
-
-          <!-- Queries Card -->
-          <div class="glass-card rounded-2xl p-6 cursor-pointer hover:border-accent/30 transition-all duration-200">
+          <div class="glass-card rounded-2xl p-6">
             <div class="flex items-start justify-between mb-4">
-              <div class="w-12 h-12 rounded-xl bg-purple-500/20 flex items-center justify-center">
-                <i data-lucide="message-square" class="w-6 h-6 text-purple-400"></i>
-              </div>
+              <div class="w-12 h-12 rounded-xl bg-purple-500/20 flex items-center justify-center"><i data-lucide="message-square" class="w-6 h-6 text-purple-400"></i></div>
               <span class="text-xs text-slate-400 uppercase tracking-wide">Total</span>
             </div>
             <div id="stat-queries" class="skeleton h-8 w-20 mb-2"></div>
             <p class="text-slate-400 text-sm">Consultas totales</p>
           </div>
-
-          <!-- Today Card -->
-          <div class="glass-card rounded-2xl p-6 cursor-pointer hover:border-accent/30 transition-all duration-200">
+          <div class="glass-card rounded-2xl p-6">
             <div class="flex items-start justify-between mb-4">
-              <div class="w-12 h-12 rounded-xl bg-amber-500/20 flex items-center justify-center">
-                <i data-lucide="calendar" class="w-6 h-6 text-amber-400"></i>
-              </div>
+              <div class="w-12 h-12 rounded-xl bg-amber-500/20 flex items-center justify-center"><i data-lucide="calendar" class="w-6 h-6 text-amber-400"></i></div>
               <span class="text-xs text-slate-400 uppercase tracking-wide">Hoy</span>
             </div>
             <div id="stat-today" class="skeleton h-8 w-16 mb-2"></div>
             <p class="text-slate-400 text-sm">Consultas hoy</p>
           </div>
-
-          <!-- Teams Card -->
-          <div class="glass-card rounded-2xl p-6 cursor-pointer hover:border-accent/30 transition-all duration-200">
+          <div class="glass-card rounded-2xl p-6">
             <div class="flex items-start justify-between mb-4">
-              <div class="w-12 h-12 rounded-xl bg-accent/20 flex items-center justify-center">
-                <i data-lucide="heart" class="w-6 h-6 text-accent"></i>
-              </div>
+              <div class="w-12 h-12 rounded-xl bg-accent/20 flex items-center justify-center"><i data-lucide="heart" class="w-6 h-6 text-accent"></i></div>
               <span class="text-xs text-slate-400 uppercase tracking-wide">Seguid.</span>
             </div>
             <div id="stat-teams" class="skeleton h-8 w-16 mb-2"></div>
@@ -231,23 +154,13 @@
           </div>
         </div>
 
-        <!-- Chart Section -->
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
           <div class="glass-card rounded-2xl p-6">
-            <h3 class="font-semibold mb-4 flex items-center gap-2">
-              <i data-lucide="bar-chart-3" class="w-5 h-5 text-accent"></i>
-              Consultas por Tipo
-            </h3>
-            <div class="h-64">
-              <canvas id="typeChart"></canvas>
-            </div>
+            <h3 class="font-semibold mb-4 flex items-center gap-2"><i data-lucide="bar-chart-3" class="w-5 h-5 text-accent"></i> Consultas por Tipo</h3>
+            <div class="h-64"><canvas id="typeChart"></canvas></div>
           </div>
-
           <div class="glass-card rounded-2xl p-6">
-            <h3 class="font-semibold mb-4 flex items-center gap-2">
-              <i data-lucide="activity" class="w-5 h-5 text-accent"></i>
-              Actividad Reciente
-            </h3>
+            <h3 class="font-semibold mb-4 flex items-center gap-2"><i data-lucide="activity" class="w-5 h-5 text-accent"></i> Actividad Reciente</h3>
             <div id="recentActivity" class="space-y-3 overflow-auto h-64">
               <div class="skeleton h-12 w-full"></div>
               <div class="skeleton h-12 w-full"></div>
@@ -258,17 +171,14 @@
       </section>
 
       <!-- Queries section -->
-      <section id="queries" class="p-6 lg:p-8 pt-0">
+      <section id="queries" class="p-6 lg:p-8 pt-0 hidden">
         <div class="glass-card rounded-2xl overflow-hidden">
           <div class="p-6 border-b border-surface-600 flex items-center justify-between flex-wrap gap-4">
-            <h3 class="font-semibold flex items-center gap-2">
-              <i data-lucide="message-square" class="w-5 h-5 text-accent"></i>
-              Consultas Recientes
-            </h3>
-            <button onclick="loadQueries()" class="px-4 py-2 rounded-lg bg-surface-700 hover:bg-surface-600 transition-colors cursor-pointer flex items-center gap-2 text-sm">
-              <i data-lucide="refresh-cw" class="w-4 h-4"></i>
-              Actualizar
-            </button>
+            <h3 class="font-semibold flex items-center gap-2"><i data-lucide="message-square" class="w-5 h-5 text-accent"></i> Consultas Recientes</h3>
+            <div class="flex items-center gap-3">
+              <input id="searchInput" class="px-3 py-2 rounded-lg bg-surface-700 border border-surface-500 text-white text-sm w-56" placeholder="Buscar consulta o usuario..." onkeydown="if(event.key==='Enter')loadQueries()">
+              <button onclick="loadQueries()" class="px-4 py-2 rounded-lg bg-surface-700 hover:bg-surface-600 transition-colors cursor-pointer flex items-center gap-2 text-sm"><i data-lucide="refresh-cw" class="w-4 h-4"></i> Actualizar</button>
+            </div>
           </div>
           <div class="overflow-x-auto">
             <table class="w-full">
@@ -278,12 +188,16 @@
                   <th class="px-6 py-4 text-left font-medium">Usuario</th>
                   <th class="px-6 py-4 text-left font-medium">Consulta</th>
                   <th class="px-6 py-4 text-left font-medium">Tipo</th>
+                  <th class="px-6 py-4 text-left font-medium"></th>
                 </tr>
               </thead>
               <tbody id="queriesTable" class="divide-y divide-surface-600">
-                <tr><td colspan="4" class="px-6 py-8 text-center text-slate-500">Cargando...</td></tr>
+                <tr><td colspan="5" class="px-6 py-8 text-center text-slate-500"><div class="spinner mx-auto"></div></td></tr>
               </tbody>
             </table>
+          </div>
+          <div id="loadMoreContainer" class="p-4 text-center hidden">
+            <button onclick="loadMoreQueries()" class="px-6 py-2 rounded-lg bg-surface-700 hover:bg-surface-600 transition-colors cursor-pointer text-sm">Cargar m&aacute;s</button>
           </div>
         </div>
       </section>
@@ -292,10 +206,7 @@
       <section id="users" class="p-6 lg:p-8 pt-0 hidden">
         <div class="glass-card rounded-2xl overflow-hidden">
           <div class="p-6 border-b border-surface-600">
-            <h3 class="font-semibold flex items-center gap-2">
-              <i data-lucide="users" class="w-5 h-5 text-accent"></i>
-              Usuarios Registrados
-            </h3>
+            <h3 class="font-semibold flex items-center gap-2"><i data-lucide="users" class="w-5 h-5 text-accent"></i> Usuarios Registrados</h3>
           </div>
           <div class="overflow-x-auto">
             <table class="w-full">
@@ -304,11 +215,37 @@
                   <th class="px-6 py-4 text-left font-medium">Alias</th>
                   <th class="px-6 py-4 text-left font-medium">ID</th>
                   <th class="px-6 py-4 text-left font-medium">Fecha Registro</th>
-                  <th class="px-6 py-4 text-left font-medium">Estado</th>
+                  <th class="px-6 py-4 text-left font-medium">Consultas</th>
                 </tr>
               </thead>
               <tbody id="usersTable" class="divide-y divide-surface-600">
-                <tr><td colspan="4" class="px-6 py-8 text-center text-slate-500">Cargando...</td></tr>
+                <tr><td colspan="4" class="px-6 py-8 text-center text-slate-500"><div class="spinner mx-auto"></div></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- Apuestas section -->
+      <section id="apuestas" class="p-6 lg:p-8 pt-0 hidden">
+        <div class="glass-card rounded-2xl overflow-hidden">
+          <div class="p-6 border-b border-surface-600">
+            <h3 class="font-semibold flex items-center gap-2"><i data-lucide="dollar-sign" class="w-5 h-5 text-accent"></i> Apuestas Registradas</h3>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full">
+              <thead class="bg-surface-800 text-slate-400 text-xs uppercase tracking-wide">
+                <tr>
+                  <th class="px-6 py-4 text-left font-medium">Usuario</th>
+                  <th class="px-6 py-4 text-left font-medium">Partido</th>
+                  <th class="px-6 py-4 text-left font-medium">Marcador</th>
+                  <th class="px-6 py-4 text-left font-medium">Estado</th>
+                  <th class="px-6 py-4 text-left font-medium">Resultado</th>
+                  <th class="px-6 py-4 text-left font-medium">Fecha</th>
+                </tr>
+              </thead>
+              <tbody id="apuestasTable" class="divide-y divide-surface-600">
+                <tr><td colspan="6" class="px-6 py-8 text-center text-slate-500"><div class="spinner mx-auto"></div></td></tr>
               </tbody>
             </table>
           </div>
@@ -319,10 +256,7 @@
       <section id="teams" class="p-6 lg:p-8 pt-0 hidden">
         <div class="glass-card rounded-2xl overflow-hidden">
           <div class="p-6 border-b border-surface-600">
-            <h3 class="font-semibold flex items-center gap-2">
-              <i data-lucide="heart" class="w-5 h-5 text-accent"></i>
-              Equipos Seguidos
-            </h3>
+            <h3 class="font-semibold flex items-center gap-2"><i data-lucide="heart" class="w-5 h-5 text-accent"></i> Equipos Seguidos</h3>
           </div>
           <div class="overflow-x-auto">
             <table class="w-full">
@@ -334,7 +268,7 @@
                 </tr>
               </thead>
               <tbody id="teamsTable" class="divide-y divide-surface-600">
-                <tr><td colspan="3" class="px-6 py-8 text-center text-slate-500">Cargando...</td></tr>
+                <tr><td colspan="3" class="px-6 py-8 text-center text-slate-500"><div class="spinner mx-auto"></div></td></tr>
               </tbody>
             </table>
           </div>
@@ -347,24 +281,61 @@
   <script>
     const API = '/admin/api';
     let typeChart = null;
+    let currentPlatform = 'telegram';
+    let currentFilter = { search: '', limit: 50, offset: 0 };
 
-    // Initialize Lucide icons
     lucide.createIcons();
 
-    // Mobile sidebar toggle
     function toggleSidebar() {
-      const overlay = document.getElementById('mobileOverlay');
-      const sidebar = document.getElementById('mobileSidebar');
-      overlay.classList.toggle('hidden');
-      sidebar.classList.toggle('-translate-x-full');
+      document.getElementById('mobileOverlay').classList.toggle('hidden');
+      document.getElementById('mobileSidebar').classList.toggle('-translate-x-full');
     }
-
     document.getElementById('menuBtn')?.addEventListener('click', toggleSidebar);
 
-    // Fetch helper
+    // Toast
+    function showToast(msg, type = 'error') {
+      const t = document.getElementById('toast');
+      t.textContent = msg;
+      t.className = `toast ${type} show`;
+      clearTimeout(t._hide);
+      t._hide = setTimeout(() => t.classList.remove('show'), 3000);
+    }
+
+    // Navigate
+    function navigate(section) {
+      document.querySelectorAll('section[id]').forEach(s => s.classList.add('hidden'));
+      document.getElementById(section).classList.remove('hidden');
+      document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+      document.querySelectorAll(`.nav-link[href="#${section}"]`).forEach(l => l.classList.add('active'));
+
+      if (section === 'stats') { loadStats(); loadTypeChart(); loadRecentActivity(); }
+      if (section === 'queries') { currentFilter.offset = 0; loadQueries(); }
+      if (section === 'users') loadUsers();
+      if (section === 'apuestas') loadApuestas();
+      if (section === 'teams') loadTeams();
+    }
+
+    // Platform filter
+    function setPlatform(p) {
+      currentPlatform = p;
+      document.querySelectorAll('.filter-btn').forEach(b => b.classList.toggle('active', b.dataset.platform === p));
+      const current = document.querySelector('section:not(.hidden)');
+      if (current) {
+        const id = current.id;
+        if (id === 'stats') { loadStats(); loadTypeChart(); loadRecentActivity(); }
+        if (id === 'queries') { currentFilter.offset = 0; loadQueries(); }
+        if (id === 'users') loadUsers();
+      }
+    }
+
+    function q(url) {
+      const sep = url.includes('?') ? '&' : '?';
+      return `${API}${url}${sep}platform=${currentPlatform}`;
+    }
+
     async function fetchJSON(url) {
       try {
-        const res = await fetch(API + url);
+        const res = await fetch(q(url));
         if (!res.ok) throw new Error('Network error');
         return await res.json();
       } catch (e) {
@@ -373,221 +344,295 @@
       }
     }
 
-    // Format date
     function formatDate(dateStr) {
       if (!dateStr) return '-';
       const d = new Date(dateStr);
       if (isNaN(d.getTime())) return dateStr;
-      return d.toLocaleString('es-ES', {
-        day: '2-digit',
-        month: 'short',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
-      });
+      return d.toLocaleString('es-ES', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
     }
 
-    // Badge class by type
     function getBadgeClass(tipo) {
       const map = {
-        'partidos_hoy': 'bg-blue-500/20 text-blue-400',
-        'partidos_fecha': 'bg-blue-500/20 text-blue-400',
-        'resultado': 'bg-purple-500/20 text-purple-400',
-        'resultado_vs': 'bg-purple-500/20 text-purple-400',
-        'estadistica': 'bg-amber-500/20 text-amber-400',
-        'tabla': 'bg-amber-500/20 text-amber-400',
-        'analisis': 'bg-pink-500/20 text-pink-400',
-        'info_equipo': 'bg-cyan-500/20 text-cyan-400',
-        'seguir_equipo': 'bg-accent/20 text-accent',
-        'dejar_seguir': 'bg-red-500/20 text-red-400',
-        'mis_equipos': 'bg-accent/20 text-accent',
-        'help': 'bg-slate-500/20 text-slate-400',
+        'partidos_hoy': 'bg-blue-500/20 text-blue-400', 'partidos_fecha': 'bg-blue-500/20 text-blue-400',
+        'resultado': 'bg-purple-500/20 text-purple-400', 'resultado_vs': 'bg-purple-500/20 text-purple-400',
+        'estadistica': 'bg-amber-500/20 text-amber-400', 'tabla': 'bg-amber-500/20 text-amber-400',
+        'analisis': 'bg-pink-500/20 text-pink-400', 'info_equipo': 'bg-cyan-500/20 text-cyan-400',
+        'seguir_equipo': 'bg-accent/20 text-accent', 'dejar_seguir': 'bg-red-500/20 text-red-400',
+        'mis_equipos': 'bg-accent/20 text-accent', 'help': 'bg-slate-500/20 text-slate-400',
         'saludo': 'bg-green-500/20 text-green-400'
       };
-      return map[tipo] || 'bg-slate-500/20 text-slate-400';
+      const t = (tipo || '').toLowerCase();
+      return map[t] || 'bg-slate-500/20 text-slate-400';
     }
 
-    // Load stats
+    function getEstadoApuestaClass(estado) {
+      const map = { 'abierta': 'bg-blue-500/20 text-blue-400', 'cerrada': 'bg-slate-500/20 text-slate-400', 'ganada': 'bg-accent/20 text-accent', 'perdida': 'bg-red-500/20 text-red-400', 'nula': 'bg-amber-500/20 text-amber-400' };
+      return map[estado] || 'bg-slate-500/20 text-slate-400';
+    }
+
+    // Stats
     async function loadStats() {
       const data = await fetchJSON('/stats');
-      if (data) {
-        document.getElementById('stat-users').outerHTML = `<h3 id="stat-users" class="text-3xl font-bold font-mono text-accent">${data.totalUsers || 0}</h3>`;
-        document.getElementById('stat-queries').outerHTML = `<h3 id="stat-queries" class="text-3xl font-bold font-mono text-accent">${data.totalQueries || 0}</h3>`;
-        document.getElementById('stat-today').outerHTML = `<h3 id="stat-today" class="text-3xl font-bold font-mono text-accent">${data.todayQueries || 0}</h3>`;
-        document.getElementById('stat-teams').outerHTML = `<h3 id="stat-teams" class="text-3xl font-bold font-mono text-accent">${data.teamsFollowed || 0}</h3>`;
-      }
+      if (!data) { showToast('Error al cargar estad&iacute;sticas', 'error'); return; }
+      document.getElementById('stat-users').outerHTML = `<h3 id="stat-users" class="text-3xl font-bold font-mono text-accent">${data.totalUsers || 0}</h3>`;
+      document.getElementById('stat-queries').outerHTML = `<h3 id="stat-queries" class="text-3xl font-bold font-mono text-accent">${data.totalQueries || 0}</h3>`;
+      document.getElementById('stat-today').outerHTML = `<h3 id="stat-today" class="text-3xl font-bold font-mono text-accent">${data.todayQueries || 0}</h3>`;
+      document.getElementById('stat-teams').outerHTML = `<h3 id="stat-teams" class="text-3xl font-bold font-mono text-accent">${data.teamsFollowed || 0}</h3>`;
     }
 
-    // Load type chart
+    // Type chart
     async function loadTypeChart() {
       const data = await fetchJSON('/queries-by-type');
       if (!data || data.length === 0) return;
-
       const ctx = document.getElementById('typeChart').getContext('2d');
-
       if (typeChart) typeChart.destroy();
-
-      const labels = data.map(d => d.tipo || 'desconocido');
-      const values = data.map(d => d.total);
-
       typeChart = new Chart(ctx, {
         type: 'bar',
         data: {
-          labels,
+          labels: data.map(d => d.tipo || 'desconocido'),
           datasets: [{
             label: 'Consultas',
-            data: values,
-            backgroundColor: [
-              'rgba(34, 197, 94, 0.8)',  // green
-              'rgba(59, 130, 246, 0.8)', // blue
-              'rgba(168, 85, 247, 0.8)', // purple
-              'rgba(244, 63, 94, 0.8)',  // pink
-              'rgba(245, 158, 11, 0.8)', // amber
-              'rgba(6, 182, 212, 0.8)',  // cyan
-            ],
-            borderRadius: 8,
-            borderSkipped: false,
+            data: data.map(d => d.total),
+            backgroundColor: ['rgba(34, 197, 94, 0.8)','rgba(59, 130, 246, 0.8)','rgba(168, 85, 247, 0.8)','rgba(244, 63, 94, 0.8)','rgba(245, 158, 11, 0.8)','rgba(6, 182, 212, 0.8)'],
+            borderRadius: 8, borderSkipped: false,
           }]
         },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: {
-            legend: { display: false }
-          },
-          scales: {
-            x: {
-              grid: { color: 'rgba(51, 65, 85, 0.5)' },
-              ticks: { color: '#94A3B8', font: { family: 'Fira Code', size: 10 } }
-            },
-            y: {
-              grid: { color: 'rgba(51, 65, 85, 0.5)' },
-              ticks: { color: '#94A3B8', font: { family: 'Fira Code' } }
-            }
-          }
-        }
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { grid: { color: 'rgba(51, 65, 85, 0.5)' }, ticks: { color: '#94A3B8', font: { family: 'Fira Code', size: 10 } } }, y: { grid: { color: 'rgba(51, 65, 85, 0.5)' }, ticks: { color: '#94A3B8', font: { family: 'Fira Code' } } } } }
       });
     }
 
-    // Load recent activity
+    // Recent activity
     async function loadRecentActivity() {
       const data = await fetchJSON('/queries?limit=5');
       const container = document.getElementById('recentActivity');
-
       if (!data || data.length === 0) {
         container.innerHTML = '<p class="text-slate-500 text-center py-4">Sin actividad reciente</p>';
         return;
       }
-
       container.innerHTML = data.map(q => `
         <div class="flex items-center gap-4 p-3 rounded-lg bg-surface-800/50 hover:bg-surface-700/50 transition-colors">
-          <div class="w-10 h-10 rounded-full bg-accent/20 flex items-center justify-center flex-shrink-0">
-            <i data-lucide="message-circle" class="w-5 h-5 text-accent"></i>
-          </div>
-          <div class="flex-1 min-w-0">
-            <p class="font-medium truncate">${q.consulta}</p>
-            <p class="text-xs text-slate-400">${q.alias || 'Usuario'} • ${formatDate(q.fecha)}</p>
-          </div>
+          <div class="w-10 h-10 rounded-full bg-accent/20 flex items-center justify-center flex-shrink-0"><i data-lucide="message-circle" class="w-5 h-5 text-accent"></i></div>
+          <div class="flex-1 min-w-0"><p class="font-medium truncate">${q.consulta}</p><p class="text-xs text-slate-400">${q.alias || 'Usuario'} &bull; ${formatDate(q.fecha)}</p></div>
           <span class="px-2 py-1 rounded text-xs ${getBadgeClass(q.tipo)}">${q.tipo}</span>
         </div>
       `).join('');
-
       lucide.createIcons();
     }
 
-    // Load queries table
+    // Queries with search + pagination
     async function loadQueries() {
-      const data = await fetchJSON('/queries?limit=50');
+      const search = document.getElementById('searchInput')?.value || '';
+      currentFilter.search = search;
+      currentFilter.offset = 0;
+      const url = `/queries?limit=${currentFilter.limit}&offset=0${search ? '&search=' + encodeURIComponent(search) : ''}`;
+      const data = await fetchJSON(url);
       const tbody = document.getElementById('queriesTable');
-
+      document.getElementById('loadMoreContainer').classList.add('hidden');
       if (!data || data.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="4" class="px-6 py-8 text-center text-slate-500">Sin consultas aún</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="5" class="px-6 py-8 text-center text-slate-500">Sin consultas a&uacute;n</td></tr>';
         return;
       }
-
       tbody.innerHTML = data.map(q => `
         <tr class="table-row transition-all duration-200">
           <td class="px-6 py-4 text-sm font-mono text-slate-400 whitespace-nowrap">${formatDate(q.fecha)}</td>
           <td class="px-6 py-4 text-sm">${q.alias || '?'}</td>
           <td class="px-6 py-4 text-sm max-w-xs truncate">${q.consulta}</td>
-          <td class="px-6 py-4 whitespace-nowrap">
-            <span class="px-2 py-1 rounded text-xs ${getBadgeClass(q.tipo)}">${q.tipo}</span>
+          <td class="px-6 py-4 whitespace-nowrap"><span class="px-2 py-1 rounded text-xs ${getBadgeClass(q.tipo)}">${q.tipo}</span></td>
+          <td class="px-6 py-4">
+            <button class="p-1 rounded hover:bg-surface-700 cursor-pointer" onclick="toggleResponse(this, '${q.id}')" title="Ver respuesta">
+              <i data-lucide="chevron-down" class="w-4 h-4 text-slate-400"></i>
+            </button>
+          </td>
+        </tr>
+        <tr class="hidden" id="resp-${q.id}">
+          <td colspan="5" class="px-6 py-4 bg-surface-800/50">
+            <div class="text-xs font-mono text-slate-300 whitespace-pre-wrap max-h-48 overflow-y-auto">${(q.respuesta || '').substring(0, 2000)}</div>
           </td>
         </tr>
       `).join('');
+      lucide.createIcons();
+      if (data.length >= currentFilter.limit) {
+        document.getElementById('loadMoreContainer').classList.remove('hidden');
+        currentFilter.offset = data.length;
+      }
     }
 
-    // Load users table
+    function toggleResponse(btn, id) {
+      const row = document.getElementById('resp-' + id);
+      row.classList.toggle('hidden');
+      const icon = btn.querySelector('i');
+      if (row.classList.contains('hidden')) {
+        icon.setAttribute('data-lucide', 'chevron-down');
+      } else {
+        icon.setAttribute('data-lucide', 'chevron-up');
+      }
+      lucide.createIcons();
+    }
+
+    async function loadMoreQueries() {
+      const search = currentFilter.search;
+      const url = `/queries?limit=${currentFilter.limit}&offset=${currentFilter.offset}${search ? '&search=' + encodeURIComponent(search) : ''}`;
+      const data = await fetchJSON(url);
+      if (!data || data.length === 0) {
+        document.getElementById('loadMoreContainer').classList.add('hidden');
+        return;
+      }
+      const tbody = document.getElementById('queriesTable');
+      tbody.insertAdjacentHTML('beforeend', data.map(q => `
+        <tr class="table-row transition-all duration-200">
+          <td class="px-6 py-4 text-sm font-mono text-slate-400 whitespace-nowrap">${formatDate(q.fecha)}</td>
+          <td class="px-6 py-4 text-sm">${q.alias || '?'}</td>
+          <td class="px-6 py-4 text-sm max-w-xs truncate">${q.consulta}</td>
+          <td class="px-6 py-4 whitespace-nowrap"><span class="px-2 py-1 rounded text-xs ${getBadgeClass(q.tipo)}">${q.tipo}</span></td>
+          <td class="px-6 py-4">
+            <button class="p-1 rounded hover:bg-surface-700 cursor-pointer" onclick="toggleResponse(this, '${q.id}')" title="Ver respuesta">
+              <i data-lucide="chevron-down" class="w-4 h-4 text-slate-400"></i>
+            </button>
+          </td>
+        </tr>
+        <tr class="hidden" id="resp-${q.id}">
+          <td colspan="5" class="px-6 py-4 bg-surface-800/50">
+            <div class="text-xs font-mono text-slate-300 whitespace-pre-wrap max-h-48 overflow-y-auto">${(q.respuesta || '').substring(0, 2000)}</div>
+          </td>
+        </tr>
+      `).join(''));
+      lucide.createIcons();
+      currentFilter.offset += data.length;
+      if (data.length < currentFilter.limit) {
+        document.getElementById('loadMoreContainer').classList.add('hidden');
+      }
+    }
+
+    // Users with rename
+    async function renameUser(id, newAlias) {
+      try {
+        const res = await fetch(API + '/users/rename', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id, alias: newAlias })
+        });
+        if (!res.ok) throw new Error('Error al renombrar');
+        showToast('Alias actualizado', 'success');
+        loadUsers();
+      } catch (e) {
+        showToast('Error: ' + e.message, 'error');
+      }
+    }
+
     async function loadUsers() {
       const data = await fetchJSON('/users');
       const tbody = document.getElementById('usersTable');
-
       if (!data || data.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="4" class="px-6 py-8 text-center text-slate-500">Sin usuarios aún</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="4" class="px-6 py-8 text-center text-slate-500">Sin usuarios a&uacute;n</td></tr>';
         return;
       }
-
+      const queryCounts = {};
+      try {
+        const qr = await fetch(`/admin/api/queries-by-type?platform=${currentPlatform}`);
+        if (qr.ok) { /* counts are per-platform */ }
+      } catch(e) {}
       tbody.innerHTML = data.map(u => `
-        <tr class="table-row transition-all duration-200">
-          <td class="px-6 py-4 text-sm font-medium">${u.alias}</td>
+        <tr class="table-row transition-all duration-200" data-id="${u.id}">
+          <td class="px-6 py-4 text-sm font-medium">
+            <span class="alias-text">${u.alias}</span>
+            <input class="alias-input hidden px-2 py-1 rounded bg-surface-700 border border-surface-500 text-white text-sm font-mono" value="${u.alias}">
+            <button class="edit-btn ml-2 p-1 rounded hover:bg-surface-700 inline-flex cursor-pointer" onclick="editUser(this)">
+              <i data-lucide="pencil" class="w-4 h-4 text-slate-400 hover:text-accent"></i>
+            </button>
+            <button class="save-btn hidden ml-1 p-1 rounded hover:bg-surface-700 inline-flex cursor-pointer" onclick="saveUser(this)">
+              <i data-lucide="check" class="w-4 h-4 text-green-400"></i>
+            </button>
+            <button class="cancel-btn hidden ml-1 p-1 rounded hover:bg-surface-700 inline-flex cursor-pointer" onclick="cancelEdit(this)">
+              <i data-lucide="x" class="w-4 h-4 text-red-400"></i>
+            </button>
+          </td>
           <td class="px-6 py-4 text-sm font-mono text-slate-500 text-xs">${u.id.substring(0, 30)}...</td>
           <td class="px-6 py-4 text-sm text-slate-400 whitespace-nowrap">${formatDate(u.fecha_registro)}</td>
-          <td class="px-6 py-4">
-            <span class="px-2 py-1 rounded text-xs bg-accent/20 text-accent">${u.estado || 'activo'}</span>
-          </td>
+          <td class="px-6 py-4"><span class="px-2 py-1 rounded text-xs bg-accent/20 text-accent">${u.estado || 'activo'}</span></td>
         </tr>
       `).join('');
+      lucide.createIcons();
     }
 
-    // Load teams table
+    function editUser(btn) {
+      const td = btn.closest('td');
+      td.querySelector('.alias-text').classList.add('hidden');
+      td.querySelector('.edit-btn').classList.add('hidden');
+      const input = td.querySelector('.alias-input');
+      input.classList.remove('hidden');
+      input.focus();
+      input.select();
+      td.querySelector('.save-btn').classList.remove('hidden');
+      td.querySelector('.cancel-btn').classList.remove('hidden');
+    }
+
+    function saveUser(btn) {
+      const td = btn.closest('td');
+      const id = td.closest('tr').dataset.id;
+      const newAlias = td.querySelector('.alias-input').value.trim();
+      if (newAlias) renameUser(id, newAlias);
+    }
+
+    function cancelEdit(btn) {
+      const td = btn.closest('td');
+      const input = td.querySelector('.alias-input');
+      input.value = td.querySelector('.alias-text').textContent;
+      input.classList.add('hidden');
+      td.querySelector('.alias-text').classList.remove('hidden');
+      td.querySelector('.edit-btn').classList.remove('hidden');
+      td.querySelector('.save-btn').classList.add('hidden');
+      td.querySelector('.cancel-btn').classList.add('hidden');
+    }
+
+    // Apuestas
+    async function loadApuestas() {
+      const data = await fetchJSON('/apuestas');
+      const tbody = document.getElementById('apuestasTable');
+      if (!data || data.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" class="px-6 py-8 text-center text-slate-500">Sin apuestas registradas</td></tr>';
+        return;
+      }
+      tbody.innerHTML = data.map(a => `
+        <tr class="table-row transition-all duration-200">
+          <td class="px-6 py-4 text-sm">${a.alias || a.id_usuario?.substring(0, 20) || '?'}</td>
+          <td class="px-6 py-4 text-sm max-w-xs truncate">${a.partido_normalizado || a.partido_extrado || '-'}</td>
+          <td class="px-6 py-4 text-sm font-mono">${a.marcador_local != null ? a.marcador_local + '-' + a.marcador_visitante : '-'}</td>
+          <td class="px-6 py-4 whitespace-nowrap"><span class="px-2 py-1 rounded text-xs ${getEstadoApuestaClass(a.estado)}">${a.estado || '?'}</span></td>
+          <td class="px-6 py-4 whitespace-nowrap"><span class="px-2 py-1 rounded text-xs ${getEstadoApuestaClass(a.resultado_final)}">${a.resultado_final || '-'}</span></td>
+          <td class="px-6 py-4 text-sm text-slate-400 whitespace-nowrap">${formatDate(a.fecha_creacion)}</td>
+        </tr>
+      `).join('');
+      lucide.createIcons();
+    }
+
+    // Teams
     async function loadTeams() {
       const data = await fetchJSON('/followed-teams');
       const tbody = document.getElementById('teamsTable');
-
       if (!data || data.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="3" class="px-6 py-8 text-center text-slate-500">Sin equipos seguidos aún</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="3" class="px-6 py-8 text-center text-slate-500">Sin equipos seguidos</td></tr>';
         return;
       }
-
       tbody.innerHTML = data.map(t => `
         <tr class="table-row transition-all duration-200">
-          <td class="px-6 py-4 text-sm font-medium flex items-center gap-2">
-            <i data-lucide="shield" class="w-4 h-4 text-accent"></i>
-            ${t.nombre_equipo}
-          </td>
+          <td class="px-6 py-4 text-sm font-medium flex items-center gap-2"><i data-lucide="shield" class="w-4 h-4 text-accent"></i> ${t.nombre_equipo}</td>
           <td class="px-6 py-4 text-sm">${t.alias || '?'}</td>
           <td class="px-6 py-4 text-sm text-slate-400 whitespace-nowrap">${formatDate(t.fecha_seguimiento)}</td>
         </tr>
       `).join('');
-
       lucide.createIcons();
     }
 
-    // Tab navigation
-    document.querySelectorAll('aside a[href^="#"]').forEach(link => {
-      link.addEventListener('click', (e) => {
-        const target = e.currentTarget.getAttribute('href').substring(1);
-        document.querySelectorAll('section[id]').forEach(s => s.classList.add('hidden'));
-        const section = document.getElementById(target);
-        if (section) section.classList.remove('hidden');
-
-        // Load data for section
-        if (target === 'users') loadUsers();
-        if (target === 'teams') loadTeams();
-      });
-    });
-
     // Initial load
-    loadStats();
-    loadTypeChart();
-    loadRecentActivity();
-    loadQueries();
+    navigate('stats');
 
-    // Refresh every 30 seconds
+    // Refresh every 30s
     setInterval(() => {
-      loadStats();
-      loadTypeChart();
-      loadRecentActivity();
+      const current = document.querySelector('section:not(.hidden)');
+      if (current) {
+        const id = current.id;
+        if (id === 'stats') { loadStats(); loadTypeChart(); loadRecentActivity(); }
+      }
     }, 30000);
   </script>
 </body>

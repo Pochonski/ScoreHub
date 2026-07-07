@@ -651,6 +651,151 @@ async function getPredicciones(gameId) {
   return msg.trim();
 }
 
+// =================================================================
+// FASE 5: FIXTURES, OUTRIGHTS, ODDS LINES
+// =================================================================
+
+/**
+ * Próximos partidos del Mundial desde container fixtures.
+ */
+async function getFixture() {
+  try {
+    const doc = await cosmos.getById('fixtures', `${MUNDIAL_ID}-fixtures`, MUNDIAL_ID);
+    if (!doc || !doc.games?.length) {
+      const live = await scores365.getFixtures(MUNDIAL_ID);
+      if (!live?.games?.length) {
+        return `📅 *PRÓXIMOS PARTIDOS*\n\nNo hay partidos programados.`;
+      }
+      doc.games = live.games;
+    }
+
+    const now = new Date();
+    const upcoming = doc.games
+      .filter((g) => new Date(g.startTime || g.date || 0) > now)
+      .sort((a, b) => new Date(a.startTime || a.date) - new Date(b.startTime || b.date))
+      .slice(0, 20);
+
+    if (!upcoming.length) return `📅 *PRÓXIMOS PARTIDOS*\n\nNo hay partidos próximos.`;
+
+    const byDate = {};
+    for (const g of upcoming) {
+      const d = (g.startTime || g.date || '').split('T')[0] || 'sin fecha';
+      if (!byDate[d]) byDate[d] = [];
+      byDate[d].push(g);
+    }
+
+    let msg = `📅 *PRÓXIMOS PARTIDOS — MUNDIAL 2026*\n\n`;
+    Object.keys(byDate).slice(0, 5).forEach((d) => {
+      const dateLabel = new Date(d).toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' });
+      msg += `━━━ *${dateLabel}* ━━━\n`;
+      byDate[d].forEach((g) => {
+        const home = g.homeCompetitor?.name || g.homeTeam || '?';
+        const away = g.awayCompetitor?.name || g.awayTeam || '?';
+        const time = g.startTime ? fmtDateTime(g.startTime) : g.time || '';
+        const venue = g.venue?.name || g.stadium || '';
+        msg += `⚽ *${home}* vs *${away}*\n`;
+        if (time) msg += `   🕐 ${time}\n`;
+        if (venue) msg += `   🏟 ${venue}\n`;
+        msg += `   🆔 \`${g.id}\`\n\n`;
+      });
+    });
+    return msg.trim();
+  } catch (e) {
+    return `⚠️ Error al obtener fixtures: ${e.message}`;
+  }
+}
+
+/**
+ * Cuotas outright (campeón, goleador, etc.) desde container odds_misc.
+ */
+async function getOutrights() {
+  try {
+    const doc = await cosmos.getById('odds_misc', `outrights-${MUNDIAL_ID}`, 'outrights');
+    if (!doc || !doc.markets?.length) {
+      const live = await scores365.getOutrights(MUNDIAL_ID);
+      if (!live?.markets?.length) {
+        return `🏆 *CUOTAS OUTRIGHT*\n\nNo hay cuotas disponibles todavía.`;
+      }
+      doc.markets = live.markets;
+    }
+
+    let msg = `🏆 *CUOTAS OUTRIGHT — MUNDIAL 2026*\n\n`;
+    doc.markets.slice(0, 8).forEach((m, i) => {
+      msg += `📊 *${m.marketName || m.title || 'Mercado ' + (i + 1)}*\n`;
+      if (Array.isArray(m.lines)) {
+        m.lines.slice(0, 10).forEach((line) => {
+          const name = line.name || line.competitorName || line.participantName || line.label || '?';
+          const odd = line.price || line.odds || line.value || '-';
+          const pct = line.percentage ? pct(line.percentage) : '';
+          msg += `   ${name}: *${odd}* ${pct ? `_(${pct})_` : ''}\n`;
+        });
+      }
+      msg += '\n';
+    });
+
+    return msg.trim();
+  } catch (e) {
+    return `⚠️ Error al obtener cuotas outright: ${e.message}`;
+  }
+}
+
+/**
+ * Cuotas detalladas de un partido desde container odds_lines.
+ */
+async function getOdds(gameId) {
+  if (!/^\d+$/.test(String(gameId))) {
+    return '⚠️ gameId inválido. Usá un número (ej: `/odds 4749268`).';
+  }
+  const gid = Number(gameId);
+
+  const game = await cosmos.getById('games', String(gid), MUNDIAL_ID);
+  if (!game) {
+    return `⚠️ No encontré el partido con gameId \`${gid}\` en el Mundial.`;
+  }
+
+  let doc = null;
+  try {
+    doc = await cosmos.queryOne('odds_lines',
+      { query: 'SELECT TOP 1 * FROM c WHERE c.gameId = @g ORDER BY c._ts DESC', parameters: [{ name: '@g', value: gid }] });
+  } catch (_) {}
+
+  if (!doc || !doc.lines?.length) {
+    try {
+      const live = await scores365.getOddsLines(gid);
+      if (live?.lines?.length) doc = live;
+    } catch (_) {}
+  }
+
+  if (!doc || !doc.lines?.length) {
+    return `ℹ️ No hay cuotas para *${fmtGameTitle(game)}* todavía.`;
+  }
+
+  const home = game.homeCompetitor?.name || 'Local';
+  const away = game.awayCompetitor?.name || 'Visitante';
+
+  let msg = `🎲 *CUOTAS — ${fmtGameTitle(game).toUpperCase()}*\n\n`;
+  msg += `🆔 \`${gid}\` · 📅 ${fmtDateTime(game.startTime)}\n\n`;
+
+  const byType = {};
+  for (const line of doc.lines) {
+    const type = LINE_TYPE_LABELS[line.lineTypeId] || `Tipo ${line.lineTypeId}`;
+    if (!byType[type]) byType[type] = [];
+    byType[type].push(line);
+  }
+
+  Object.keys(byType).forEach((type) => {
+    msg += `📊 *${type}*\n`;
+    byType[type].slice(0, 8).forEach((l) => {
+      const label = l.label || l.betCTA || l.text || l.name || '?';
+      const price = l.price || l.odds || l.value || '-';
+      msg += `   ${label}: *${price}*\n`;
+    });
+    msg += '\n';
+  });
+
+  return msg.trim();
+}
+
 module.exports = {
   MUNDIAL_ID,
   getTipPartido,
@@ -663,4 +808,7 @@ module.exports = {
   getPrevia,
   getH2H,
   getPredicciones,
+  getFixture,
+  getOutrights,
+  getOdds,
 };
