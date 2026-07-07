@@ -1,7 +1,7 @@
 // BotMundialista - Telegram Bot (usando API directa)
 require('dotenv').config();
 const http = require('http');
-const https = require('https');
+const fetch = require('node-fetch');
 const messageHandler = require('./handlers/messageHandler');
 const followHandler = require('./handlers/followHandler');
 const conversationalHandler = require('./handlers/conversationalHandler');
@@ -27,16 +27,13 @@ if (process.env.ENABLE_LIVE_NOTIFIER === 'true') {
 const TELEGRAM_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const API_URL = `https://api.telegram.org/bot${TELEGRAM_TOKEN}`;
 
-// Offset para polling
-let offset = 0;
-let isRunning = false;
-
 // Flag para saber si la DB está disponible
 let dbAvailable = false;
 
-// Mini servidor HTTP para health checks de Azure App Service
-// Azure Linux requiere que el proceso escuche en PORT para considerarlo saludable
+// Mini servidor HTTP para health checks + webhook de Telegram
 const PORT = process.env.PORT || 8080;
+const WEBHOOK_PATH = '/webhook';
+const WEBHOOK_URL = `https://botmundialista.azurewebsites.net${WEBHOOK_PATH}`;
 const server = http.createServer((req, res) => {
   const url = req.url || '/';
   if (url === '/health' || url === '/') {
@@ -48,6 +45,19 @@ const server = http.createServer((req, res) => {
       db: dbAvailable ? 'connected' : 'demo',
       timestamp: new Date().toISOString()
     }));
+  } else if (url === WEBHOOK_PATH && req.method === 'POST') {
+    let body = '';
+    req.on('data', (chunk) => { body += chunk; });
+    req.on('end', () => {
+      res.writeHead(200);
+      res.end();
+      try {
+        const update = JSON.parse(body);
+        handleWebhookUpdate(update).catch(e => console.error('[webhook] handler error:', e.message));
+      } catch (e) {
+        console.error('[webhook] body parse error:', e.message);
+      }
+    });
   } else {
     res.writeHead(404);
     res.end('Not found');
@@ -62,32 +72,20 @@ server.listen(PORT, () => {
  * Hace una solicitud a la API de Telegram (https nativo, sin node-fetch)
  */
 async function telegramRequest(method, params = {}, timeoutMs = 60000) {
-  const url = new URL(`${API_URL}/${method}`);
-  const body = JSON.stringify(params);
-  return new Promise((resolve, reject) => {
-    const req = https.request(url, {
+  const url = `${API_URL}/${method}`;
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const res = await fetch(url, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Content-Length': Buffer.byteLength(body),
-      },
-      timeout: timeoutMs,
-    }, (res) => {
-      let data = '';
-      res.on('data', (chunk) => { data += chunk; });
-      res.on('end', () => {
-        try {
-          resolve(JSON.parse(data));
-        } catch (e) {
-          reject(new Error(`Telegram API (${method}): respuesta no-JSON: ${data.substring(0, 200)}`));
-        }
-      });
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(params),
+      signal: controller.signal,
     });
-    req.on('error', reject);
-    req.on('timeout', () => { req.destroy(); reject(new Error(`Telegram API (${method}): timeout after ${timeoutMs}ms`)); });
-    req.write(body);
-    req.end();
-  });
+    return await res.json();
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 /**
@@ -1061,139 +1059,105 @@ async function handleCommand(chatId, text, userName, userId) {
 }
 
 /**
- * Procesa las actualizaciones (mensajes)
+ * Procesa un mensaje de Telegram (comando o chat)
  */
-async function processUpdates(updates) {
-  if (!updates.ok || !updates.result) return;
+async function processMessage(chatId, userId, text, user) {
+  console.log(`📩 Telegram: [${user}] (${userId}) ${text}`);
 
-  for (const update of updates.result) {
-    // Actualizar offset
-    if (update.update_id >= offset) {
-      offset = update.update_id + 1;
+  if (text.startsWith('/')) {
+    const lowerText = text.toLowerCase();
+    const botSuffix = '@botmundialistabot';
+    const cleaned = lowerText.split(' ')[0].split('@')[0];
+
+    if (cleaned === '/follow') {
+      const args = text.replace(/^\/[a-z@0-9_]+/i, '').trim();
+      const result = await followHandler.handleFollowCommand(String(userId), args);
+      await sendMessage(chatId, result.message);
+      return;
+    }
+    if (cleaned === '/unfollow' || cleaned === '/dejarseguir') {
+      const args = text.replace(/^\/[a-z@0-9_]+/i, '').trim();
+      const result = await followHandler.handleUnfollowCommand(String(userId), args);
+      await sendMessage(chatId, result.message);
+      return;
+    }
+    if (cleaned === '/misapuestas' || cleaned === '/siguiendo' || cleaned === '/siguiendo@botmundialistabot') {
+      const result = await followHandler.handleListCommand(String(userId));
+      await sendMessage(chatId, result.message);
+      return;
     }
 
-    // Solo procesar mensajes de texto en chats privados
-    const message = update.message;
-    if (!message || !message.text) continue;
-    if (message.chat.type !== 'private') continue;
-
-    const chatId = message.chat.id;
-    const userId = message.from.id;
-    const text = message.text.trim();
-    const user = message.from.username || message.from.first_name;
-
-    console.log(`📩 Telegram: [${user}] (${userId}) ${text}`);
-
-    // Si es un comando, intentar manejarlo
-    if (text.startsWith('/')) {
-      const lowerText = text.toLowerCase();
-      const botSuffix = '@botmundialistabot';
-      const cleaned = lowerText.split(' ')[0].split('@')[0];
-
-      if (cleaned === '/follow') {
-        const args = text.replace(/^\/[a-z@0-9_]+/i, '').trim();
-        const result = await followHandler.handleFollowCommand(String(userId), args);
-        await sendMessage(chatId, result.message);
-        continue;
-      }
-      if (cleaned === '/unfollow' || cleaned === '/dejarseguir') {
-        const args = text.replace(/^\/[a-z@0-9_]+/i, '').trim();
-        const result = await followHandler.handleUnfollowCommand(String(userId), args);
-        await sendMessage(chatId, result.message);
-        continue;
-      }
-      if (cleaned === '/misapuestas' || cleaned === '/siguiendo' || cleaned === '/siguiendo@botmundialistabot') {
-        const result = await followHandler.handleListCommand(String(userId));
-        await sendMessage(chatId, result.message);
-        continue;
-      }
-
-      let handled = false;
-      try {
-        handled = await handleCommand(chatId, text, user, String(userId));
-      } catch (e) {
-        console.error(`[telegramBot] handleCommand error:`, e.stack || e.message);
-        await sendMessage(chatId, `❌ Error procesando el comando: ${e.message}`);
-        continue;
-      }
-      if (handled) continue;
-      // Si no se reconoció el comando, intentar procesar el cuerpo (sin el /) como mensaje natural
-      const textSinComando = text.replace(/^\/[a-z@0-9_]+\s*/i, '').trim();
-      if (textSinComando) {
-        const msgObj = {
-          from: chatId.toString(),
-          body: textSinComando,
-          hasMedia: false,
-          reply: async (t) => await sendMessage(chatId, t)
-        };
-        await messageHandler(null, msgObj);
-        continue;
-      }
-    } else {
-      // Mensaje no-comando: pasar por el conversational handler primero
-      try {
-        const result = await conversationalHandler.handleMessage(String(userId), text);
-        if (result.handled && result.message) {
-          await sendMessage(chatId, result.message);
-          continue;
-        }
-      } catch (e) {
-        console.error('[telegramBot] conversationalHandler error:', e.message);
-      }
-    }
-
+    let handled = false;
     try {
-      // Crear objeto message simulado para reutilizar messageHandler
-      const messageObj = {
-        from: chatId.toString(),
-        body: text,
-        hasMedia: false,
-        reply: async (responseText) => {
-          await sendMessage(chatId, responseText);
-        }
-      };
-
-      // Llamar al messageHandler
-      await messageHandler(null, messageObj);
-    } catch (error) {
-      console.error('Error procesando mensaje Telegram:', error);
-      await sendMessage(chatId, '⚠️ Ocurrió un error. Intenta de nuevo.');
+      handled = await handleCommand(chatId, text, user, String(userId));
+    } catch (e) {
+      console.error(`[telegramBot] handleCommand error:`, e.stack || e.message);
+      await sendMessage(chatId, `❌ Error procesando el comando: ${e.message}`);
+      return;
     }
+    if (handled) return;
+    const textSinComando = text.replace(/^\/[a-z@0-9_]+\s*/i, '').trim();
+    if (textSinComando) {
+      const msgObj = {
+        from: chatId.toString(),
+        body: textSinComando,
+        hasMedia: false,
+        reply: async (t) => await sendMessage(chatId, t)
+      };
+      await messageHandler(null, msgObj);
+      return;
+    }
+  } else {
+    try {
+      const result = await conversationalHandler.handleMessage(String(userId), text);
+      if (result.handled && result.message) {
+        await sendMessage(chatId, result.message);
+        return;
+      }
+    } catch (e) {
+      console.error('[telegramBot] conversationalHandler error:', e.message);
+    }
+  }
+
+  try {
+    const messageObj = {
+      from: chatId.toString(),
+      body: text,
+      hasMedia: false,
+      reply: async (responseText) => {
+        await sendMessage(chatId, responseText);
+      }
+    };
+    await messageHandler(null, messageObj);
+  } catch (error) {
+    console.error('Error procesando mensaje Telegram:', error);
+    await sendMessage(chatId, '⚠️ Ocurrió un error. Intenta de nuevo.');
   }
 }
 
 /**
- * Ciclo principal de polling
+ * Maneja un update individual del webhook de Telegram
  */
-async function pollingCycle() {
-  if (!isRunning) return;
+async function handleWebhookUpdate(update) {
+  const message = update?.message;
+  if (!message || !message.text) return;
+  if (message.chat.type !== 'private') return;
 
-  try {
-    const updates = await telegramRequest('getUpdates', {
-      offset,
-      timeout: 5
-    }, 12000);
-    if (updates?.result?.length > 0) {
-      console.log(`📩 Recibidos ${updates.result.length} update(s)`);
-    }
-    await processUpdates(updates);
-    maybeHeartbeat();
-  } catch (error) {
-    console.error('Error en polling:', error.message, error.stack?.substring(0, 800));
-  }
+  const chatId = message.chat.id;
+  const userId = message.from.id;
+  const text = message.text.trim();
+  const user = message.from.username || message.from.first_name;
 
-  // Continuar el loop
-  if (isRunning) {
-    setTimeout(pollingCycle, 2000);
-  }
+  await processMessage(chatId, userId, text, user);
 }
 
-// Heartbeat cada 5 min para confirmar que polling sigue vivo
-let lastHeartbeat = Date.now();
-function maybeHeartbeat() {
-  if (Date.now() - lastHeartbeat > 5 * 60 * 1000) {
-    console.log(`💓 Bot vivo | uptime=${Math.floor(process.uptime())}s | offset=${offset}`);
-    lastHeartbeat = Date.now();
+/**
+ * Procesa updates en batch (usado en init para updates pendientes)
+ */
+async function processUpdates(updates) {
+  if (!updates.ok || !updates.result) return;
+  for (const update of updates.result) {
+    await handleWebhookUpdate(update);
   }
 }
 
@@ -1213,33 +1177,21 @@ async function init() {
     console.log('⚠️ Modo demo activo (sin base de datos)');
   });
 
-  // Procesar updates pendientes antes de iniciar polling
+  // Configurar webhook con Telegram
   try {
-    const updates = await telegramRequest('getUpdates', { offset: 0, timeout: 0 });
-    if (updates.ok && updates.result.length > 0) {
-      console.log(`📬 Procesando ${updates.result.length} updates pendientes del deploy...`);
-      await processUpdates(updates);
+    const res = await telegramRequest('setWebhook', { url: WEBHOOK_URL });
+    if (res.ok) {
+      console.log(`✅ Webhook configurado: ${WEBHOOK_URL}`);
     } else {
-      console.log(`📬 Sin updates pendientes (ok: ${updates.ok}, count: ${updates.result?.length || 0})`);
+      console.error('❌ Error configurando webhook:', res.description);
     }
   } catch (error) {
-    console.error('Error en init (getUpdates pendientes):', error.message, error.stack?.substring(0, 800));
+    console.error('❌ Error configurando webhook:', error.message);
   }
 
-  // Iniciar polling
-  isRunning = true;
-  console.log(`✅ BotMundialista Telegram listo! offset=${offset}`);
+  console.log(`✅ BotMundialista Telegram listo!`);
   console.log(`📱 Token: ${TELEGRAM_TOKEN?.substring(0, 10)}...`);
-  console.log('');
-  console.log('Comandos disponibles:');
-  console.log('  - "¿Cómo quedó Brasil?"');
-  console.log('  - "Brasil vs Argentina"');
-  console.log('  - "Dame info de Alemania"');
-  console.log('  - "Tabla del Mundial"');
-  console.log('  - "Tabla Grupo A"');
-  console.log('  - "Cuántos córners hizo Brasil?"');
-
-  pollingCycle();
+  console.log(`🌐 Webhook: ${WEBHOOK_URL}`);
 }
 
 // Iniciar
@@ -1248,6 +1200,5 @@ init();
 // Graceful shutdown
 process.on('SIGINT', () => {
   console.log('\n👋 Apagando bot de Telegram...');
-  isRunning = false;
   process.exit(0);
 });
