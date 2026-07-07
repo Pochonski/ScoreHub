@@ -103,6 +103,12 @@ app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-app.listen(PORT, () => {
-  console.log(`🚀 Panel Admin corriendo en http://localhost:${PORT}`);
-});
+// Solo iniciar servidor independiente si ADMIN_STANDALONE=true (para desarrollo local)
+// En producción las rutas /admin/* se sirven desde el servidor principal del bot
+if (process.env.ADMIN_STANDALONE === 'true') {
+  app.listen(PORT, () => {
+    console.log(`🚀 Panel Admin corriendo en http://localhost:${PORT}`);
+  });
+} else {
+  console.log(`📋 Panel Admin integrado en servidor principal (rutas /admin/*)`);
+}

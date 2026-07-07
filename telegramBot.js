@@ -1,6 +1,8 @@
 // BotMundialista - Telegram Bot (usando API directa)
 require('dotenv').config();
 const http = require('http');
+const path = require('path');
+const fs = require('fs');
 const fetch = require('node-fetch');
 const messageHandler = require('./handlers/messageHandler');
 const followHandler = require('./handlers/followHandler');
@@ -58,6 +60,8 @@ const server = http.createServer((req, res) => {
         console.error('[webhook] body parse error:', e.message);
       }
     });
+  } else if (url.startsWith('/admin')) {
+    handleAdminRoute(req, res, url);
   } else {
     res.writeHead(404);
     res.end('Not found');
@@ -69,7 +73,104 @@ server.listen(PORT, () => {
 });
 
 /**
- * Hace una solicitud a la API de Telegram (https nativo, sin node-fetch)
+ * Maneja las rutas del panel de administración (/admin)
+ */
+async function handleAdminRoute(req, res, url) {
+  const parsedUrl = new URL(url, `http://${req.headers.host || 'localhost'}`);
+  const pathname = parsedUrl.pathname;
+
+  // Servir index.html para /admin y /admin/
+  if (pathname === '/admin' || pathname === '/admin/') {
+    const indexPath = path.join(__dirname, 'admin', 'public', 'index.html');
+    try {
+      const html = fs.readFileSync(indexPath, 'utf-8');
+      res.writeHead(200, { 'Content-Type': 'text/html' });
+      res.end(html);
+    } catch (e) {
+      res.writeHead(500);
+      res.end('Error reading admin page');
+    }
+    return;
+  }
+
+  // API endpoints
+  if (pathname.startsWith('/admin/api/')) {
+    res.setHeader('Content-Type', 'application/json');
+    try {
+      let data;
+      switch (pathname) {
+        case '/admin/api/stats': {
+          const users = await pool.query('SELECT COUNT(*) as total FROM usuarios');
+          const queries = await pool.query('SELECT COUNT(*) as total FROM historial_consultas');
+          const teamsFollowed = await pool.query('SELECT COUNT(*) as total FROM equipos_seguidos');
+          const todayQueries = await pool.query("SELECT COUNT(*) as total FROM historial_consultas WHERE DATE(fecha) = CURRENT_DATE");
+          data = {
+            totalUsers: parseInt(users.rows[0].total),
+            totalQueries: parseInt(queries.rows[0].total),
+            teamsFollowed: parseInt(teamsFollowed.rows[0].total),
+            todayQueries: parseInt(todayQueries.rows[0].total)
+          };
+          break;
+        }
+        case '/admin/api/users': {
+          const result = await pool.query('SELECT id, alias, fecha_registro FROM usuarios ORDER BY fecha_registro DESC LIMIT 50');
+          data = result.rows;
+          break;
+        }
+        case '/admin/api/queries': {
+          const limit = parseInt(parsedUrl.searchParams.get('limit')) || 50;
+          const result = await pool.query(
+            `SELECT h.id, h.consulta, h.tipo, h.respuesta, h.fecha, u.alias
+             FROM historial_consultas h
+             JOIN usuarios u ON h.id_usuario = u.id
+             ORDER BY h.fecha DESC
+             LIMIT $1`, [limit]
+          );
+          data = result.rows;
+          break;
+        }
+        case '/admin/api/followed-teams': {
+          const result = await pool.query(
+            `SELECT e.nombre_equipo, u.alias, e.fecha_seguimiento
+             FROM equipos_seguidos e
+             JOIN usuarios u ON e.id_usuario = u.id
+             ORDER BY e.fecha_seguimiento DESC
+             LIMIT 100`
+          );
+          data = result.rows;
+          break;
+        }
+        case '/admin/api/queries-by-type': {
+          const result = await pool.query(
+            `SELECT tipo, COUNT(*) as total
+             FROM historial_consultas
+             GROUP BY tipo
+             ORDER BY total DESC`
+          );
+          data = result.rows;
+          break;
+        }
+        default:
+          res.writeHead(404);
+          res.end(JSON.stringify({ error: 'Not found' }));
+          return;
+      }
+      res.writeHead(200);
+      res.end(JSON.stringify(data));
+    } catch (error) {
+      console.error('[admin] Error en', pathname, error.message);
+      res.writeHead(500);
+      res.end(JSON.stringify({ error: 'Database error' }));
+    }
+    return;
+  }
+
+  res.writeHead(404);
+  res.end('Not found');
+}
+
+/**
+ * Hace una solicitud a la API de Telegram
  */
 async function telegramRequest(method, params = {}, timeoutMs = 60000) {
   const url = `${API_URL}/${method}`;
