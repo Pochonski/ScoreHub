@@ -42,13 +42,14 @@ async function getPartidosHoy(parsed = {}) {
       const partidos = porGrupo[grupo];
       msg += `📋 *${grupo}*  (${partidos.length} partido${partidos.length === 1 ? '' : 's'})\n`;
       partidos.forEach((m) => {
-        const score = (m.homeCompetitor?.score != null && m.awayCompetitor?.score != null)
-          ? `${m.homeCompetitor.score} - ${m.awayCompetitor.score}`
-          : (m.startTime || 'vs');
+        const hs = m.homeCompetitor?.score;
+        const as = m.awayCompetitor?.score;
+        const hasScore = hs != null && hs >= 0 && as != null && as >= 0;
+        const score = hasScore ? `${hs} - ${as}` : (m.startTime || 'vs');
         const home = m.homeCompetitor?.name || '?';
         const away = m.awayCompetitor?.name || '?';
         msg += `⚽ ${home} ${score} ${away}`;
-        if (m.startTime && m.homeCompetitor?.score == null) {
+        if (!hasScore && m.startTime) {
           msg += `  _(${m.startTime})_`;
         }
         msg += '\n';
@@ -122,9 +123,10 @@ async function getPartidosFecha(tipoFecha) {
     }
     let msg = `📅 *PARTIDOS DEL MUNDIAL - ${fmtDate(fecha)}*\n\n`;
     games.slice(0, 25).forEach((m) => {
-      const score = (m.homeCompetitor?.score != null && m.awayCompetitor?.score != null)
-        ? `${m.homeCompetitor.score} - ${m.awayCompetitor.score}`
-        : (m.startTime || '');
+      const hs = m.homeCompetitor?.score;
+      const as = m.awayCompetitor?.score;
+      const hasScore = hs != null && hs >= 0 && as != null && as >= 0;
+      const score = hasScore ? `${hs} - ${as}` : (m.startTime || '');
       msg += `⚽ ${m.homeCompetitor?.name || '?'} ${score} ${m.awayCompetitor?.name || '?'}`;
       if (m.stageName && m.stageName !== 'Fase de grupos') msg += ` _(${m.stageName})_`;
       msg += '\n';
@@ -162,7 +164,7 @@ async function getResultadoEquipo(equipo) {
       return `⚠️ No encontré partidos recientes de ${teamName} en el Mundial.`;
     }
     const matches = rawMatches
-      .filter((m) => m.homeCompetitor?.score != null && m.awayCompetitor?.score != null)
+      .filter((m) => m.homeCompetitor?.score != null && m.homeCompetitor?.score >= 0 && m.awayCompetitor?.score != null && m.awayCompetitor?.score >= 0)
       .sort((a, b) => new Date(b.startTime || b.date) - new Date(a.startTime || a.date));
     if (matches.length === 0) {
       return `⚠️ No encontré partidos jugados de ${teamName}.`;
@@ -214,7 +216,7 @@ async function getProximosEquipo(equipo, limit = 5) {
     const all = await cache.getRecentWorldCupMatchesByTeam(teamId);
     const upcoming = (all || [])
       .filter((m) => new Date(m.startTime || m.date || 0).getTime() >= now - 86400000)
-      .filter((m) => m.homeCompetitor?.score == null && m.awayCompetitor?.score == null)
+      .filter((m) => (m.homeCompetitor?.score == null || m.homeCompetitor?.score < 0) && (m.awayCompetitor?.score == null || m.awayCompetitor?.score < 0))
       .sort((a, b) => new Date(a.startTime || a.date) - new Date(b.startTime || b.date))
       .slice(0, limit);
     if (upcoming.length === 0) {
@@ -258,7 +260,7 @@ async function getResultadoVS(home, away) {
       const seen = new Set();
       const unique = [];
       const played = h2h.h2hGames
-        .filter((m) => m.homeCompetitor?.score != null && m.awayCompetitor?.score != null)
+        .filter((m) => m.homeCompetitor?.score != null && m.homeCompetitor?.score >= 0 && m.awayCompetitor?.score != null && m.awayCompetitor?.score >= 0)
         .sort((a, b) => new Date(b.startTime || b.date) - new Date(a.startTime || a.date));
       for (const m of played) {
         if (!seen.has(m.id) && unique.length < 5) {

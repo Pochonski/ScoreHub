@@ -301,7 +301,7 @@ function formatMatchLine(match, teamId) {
   const teamName  = isHome ? match.homeTeam   : match.awayTeam;
   const oppName   = isHome ? match.awayTeam   : match.homeTeam;
 
-  const hasScore = teamScore != null && oppScore != null;
+  const hasScore = teamScore != null && teamScore >= 0 && oppScore != null && oppScore >= 0;
   const marker = !hasScore ? '🕐'
                : teamScore > oppScore ? '✅'
                : teamScore < oppScore ? '❌'

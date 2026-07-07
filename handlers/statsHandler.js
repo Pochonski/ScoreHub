@@ -45,7 +45,7 @@ async function getEstadisticas(parsed) {
       return NO_DATA(teamName);
     }
     const played = rawMatches
-      .filter((m) => m.homeCompetitor?.score != null && m.awayCompetitor?.score != null)
+      .filter((m) => m.homeCompetitor?.score != null && m.homeCompetitor?.score >= 0 && m.awayCompetitor?.score != null && m.awayCompetitor?.score >= 0)
       .sort((a, b) => new Date(b.startTime || b.date) - new Date(a.startTime || a.date));
     if (played.length === 0) return NO_DATA(teamName);
     const form = getRecentForm(rawMatches, teamId, 5);

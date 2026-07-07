@@ -215,8 +215,8 @@ function formatKnockoutStages(stages) {
       const games = (g.games || []).map(gm => {
         const h = gm.homeCompetitor?.name || gm.homeCompetitor?.shortName || gm.participant1?.name || '?';
         const a = gm.awayCompetitor?.name || gm.awayCompetitor?.shortName || gm.participant2?.name || '?';
-        const hs = gm.homeCompetitor?.score != null ? gm.homeCompetitor.score : (gm.participant1Score ?? '');
-        const as = gm.awayCompetitor?.score != null ? gm.awayCompetitor.score : (gm.participant2Score ?? '');
+        const hs = gm.homeCompetitor?.score != null && gm.homeCompetitor?.score >= 0 ? gm.homeCompetitor.score : (gm.participant1Score ?? '');
+        const as = gm.awayCompetitor?.score != null && gm.awayCompetitor?.score >= 0 ? gm.awayCompetitor.score : (gm.participant2Score ?? '');
         const score = hs !== '' || as !== '' ? ` ${hs}-${as}` : '';
         return `${h}${score} vs${score} ${a}`;
       });

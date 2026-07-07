@@ -1,15 +1,16 @@
 // BotMundialista - Telegram Bot (usando API directa)
 require('dotenv').config();
 const http = require('http');
+const https = require('https');
 const path = require('path');
 const fs = require('fs');
-const fetch = require('node-fetch');
 const messageHandler = require('./handlers/messageHandler');
 const followHandler = require('./handlers/followHandler');
 const conversationalHandler = require('./handlers/conversationalHandler');
 const mundialista365 = require('./handlers/mundialista365Handler');
 const mundialistaStats = require('./handlers/mundialistaStatsHandler');
 const cache = require('./services/mundialCache');
+const matchHandler = require('./handlers/matchHandler');
 const { getAthletePhotoUrl, getAthleteThumbUrl, getCountryFlagUrl, getTeamBadgeUrl } = require('./services/images');
 const { pool, testConnection } = require('./database/connection');
 const userStorage = require('./utils/userStorage');
@@ -96,14 +97,39 @@ async function handleAdminRoute(req, res, url) {
   // API endpoints
   if (pathname.startsWith('/admin/api/')) {
     res.setHeader('Content-Type', 'application/json');
+    const telFilter = "WHERE h.id_usuario NOT LIKE '%@%'";
+
+    // POST: rename user
+    if (req.method === 'POST' && pathname === '/admin/api/users/rename') {
+      let body = '';
+      req.on('data', (chunk) => { body += chunk; });
+      req.on('end', async () => {
+        try {
+          const { id, alias } = JSON.parse(body);
+          if (!id || !alias) {
+            res.writeHead(400);
+            res.end(JSON.stringify({ error: 'id and alias required' }));
+            return;
+          }
+          await pool.query('UPDATE usuarios SET alias = $1 WHERE id = $2', [alias, id]);
+          res.writeHead(200);
+          res.end(JSON.stringify({ success: true }));
+        } catch (error) {
+          res.writeHead(500);
+          res.end(JSON.stringify({ error: error.message }));
+        }
+      });
+      return;
+    }
+
     try {
       let data;
       switch (pathname) {
         case '/admin/api/stats': {
-          const users = await pool.query('SELECT COUNT(*) as total FROM usuarios');
-          const queries = await pool.query('SELECT COUNT(*) as total FROM historial_consultas');
-          const teamsFollowed = await pool.query('SELECT COUNT(*) as total FROM equipos_seguidos');
-          const todayQueries = await pool.query("SELECT COUNT(*) as total FROM historial_consultas WHERE DATE(fecha) = CURRENT_DATE");
+          const users = await pool.query("SELECT COUNT(*) as total FROM usuarios WHERE id NOT LIKE '%@%'");
+          const queries = await pool.query("SELECT COUNT(*) as total FROM historial_consultas h " + telFilter);
+          const todayQueries = await pool.query("SELECT COUNT(*) as total FROM historial_consultas h " + telFilter + " AND DATE(fecha) = CURRENT_DATE");
+          const teamsFollowed = await pool.query("SELECT COUNT(*) as total FROM equipos_seguidos e JOIN usuarios u ON e.id_usuario = u.id WHERE u.id NOT LIKE '%@%'");
           data = {
             totalUsers: parseInt(users.rows[0].total),
             totalQueries: parseInt(queries.rows[0].total),
@@ -113,7 +139,7 @@ async function handleAdminRoute(req, res, url) {
           break;
         }
         case '/admin/api/users': {
-          const result = await pool.query('SELECT id, alias, fecha_registro FROM usuarios ORDER BY fecha_registro DESC LIMIT 50');
+          const result = await pool.query("SELECT id, alias, fecha_registro FROM usuarios WHERE id NOT LIKE '%@%' ORDER BY fecha_registro DESC LIMIT 50");
           data = result.rows;
           break;
         }
@@ -123,6 +149,7 @@ async function handleAdminRoute(req, res, url) {
             `SELECT h.id, h.consulta, h.tipo, h.respuesta, h.fecha, u.alias
              FROM historial_consultas h
              JOIN usuarios u ON h.id_usuario = u.id
+             WHERE h.id_usuario NOT LIKE '%@%'
              ORDER BY h.fecha DESC
              LIMIT $1`, [limit]
           );
@@ -134,6 +161,7 @@ async function handleAdminRoute(req, res, url) {
             `SELECT e.nombre_equipo, u.alias, e.fecha_seguimiento
              FROM equipos_seguidos e
              JOIN usuarios u ON e.id_usuario = u.id
+             WHERE e.id_usuario NOT LIKE '%@%'
              ORDER BY e.fecha_seguimiento DESC
              LIMIT 100`
           );
@@ -143,7 +171,8 @@ async function handleAdminRoute(req, res, url) {
         case '/admin/api/queries-by-type': {
           const result = await pool.query(
             `SELECT tipo, COUNT(*) as total
-             FROM historial_consultas
+             FROM historial_consultas h
+             WHERE h.id_usuario NOT LIKE '%@%'
              GROUP BY tipo
              ORDER BY total DESC`
           );
@@ -165,6 +194,32 @@ async function handleAdminRoute(req, res, url) {
     return;
   }
 
+  // Servir archivos estáticos de admin/public/
+  if (pathname.startsWith('/admin/public/')) {
+    const relPath = pathname.replace('/admin/public/', '');
+    const filePath = path.join(__dirname, 'admin', 'public', relPath);
+    try {
+      const content = fs.readFileSync(filePath);
+      const ext = path.extname(filePath).toLowerCase();
+      const mime = {
+        '.css': 'text/css',
+        '.js': 'application/javascript',
+        '.html': 'text/html',
+        '.png': 'image/png',
+        '.jpg': 'image/jpeg',
+        '.svg': 'image/svg+xml',
+        '.json': 'application/json',
+      };
+      res.writeHead(200, { 'Content-Type': mime[ext] || 'application/octet-stream' });
+      res.end(content);
+    } catch (e) {
+      console.error('[admin] static file error:', filePath, e.message);
+      res.writeHead(404);
+      res.end('Not found');
+    }
+    return;
+  }
+
   res.writeHead(404);
   res.end('Not found');
 }
@@ -173,24 +228,36 @@ async function handleAdminRoute(req, res, url) {
  * Hace una solicitud a la API de Telegram
  */
 async function telegramRequest(method, params = {}, timeoutMs = 60000) {
-  const url = `${API_URL}/${method}`;
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), timeoutMs);
-  try {
-    const res = await fetch(url, {
+  const url = new URL(`${API_URL}/${method}`);
+  const body = JSON.stringify(params);
+  return new Promise((resolve, reject) => {
+    const req = https.request(url, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(params),
-      signal: controller.signal,
+      headers: {
+        'Content-Type': 'application/json',
+        'Content-Length': Buffer.byteLength(body),
+      },
+      timeout: timeoutMs,
+    }, (res) => {
+      let data = '';
+      res.on('data', (chunk) => { data += chunk; });
+      res.on('end', () => {
+        try {
+          const parsed = JSON.parse(data);
+          if (!parsed.ok) {
+            console.error(`[Telegram API] ${method} falló:`, parsed.description);
+          }
+          resolve(parsed);
+        } catch (e) {
+          reject(new Error(`Telegram API (${method}): respuesta no-JSON: ${data.substring(0, 200)}`));
+        }
+      });
     });
-    const data = await res.json();
-    if (!data.ok) {
-      console.error(`[Telegram API] ${method} falló:`, data.description);
-    }
-    return data;
-  } finally {
-    clearTimeout(timer);
-  }
+    req.on('error', reject);
+    req.on('timeout', () => { req.destroy(); reject(new Error(`Telegram API (${method}): timeout after ${timeoutMs}ms`)); });
+    req.write(body);
+    req.end();
+  });
 }
 
 /**
@@ -369,16 +436,23 @@ async function handleCommand(chatId, text, userName, userId) {
       return true;
 
     case '/partidos':
-    case '/hoy':
-      // Crear objeto para messageHandler
-      const msgPartidos = {
-        from: chatId.toString(),
-        body: 'partidos de hoy',
-        hasMedia: false,
-        reply: async (text) => await sendMessage(chatId, text)
-      };
-      await messageHandler(null, msgPartidos);
+    case '/hoy': {
+      try {
+        const text = await matchHandler.getPartidosHoy();
+        const today = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Costa_Rica' }).replace(/-/g, '');
+        const games = await cache.getWorldCupGames({ date: today });
+        if (games && games.length > 0) {
+          const keyboard = buildPartidosKeyboard(games);
+          await sendMessage(chatId, text, { reply_markup: { inline_keyboard: keyboard } });
+        } else {
+          await sendMessage(chatId, text);
+        }
+      } catch (e) {
+        console.error('[partidos] error:', e);
+        await sendMessage(chatId, '⚠️ Error al obtener los partidos.');
+      }
       return true;
+    }
 
     case '/manana':
     case '/mañana':
@@ -646,7 +720,7 @@ async function handleCommand(chatId, text, userName, userId) {
           const allMatches = await cache.getRecentWorldCupMatchesByTeam(team.id);
           const now = Date.now();
           const upcoming = allMatches
-            .filter((m) => m.homeCompetitor?.score == null && new Date(m.startTime || m.date || 0).getTime() >= now - 86400000)
+            .filter((m) => (m.homeCompetitor?.score == null || m.homeCompetitor?.score < 0) && new Date(m.startTime || m.date || 0).getTime() >= now - 86400000)
             .sort((a, b) => new Date(a.startTime || a.date) - new Date(b.startTime || b.date))
             .slice(0, limit);
           if (!upcoming || upcoming.length === 0) {
@@ -737,7 +811,7 @@ async function handleCommand(chatId, text, userName, userId) {
           const allMatches = await cache.getRecentWorldCupMatchesByTeam(team.id);
           const now = Date.now();
           const upcoming = allMatches
-            .filter((m) => m.homeCompetitor?.score == null && new Date(m.startTime || m.date || 0).getTime() >= now - 86400000)
+            .filter((m) => (m.homeCompetitor?.score == null || m.homeCompetitor?.score < 0) && new Date(m.startTime || m.date || 0).getTime() >= now - 86400000)
             .sort((a, b) => new Date(a.startTime || a.date) - new Date(b.startTime || b.date))
             .slice(0, 1);
           if (!upcoming || upcoming.length === 0) {
@@ -1241,9 +1315,73 @@ async function processMessage(chatId, userId, text, user) {
 }
 
 /**
+ * Construye el teclado inline para /partidos
+ */
+function buildPartidosKeyboard(games) {
+  const keyboard = [];
+  for (const m of games) {
+    const gameId = m.id;
+    const home = (m.homeCompetitor?.name || '???').substring(0, 3).toUpperCase();
+    const away = (m.awayCompetitor?.name || '???').substring(0, 3).toUpperCase();
+    keyboard.push([
+      { text: `🎯 Tip ${home}-${away}`, callback_data: `tip_${gameId}` },
+      { text: `📊 Trends ${home}-${away}`, callback_data: `trends_${gameId}` },
+    ]);
+  }
+  return keyboard;
+}
+
+/**
+ * Maneja callback queries del teclado inline de /partidos
+ */
+async function handlePartidosCallback(chatId, callbackData) {
+  const idx = callbackData.indexOf('_');
+  if (idx === -1) {
+    await sendMessage(chatId, '⚠️ Acción no válida.');
+    return;
+  }
+  const action = callbackData.substring(0, idx);
+  const gameId = callbackData.substring(idx + 1);
+
+  try {
+    let response;
+    if (action === 'tip') {
+      const game = await cache.getGameById(gameId);
+      if (game?.homeCompetitor?.name && game?.awayCompetitor?.name) {
+        response = await mundialista365.getTipPartido(game.homeCompetitor.name, game.awayCompetitor.name);
+      } else {
+        response = '⚠️ No pude obtener información de ese partido.';
+      }
+    } else if (action === 'trends') {
+      response = await mundialista365.getTendencias('game', gameId);
+    } else {
+      response = '⚠️ Acción no reconocida.';
+    }
+    await sendMessage(chatId, response);
+  } catch (e) {
+    console.error('[callback] error:', e);
+    await sendMessage(chatId, '⚠️ Error al procesar la acción.');
+  }
+}
+
+/**
  * Maneja un update individual del webhook de Telegram
  */
 async function handleWebhookUpdate(update) {
+  // Callback queries (inline keyboard clicks)
+  if (update.callback_query) {
+    const cb = update.callback_query;
+    const chatId = cb.message.chat.id;
+    const cbData = cb.data || '';
+    const cbId = cb.id;
+    await telegramRequest('answerCallbackQuery', { callback_query_id: cbId }).catch(() => {});
+    if (cbData.startsWith('tip_') || cbData.startsWith('trends_')) {
+      await handlePartidosCallback(chatId, cbData);
+    }
+    return;
+  }
+
+  // Mensajes regulares
   const message = update?.message;
   if (!message || !message.text) return;
   if (message.chat.type !== 'private') return;
