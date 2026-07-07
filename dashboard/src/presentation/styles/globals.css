@@ -1,0 +1,135 @@
+@import "tailwindcss";
+
+@theme {
+  --color-bg-base: #070B15;
+  --color-bg-card: #111B2E;
+  --color-bg-elevated: #1A2642;
+  --color-accent-gold: #F5A623;
+  --color-accent-blue: #38BDF8;
+  --color-accent-live: #22C55E;
+  --color-accent-red: #EF4444;
+  --color-text-primary: #F1F5F9;
+  --color-text-muted: #8899AA;
+  --color-text-dim: #64748B;
+  --color-border-card: rgba(56, 189, 248, 0.08);
+  --color-border-hover: rgba(56, 189, 248, 0.2);
+
+  --font-display: 'Teko', sans-serif;
+  --font-body: 'Sora', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+}
+
+body {
+  background-color: var(--color-bg-base);
+  color: var(--color-text-primary);
+  font-family: var(--font-body);
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #0A0F1A;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #1E293B;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #334155;
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@keyframes ecg-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.6); }
+  50% { box-shadow: 0 0 0 8px rgba(34, 197, 94, 0); }
+}
+
+@keyframes score-update {
+  0% { transform: scale(1); text-shadow: none; }
+  30% { transform: scale(1.15); text-shadow: 0 0 30px rgba(245, 166, 35, 0.6); }
+  100% { transform: scale(1); text-shadow: none; }
+}
+
+@keyframes goal-flash {
+  0% { opacity: 1; width: 0; }
+  50% { opacity: 0.6; width: 100%; }
+  100% { opacity: 0; width: 100%; }
+}
+
+@keyframes fade-in-up {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+.skeleton {
+  background: linear-gradient(90deg, #111B2E 25%, #1A2642 50%, #111B2E 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 6px;
+}
+
+.live-pulse {
+  animation: ecg-pulse 2s infinite;
+}
+
+.score-animate {
+  animation: score-update 0.6s ease-out;
+}
+
+.goal-ray {
+  animation: goal-flash 0.8s ease-out forwards;
+}
+
+.card-enter {
+  animation: fade-in-up 0.4s ease-out both;
+}
+
+.card-enter:nth-child(1) { animation-delay: 0ms; }
+.card-enter:nth-child(2) { animation-delay: 50ms; }
+.card-enter:nth-child(3) { animation-delay: 100ms; }
+.card-enter:nth-child(4) { animation-delay: 150ms; }
+.card-enter:nth-child(5) { animation-delay: 200ms; }
+.card-enter:nth-child(6) { animation-delay: 250ms; }
+
+.focus-visible:focus-visible {
+  outline: 2px solid #38BDF8;
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+.skip-link {
+  position: absolute;
+  top: -100%;
+  left: 8px;
+  z-index: 100;
+  padding: 8px 16px;
+  background: #38BDF8;
+  color: #070B15;
+  border-radius: 0 0 8px 8px;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.skip-link:focus {
+  top: 0;
+}

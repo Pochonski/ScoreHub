@@ -174,7 +174,7 @@ async function handleAdminRoute(req, res, url) {
              ORDER BY h.fecha DESC
              LIMIT $${paramIdx} OFFSET $${paramIdx + 1}`, params
           );
-          data = { rows: result.rows, total: result.rows.length };
+          data = result.rows;
           break;
         }
         case '/admin/api/followed-teams': {
@@ -994,17 +994,17 @@ async function handleCommand(chatId, text, userName, userId) {
 
       // /fixture — próximos partidos agrupados por fecha
       if (cmd === '/fixture' || cmd === '/fixture@botmundialistabot' || cmd === '/fixtures' || cmd === '/calendario') {
-        const text = await mundialista365.getFixture();
         try {
-          const doc = await cosmos.getById('fixtures', `${process.env.SCORES365_COMPETITION_MUNDIAL || '5930'}-fixtures`, parseInt(process.env.SCORES365_COMPETITION_MUNDIAL || '5930', 10));
+          const text = await mundialista365.getFixture();
+          const doc = await cosmos.getById('fixtures', `${mundialista365.MUNDIAL_ID}-fixtures`, mundialista365.MUNDIAL_ID);
           const games = (doc?.games || []).filter((g) => new Date(g.startTime || g.date || 0) > new Date()).sort((a, b) => new Date(a.startTime || a.date) - new Date(b.startTime || b.date)).slice(0, 10);
           if (games.length) {
             await sendMessage(chatId, text, { reply_markup: { inline_keyboard: buildGameKeyboard(games, ['odds']) } });
           } else {
             await sendMessage(chatId, text);
           }
-        } catch (_) {
-          await sendMessage(chatId, text);
+        } catch (e) {
+          await sendMessage(chatId, `⚠️ Error al obtener fixtures: ${e.message}`);
         }
         return true;
       }
