@@ -1,3 +1,5 @@
+import { memo } from 'react'
+
 interface FormDotProps {
   result: string
   size?: 'sm' | 'md'
@@ -8,14 +10,10 @@ const sizeMap = {
   md: 'w-2.5 h-2.5',
 }
 
-export function FormDot({ result, size = 'sm' }: FormDotProps) {
-  const color = result === 'W' ? 'bg-accent-live'
-    : result === 'D' ? 'bg-accent-gold'
-    : 'bg-accent-red'
+export const FormDot = memo(function FormDot({ result, size = 'sm' }: FormDotProps) {
+  const color = result === 'W' ? 'bg-accent-live' : result === 'D' ? 'bg-accent-gold' : 'bg-accent-red'
 
-  const title = result === 'W' ? 'Victoria'
-    : result === 'D' ? 'Empate'
-    : 'Derrota'
+  const title = result === 'W' ? 'Victoria' : result === 'D' ? 'Empate' : 'Derrota'
 
   return (
     <span
@@ -24,4 +22,4 @@ export function FormDot({ result, size = 'sm' }: FormDotProps) {
       aria-label={title}
     />
   )
-}
+})

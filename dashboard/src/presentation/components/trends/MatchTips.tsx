@@ -23,16 +23,14 @@ function deduplicateTrends(trends: Trend[]): Trend[] {
     }
   }
 
-  return Array.from(seenBetCTA.values()).filter(
-    (trend) => bestPerLineType.get(trend.lineTypeId) === trend
-  )
+  return Array.from(seenBetCTA.values()).filter((trend) => bestPerLineType.get(trend.lineTypeId) === trend)
 }
 
 export function MatchTips({ tips }: MatchTipsProps) {
   const [showAll, setShowAll] = useState(false)
 
-  const dedupedTop = useMemo(() => tips ? deduplicateTrends(tips.topTrends) : [], [tips])
-  const dedupedAll = useMemo(() => tips ? deduplicateTrends(tips.allTrends) : [], [tips])
+  const dedupedTop = useMemo(() => (tips ? deduplicateTrends(tips.topTrends) : []), [tips])
+  const dedupedAll = useMemo(() => (tips ? deduplicateTrends(tips.allTrends) : []), [tips])
 
   if (!tips || dedupedTop.length === 0) return null
 
@@ -41,10 +39,8 @@ export function MatchTips({ tips }: MatchTipsProps) {
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <h4 className="font-body text-xs font-semibold text-text-primary">
-          Tips del partido
-        </h4>
-        <span className="font-mono text-xs text-accent-gold">
+        <h4 className="font-body text-text-primary text-xs font-semibold">Tips del partido</h4>
+        <span className="text-accent-gold font-mono text-xs">
           {(tips.confidenceScore * 100).toFixed(0)}% confianza
         </span>
       </div>
@@ -62,7 +58,7 @@ export function MatchTips({ tips }: MatchTipsProps) {
       {dedupedAll.length > 5 && (
         <button
           onClick={() => setShowAll(!showAll)}
-          className="font-body text-xs text-accent-blue hover:text-accent-blue/80 transition-colors focus-visible"
+          className="font-body text-accent-blue hover:text-accent-blue/80 focus-visible text-xs transition-colors"
         >
           {showAll ? 'Mostrar menos' : `Ver todas las tendencias (${dedupedAll.length})`}
         </button>

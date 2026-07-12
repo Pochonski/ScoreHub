@@ -1,5 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
-import type { MatchEvent, GameStat, LineupData } from '@/domain/entities/Game'
+import { useState, useEffect } from 'react'
 import type { BettingTip } from '@/domain/entities/BettingTip'
 import { TopScorers } from '@/presentation/components/stats/TopScorers'
 import { Assists } from '@/presentation/components/stats/Assists'
@@ -42,27 +41,28 @@ export function AnalysisPage() {
   }, [featured?.id])
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-8 space-y-8">
+    <div className="mx-auto max-w-7xl space-y-8 px-4 py-8">
       <div>
-        <h1 className="font-display text-2xl sm:text-3xl font-bold text-text-primary">
-          Análisis
-        </h1>
-        <p className="font-body text-sm text-text-muted mt-1">
+        <h1 className="font-display text-text-primary text-2xl font-bold sm:text-3xl">Análisis</h1>
+        <p className="font-body text-text-muted mt-1 text-sm">
           Estadísticas del torneo, tendencias y noticias
         </p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-6">
-        <div className="space-y-6 min-w-0">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_360px]">
+        <div className="min-w-0 space-y-6">
           {featuredPredictions.length > 0 && (
             <section>
-              <h2 className="font-display text-lg font-semibold text-text-primary mb-3">Predicciones</h2>
-              <div className="bg-bg-card rounded-xl border border-border-card p-4">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <h2 className="font-display text-text-primary mb-3 text-lg font-semibold">Predicciones</h2>
+              <div className="bg-bg-card border-border-card rounded-xl border p-4">
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                   {featuredPredictions.map((p, i) => (
-                    <div key={i} className="flex items-center justify-between p-2 rounded-lg bg-bg-elevated/50">
-                      <span className="font-body text-sm text-text-primary">{p.name}</span>
-                      <span className="font-display text-base font-bold text-accent-gold">{p.value}%</span>
+                    <div
+                      key={i}
+                      className="bg-bg-elevated/50 flex items-center justify-between rounded-lg p-2"
+                    >
+                      <span className="font-body text-text-primary text-sm">{p.name}</span>
+                      <span className="font-display text-accent-gold text-base font-bold">{p.value}%</span>
                     </div>
                   ))}
                 </div>
@@ -72,8 +72,8 @@ export function AnalysisPage() {
 
           {hasTips && (
             <section>
-              <h2 className="font-display text-lg font-semibold text-text-primary mb-3">Tips del partido</h2>
-              <div className="bg-bg-card rounded-xl border border-border-card p-4">
+              <h2 className="font-display text-text-primary mb-3 text-lg font-semibold">Tips del partido</h2>
+              <div className="bg-bg-card border-border-card rounded-xl border p-4">
                 <MatchTips tips={featuredTips} />
               </div>
             </section>
@@ -81,8 +81,10 @@ export function AnalysisPage() {
 
           {!statsLoading && (scorers.length > 0 || assists.length > 0 || ratings.length > 0) && (
             <section>
-              <h2 className="font-display text-lg font-semibold text-text-primary mb-3">Estadísticas del torneo</h2>
-              <div className="bg-bg-card rounded-xl border border-border-card p-4 space-y-5">
+              <h2 className="font-display text-text-primary mb-3 text-lg font-semibold">
+                Estadísticas del torneo
+              </h2>
+              <div className="bg-bg-card border-border-card space-y-5 rounded-xl border p-4">
                 <TopScorers scorers={scorers} />
                 <Assists assists={assists} />
                 <Ratings ratings={ratings} />
@@ -97,14 +99,17 @@ export function AnalysisPage() {
           )}
         </div>
 
-        <aside className="space-y-6 min-w-0">
-          {!trendsLoading && <BettingTrends trends={trends} />}
-        </aside>
+        <aside className="min-w-0 space-y-6">{!trendsLoading && <BettingTrends trends={trends} />}</aside>
       </div>
 
       {(news.length > 0 || newsLoading) && (
         <div>
-          <NewsFeed news={news} onLoadMore={newsLoadMore} hasMore={newsHasMore} loading={newsLoading && news.length === 0} />
+          <NewsFeed
+            news={news}
+            onLoadMore={newsLoadMore}
+            hasMore={newsHasMore}
+            loading={newsLoading && news.length === 0}
+          />
         </div>
       )}
     </div>

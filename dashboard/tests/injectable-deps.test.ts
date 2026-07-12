@@ -24,7 +24,7 @@ describe('ArrayUtils', () => {
       { category: 'B', value: 2 },
       { category: 'A', value: 3 },
     ]
-    const grouped = ArrayUtils.groupBy(items, item => item.category)
+    const grouped = ArrayUtils.groupBy(items, (item) => item.category)
     expect(grouped.get('A')).toHaveLength(2)
     expect(grouped.get('B')).toHaveLength(1)
   })
@@ -69,12 +69,14 @@ describe('DiContainer', () => {
 
   it('provee repositorios correctamente', () => {
     const container = DiContainer.getInstance()
-    const gameRepo = container.getGameRepository()
-    const newsRepo = container.getNewsRepository()
-    const statsRepo = container.getTournamentStatsRepository()
-
-    expect(gameRepo).toBeDefined()
-    expect(newsRepo).toBeDefined()
-    expect(statsRepo).toBeDefined()
+    expect(container.getGameRepository()).toBeDefined()
+    expect(container.getNewsRepository()).toBeDefined()
+    expect(container.getTournamentStatsRepository()).toBeDefined()
+    expect(container.getBettingTipRepository()).toBeDefined()
+    expect(container.getAthleteRepository()).toBeDefined()
+    expect(container.getTeamRepository()).toBeDefined()
+    expect(container.getHistoryRepository()).toBeDefined()
+    expect(container.getTournamentInfoRepository()).toBeDefined()
+    expect(container.getStandingRepository()).toBeDefined()
   })
 })

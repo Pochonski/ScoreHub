@@ -43,27 +43,28 @@ export function BroadcastScore({
   return (
     <div className="relative flex items-center justify-center gap-4 sm:gap-8 md:gap-12">
       {isLive && animate && (
-        <div className="absolute inset-0 overflow-hidden pointer-events-none" aria-hidden="true">
-          <div className="goal-ray h-0.5 bg-gradient-to-r from-transparent via-accent-gold to-transparent top-1/2 -translate-y-1/2 left-0 right-0 absolute" />
+        <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
+          <div className="goal-ray via-accent-gold absolute top-1/2 right-0 left-0 h-0.5 -translate-y-1/2 bg-gradient-to-r from-transparent to-transparent" />
         </div>
       )}
 
-      <div className="flex flex-col items-center gap-2 flex-1 max-w-[120px]">
-        <div className="w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 rounded-full bg-bg-elevated flex items-center justify-center overflow-hidden">
+      <div className="flex max-w-[120px] flex-1 flex-col items-center gap-2">
+        <div className="bg-bg-elevated flex h-16 w-16 items-center justify-center overflow-hidden rounded-full sm:h-20 sm:w-20 md:h-24 md:w-24">
           {homeBadge ? (
-            <img src={homeBadge} alt={homeTeam} className="w-full h-full object-contain" loading="eager" />
+            <img src={homeBadge} alt={homeTeam} className="h-full w-full object-contain" loading="eager" />
           ) : (
-            <span className="font-display font-bold text-2xl text-text-muted">{homeTeam.charAt(0)}</span>
+            <span className="font-display text-text-muted text-2xl font-bold">{homeTeam.charAt(0)}</span>
           )}
         </div>
-        <span className="font-body text-xs sm:text-sm font-medium text-text-primary text-center leading-tight">
+        <span className="font-body text-text-primary text-center text-xs leading-tight font-medium sm:text-sm">
           {homeTeam}
         </span>
       </div>
 
       <div className="flex flex-col items-center">
-        <div className={`font-display font-bold leading-none text-text-primary select-none
-          text-[clamp(56px,10vw,96px)] ${animate ? 'score-animate' : ''}`}>
+        <div
+          className={`font-display text-text-primary text-[clamp(56px,10vw,96px)] leading-none font-bold select-none ${animate ? 'score-animate' : ''}`}
+        >
           {hasScore ? (
             <span className="flex items-center gap-2 sm:gap-4">
               <span>{homeScore}</span>
@@ -71,22 +72,20 @@ export function BroadcastScore({
               <span>{awayScore}</span>
             </span>
           ) : (
-            <span className="text-text-muted/40 text-[clamp(24px,4vw,40px)] font-body font-normal">
-              VS
-            </span>
+            <span className="text-text-muted/40 font-body text-[clamp(24px,4vw,40px)] font-normal">VS</span>
           )}
         </div>
       </div>
 
-      <div className="flex flex-col items-center gap-2 flex-1 max-w-[120px]">
-        <div className="w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 rounded-full bg-bg-elevated flex items-center justify-center overflow-hidden">
+      <div className="flex max-w-[120px] flex-1 flex-col items-center gap-2">
+        <div className="bg-bg-elevated flex h-16 w-16 items-center justify-center overflow-hidden rounded-full sm:h-20 sm:w-20 md:h-24 md:w-24">
           {awayBadge ? (
-            <img src={awayBadge} alt={awayTeam} className="w-full h-full object-contain" loading="eager" />
+            <img src={awayBadge} alt={awayTeam} className="h-full w-full object-contain" loading="eager" />
           ) : (
-            <span className="font-display font-bold text-2xl text-text-muted">{awayTeam.charAt(0)}</span>
+            <span className="font-display text-text-muted text-2xl font-bold">{awayTeam.charAt(0)}</span>
           )}
         </div>
-        <span className="font-body text-xs sm:text-sm font-medium text-text-primary text-center leading-tight">
+        <span className="font-body text-text-primary text-center text-xs leading-tight font-medium sm:text-sm">
           {awayTeam}
         </span>
       </div>

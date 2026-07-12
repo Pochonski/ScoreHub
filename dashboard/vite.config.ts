@@ -2,10 +2,19 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
+import { visualizer } from 'rollup-plugin-visualizer'
 import path from 'path'
 
-export default defineConfig({
-  plugins: [react(), tailwindcss()],
+const visualizerPlugin = visualizer({
+  filename: 'dist/stats.html',
+  open: false,
+  gzipSize: true,
+  brotliSize: true,
+  template: 'treemap',
+})
+
+export default defineConfig(({ mode }) => ({
+  plugins: [react(), tailwindcss(), ...(mode === 'analyze' ? [visualizerPlugin] : [])],
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
@@ -19,6 +28,15 @@ export default defineConfig({
       },
     },
   },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          react: ['react', 'react-dom', 'react-router-dom'],
+        },
+      },
+    },
+  },
   test: {
     environment: 'jsdom',
     globals: true,
@@ -29,4 +47,4 @@ export default defineConfig({
       exclude: ['src/**/index.ts', 'src/**/*.d.ts'],
     },
   },
-})
+}))

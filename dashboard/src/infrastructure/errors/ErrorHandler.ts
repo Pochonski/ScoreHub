@@ -1,5 +1,5 @@
-import { ReactNode } from 'react'
 import { AppError } from '@/infrastructure/errors/AppError'
+import { logger } from '@/infrastructure/logging/Logger'
 
 interface ErrorInfo {
   message: string
@@ -56,7 +56,11 @@ class ErrorHandler {
     }
 
     if (this.options.logErrors) {
-      console.error('[ERROR]', errorInfo)
+      logger.error(
+        errorInfo.message,
+        { code: errorInfo.code, status: errorInfo.status, timestamp: errorInfo.timestamp },
+        'ErrorHandler'
+      )
     }
 
     return errorInfo
@@ -74,7 +78,11 @@ class ErrorHandler {
       } catch (e) {
         lastError = e
         if (this.options.logErrors) {
-          console.warn(`[RETRY] Attempt ${attempt}/${this.options.maxRetries}`, e)
+          logger.warn(
+            `Reintento ${attempt}/${this.options.maxRetries}`,
+            { error: e instanceof Error ? e.message : String(e) },
+            'ErrorHandler'
+          )
         }
       }
     }

@@ -16,17 +16,27 @@ function formatDate(iso: string | undefined): string {
   }
 }
 
-function AccordionSection({ title, defaultOpen, children }: { title: string; defaultOpen?: boolean; children: React.ReactNode }) {
+function AccordionSection({
+  title,
+  defaultOpen,
+  children,
+}: {
+  title: string
+  defaultOpen?: boolean
+  children: React.ReactNode
+}) {
   const [open, setOpen] = useState(defaultOpen ?? true)
   return (
-    <div className="bg-bg-card rounded-xl border border-border-card overflow-hidden">
+    <div className="bg-bg-card border-border-card overflow-hidden rounded-xl border">
       <button
         onClick={() => setOpen(!open)}
-        className="w-full flex items-center justify-between px-5 py-4 hover:bg-bg-elevated/20 transition-colors focus-visible text-left"
+        className="hover:bg-bg-elevated/20 focus-visible flex w-full items-center justify-between px-5 py-4 text-left transition-colors"
         aria-expanded={open}
       >
-        <span className="font-body text-[10px] text-text-dim uppercase tracking-wider">{title}</span>
-        <span className={`text-text-dim transition-transform duration-200 shrink-0 ${open ? 'rotate-180' : ''}`}>
+        <span className="font-body text-text-dim text-[10px] tracking-wider uppercase">{title}</span>
+        <span
+          className={`text-text-dim shrink-0 transition-transform duration-200 ${open ? 'rotate-180' : ''}`}
+        >
           <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2">
             <path d="M3 5l4 4 4-4" />
           </svg>
@@ -38,9 +48,7 @@ function AccordionSection({ title, defaultOpen, children }: { title: string; def
         }`}
       >
         <div className="overflow-hidden">
-          <div className="px-5 pb-5 pt-4 border-t border-border-card/50">
-            {children}
-          </div>
+          <div className="border-border-card/50 border-t px-5 pt-4 pb-5">{children}</div>
         </div>
       </div>
     </div>
@@ -55,7 +63,7 @@ export function HistoryEditionPage() {
   const { history } = useHistory()
 
   const sorted = [...history].reverse()
-  const currentIdx = num ? sorted.findIndex(e => e.seasonNum === num) : -1
+  const currentIdx = num ? sorted.findIndex((e) => e.seasonNum === num) : -1
   const prev = currentIdx > 0 ? sorted[currentIdx - 1] : null
   const next = currentIdx >= 0 && currentIdx < sorted.length - 1 ? sorted[currentIdx + 1] : null
   const championName = edition?.champion?.name || ''
@@ -63,24 +71,24 @@ export function HistoryEditionPage() {
 
   if (loading) {
     return (
-      <div className="max-w-3xl mx-auto px-4 py-8 space-y-6">
+      <div className="mx-auto max-w-3xl space-y-6 px-4 py-8">
         <div className="space-y-3">
-          <div className="h-8 w-72 mx-auto rounded bg-bg-elevated skeleton" />
-          <div className="h-4 w-48 mx-auto rounded bg-bg-elevated skeleton" />
+          <div className="bg-bg-elevated skeleton mx-auto h-8 w-72 rounded" />
+          <div className="bg-bg-elevated skeleton mx-auto h-4 w-48 rounded" />
         </div>
-        <div className="h-48 rounded-xl bg-bg-card skeleton" />
-        <div className="h-64 rounded-xl bg-bg-card skeleton" />
+        <div className="bg-bg-card skeleton h-48 rounded-xl" />
+        <div className="bg-bg-card skeleton h-64 rounded-xl" />
       </div>
     )
   }
 
   if (!edition) {
     return (
-      <div className="max-w-3xl mx-auto px-4 py-16 text-center">
-        <p className="font-body text-sm text-text-muted mb-4">Edición no encontrada</p>
+      <div className="mx-auto max-w-3xl px-4 py-16 text-center">
+        <p className="font-body text-text-muted mb-4 text-sm">Edición no encontrada</p>
         <button
           onClick={() => navigate('/competicion')}
-          className="px-4 py-2 rounded-lg bg-accent-gold/10 text-accent-gold text-sm font-body font-medium hover:bg-accent-gold/20 transition-colors focus-visible"
+          className="bg-accent-gold/10 text-accent-gold font-body hover:bg-accent-gold/20 focus-visible rounded-lg px-4 py-2 text-sm font-medium transition-colors"
         >
           Volver a la competencia
         </button>
@@ -89,24 +97,22 @@ export function HistoryEditionPage() {
   }
 
   return (
-    <div className="max-w-3xl mx-auto px-4 py-8 space-y-6">
+    <div className="mx-auto max-w-3xl space-y-6 px-4 py-8">
       {/* Hero */}
       <div className="text-center">
-        <div className="flex items-center justify-center gap-3 mb-2">
-          <div className="h-px w-8 bg-gradient-to-r from-transparent via-accent-gold/40 to-transparent" />
-          <span className="font-display text-4xl font-bold text-text-primary">{edition.year}</span>
-          <div className="h-px w-8 bg-gradient-to-r from-transparent via-accent-gold/40 to-transparent" />
+        <div className="mb-2 flex items-center justify-center gap-3">
+          <div className="via-accent-gold/40 h-px w-8 bg-gradient-to-r from-transparent to-transparent" />
+          <span className="font-display text-text-primary text-4xl font-bold">{edition.year}</span>
+          <div className="via-accent-gold/40 h-px w-8 bg-gradient-to-r from-transparent to-transparent" />
         </div>
         {championName && runnerUpName && (
-          <p className="font-body text-base text-text-muted">
+          <p className="font-body text-text-muted text-base">
             {championName} vs {runnerUpName}
           </p>
         )}
-        {edition.title && (
-          <p className="font-body text-sm text-text-dim mt-1">{edition.title}</p>
-        )}
+        {edition.title && <p className="font-body text-text-dim mt-1 text-sm">{edition.title}</p>}
         {(edition.venue || edition.host) && (
-          <p className="font-body text-xs text-text-muted mt-1">
+          <p className="font-body text-text-muted mt-1 text-xs">
             {[edition.venue, edition.host].filter(Boolean).join(' · ')}
             {edition.startTime ? ` · ${formatDate(edition.startTime)}` : ''}
           </p>
@@ -116,13 +122,13 @@ export function HistoryEditionPage() {
       {/* Match stats */}
       {matchStats && matchStats.stats.length > 0 && (
         <AccordionSection title="Estadísticas del Partido">
-          <div className="overflow-hidden rounded-lg border border-border-card">
-            <div className="grid grid-cols-3 gap-px bg-border-card text-xs font-body">
+          <div className="border-border-card overflow-hidden rounded-lg border">
+            <div className="bg-border-card font-body grid grid-cols-3 gap-px text-xs">
               {matchStats.stats.map((stat, i) => (
                 <div key={i} className={`contents ${i % 2 === 0 ? 'bg-bg-elevated/20' : 'bg-bg-card'}`}>
-                  <div className="px-3 py-2 text-right text-text-muted">{stat.home}</div>
-                  <div className="px-3 py-2 text-center font-medium text-text-dim">{stat.name}</div>
-                  <div className="px-3 py-2 text-text-muted">{stat.away}</div>
+                  <div className="text-text-muted px-3 py-2 text-right">{stat.home}</div>
+                  <div className="text-text-dim px-3 py-2 text-center font-medium">{stat.name}</div>
+                  <div className="text-text-muted px-3 py-2">{stat.away}</div>
                 </div>
               ))}
             </div>
@@ -133,33 +139,43 @@ export function HistoryEditionPage() {
       {/* Lineups */}
       {lineups && (
         <AccordionSection title="Alineaciones">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
             {[
-              { team: lineups.homeTeam, formation: lineups.homeFormation, players: lineups.homeStarting, coach: lineups.homeCoach },
-              { team: lineups.awayTeam, formation: lineups.awayFormation, players: lineups.awayStarting, coach: lineups.awayCoach },
+              {
+                team: lineups.homeTeam,
+                formation: lineups.homeFormation,
+                players: lineups.homeStarting,
+                coach: lineups.homeCoach,
+              },
+              {
+                team: lineups.awayTeam,
+                formation: lineups.awayFormation,
+                players: lineups.awayStarting,
+                coach: lineups.awayCoach,
+              },
             ].map((side) => (
               <div key={side.team}>
-                <p className="font-body text-sm font-semibold text-text-primary mb-2">
+                <p className="font-body text-text-primary mb-2 text-sm font-semibold">
                   {side.team}
                   {side.formation && (
-                    <span className="text-text-dim font-normal ml-1.5">({side.formation})</span>
+                    <span className="text-text-dim ml-1.5 font-normal">({side.formation})</span>
                   )}
                 </p>
                 <ul className="space-y-1">
                   {side.players.map((p, i) => (
-                    <li key={i} className="font-body text-xs text-text-muted flex items-center gap-2">
+                    <li key={i} className="font-body text-text-muted flex items-center gap-2 text-xs">
                       {p.shirtNumber != null && (
-                        <span className="font-mono text-[10px] text-text-dim w-5 text-right shrink-0">
+                        <span className="text-text-dim w-5 shrink-0 text-right font-mono text-[10px]">
                           {p.shirtNumber}
                         </span>
                       )}
                       <span className="truncate">{p.name}</span>
-                      {p.isCaptain && <span className="text-accent-gold text-[10px] shrink-0">(C)</span>}
+                      {p.isCaptain && <span className="text-accent-gold shrink-0 text-[10px]">(C)</span>}
                     </li>
                   ))}
                 </ul>
                 {side.coach && (
-                  <p className="font-body text-[10px] text-text-dim mt-3 pt-3 border-t border-border-card/30">
+                  <p className="font-body text-text-dim border-border-card/30 mt-3 border-t pt-3 text-[10px]">
                     Entrenador: {side.coach}
                   </p>
                 )}
@@ -170,33 +186,53 @@ export function HistoryEditionPage() {
       )}
 
       {/* Navigation */}
-      <div className="flex items-center justify-between gap-4 pt-4 border-t border-border-card/30">
+      <div className="border-border-card/30 flex items-center justify-between gap-4 border-t pt-4">
         {prev ? (
           <button
             onClick={() => navigate(`/historial/${prev.seasonNum}`)}
-            className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-bg-card text-text-muted hover:text-text-primary transition-colors text-xs font-body focus-visible"
+            className="hover:bg-bg-card text-text-muted hover:text-text-primary font-body focus-visible flex items-center gap-2 rounded-lg px-3 py-2 text-xs transition-colors"
           >
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2" className="shrink-0">
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 14 14"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              className="shrink-0"
+            >
               <path d="M9 3L5 7l4 4" />
             </svg>
-            <span className="truncate max-w-[120px]">
+            <span className="max-w-[120px] truncate">
               {prev.year} ({prev.champion?.name || ''} vs {prev.runnerUp?.name || ''})
             </span>
           </button>
-        ) : <div />}
+        ) : (
+          <div />
+        )}
         {next ? (
           <button
             onClick={() => navigate(`/historial/${next.seasonNum}`)}
-            className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-bg-card text-text-muted hover:text-text-primary transition-colors text-xs font-body focus-visible"
+            className="hover:bg-bg-card text-text-muted hover:text-text-primary font-body focus-visible flex items-center gap-2 rounded-lg px-3 py-2 text-xs transition-colors"
           >
-            <span className="truncate max-w-[120px]">
+            <span className="max-w-[120px] truncate">
               {next.year} ({next.champion?.name || ''} vs {next.runnerUp?.name || ''})
             </span>
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2" className="shrink-0">
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 14 14"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              className="shrink-0"
+            >
               <path d="M5 3l4 4-4 4" />
             </svg>
           </button>
-        ) : <div />}
+        ) : (
+          <div />
+        )}
       </div>
     </div>
   )

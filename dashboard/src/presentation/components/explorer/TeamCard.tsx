@@ -17,14 +17,14 @@ export function TeamCard({ team, matches = [] }: TeamCardProps) {
   const nextMatch = matches.find((m) => m.status === 'upcoming')
 
   return (
-    <div className="bg-bg-card rounded-xl border border-border-card p-4">
-      <div className="flex items-center gap-3 mb-3">
+    <div className="bg-bg-card border-border-card rounded-xl border p-4">
+      <div className="mb-3 flex items-center gap-3">
         <TeamBadge src={team.badgeUrl} name={team.name} size="lg" />
         <div>
-          <h3 className="font-display text-lg font-bold text-text-primary">{team.name}</h3>
+          <h3 className="font-display text-text-primary text-lg font-bold">{team.name}</h3>
           {team.flagUrl && (
-            <span className="font-body text-xs text-text-muted">
-              <img src={team.flagUrl} alt="" className="w-4 h-3 inline mr-1" />
+            <span className="font-body text-text-muted text-xs">
+              <img src={team.flagUrl} alt="" className="mr-1 inline h-3 w-4" />
               {team.countryId}
             </span>
           )}
@@ -35,28 +35,33 @@ export function TeamCard({ team, matches = [] }: TeamCardProps) {
         <div className="space-y-2">
           <div className="flex gap-4 text-xs">
             <div className="text-center">
-              <span className="font-display text-lg font-bold text-text-primary block">{played}</span>
+              <span className="font-display text-text-primary block text-lg font-bold">{played}</span>
               <span className="font-body text-text-dim">PJ</span>
             </div>
             <div className="text-center">
-              <span className="font-display text-lg font-bold text-accent-live block">{won}</span>
+              <span className="font-display text-accent-live block text-lg font-bold">{won}</span>
               <span className="font-body text-text-dim">G</span>
             </div>
             <div className="text-center">
-              <span className="font-display text-lg font-bold text-accent-red block">{played - won}</span>
+              <span className="font-display text-accent-red block text-lg font-bold">{played - won}</span>
               <span className="font-body text-text-dim">P</span>
             </div>
           </div>
 
           {nextMatch && (
-            <div className="pt-2 border-t border-border-card">
-              <span className="font-body text-[10px] text-text-dim uppercase tracking-wider">Próximo partido</span>
-              <p className="font-body text-xs text-text-primary mt-0.5">
+            <div className="border-border-card border-t pt-2">
+              <span className="font-body text-text-dim text-[10px] tracking-wider uppercase">
+                Próximo partido
+              </span>
+              <p className="font-body text-text-primary mt-0.5 text-xs">
                 {nextMatch.homeTeam.name} vs {nextMatch.awayTeam.name}
               </p>
-              <p className="font-mono text-[10px] text-text-dim">
+              <p className="text-text-dim font-mono text-[10px]">
                 {new Date(nextMatch.startTime).toLocaleDateString('es-ES', {
-                  day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit',
+                  day: 'numeric',
+                  month: 'short',
+                  hour: '2-digit',
+                  minute: '2-digit',
                 })}
               </p>
             </div>

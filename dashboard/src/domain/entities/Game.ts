@@ -52,29 +52,6 @@ export interface TeamStatsGroup {
   stats: TeamStatEntry[]
 }
 
-export interface LineupMember {
-  athleteId?: number
-  name: string
-  shortName?: string
-  position: string
-  shirtNumber?: number
-  photoUrl?: string
-  rating?: number
-}
-
-export interface LineupData {
-  formation: string
-  members: LineupMember[]
-}
-
-export interface PredictionOption {
-  text: string
-  percentage: number
-  voteCount: number
-}
-
-export interface Prediction {
-  title: string
-  totalVotes: number
-  options: PredictionOption[]
-}
+import type { LineupMember, Lineup } from './Lineup'
+import type { Prediction, PredictionOption } from './Prediction'
+export type { LineupMember, Lineup, Prediction, PredictionOption }

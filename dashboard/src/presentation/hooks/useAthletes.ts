@@ -1,37 +1,13 @@
-import { useState, useCallback, useRef, useEffect } from 'react'
-import type { Athlete, AthleteCareerSeason, AthleteTrophyCategory, AthleteTransfer } from '@/domain/entities/Athlete'
-import { ApiAthleteRepository } from '@/data/repositories/ApiAthleteRepository'
+import { useState, useCallback, useEffect } from 'react'
+import type {
+  Athlete,
+  AthleteCareerSeason,
+  AthleteTrophyCategory,
+  AthleteTransfer,
+} from '@/domain/entities/Athlete'
+import { DiContainer } from '@/infrastructure/di/DiContainer'
 
-const repo = new ApiAthleteRepository()
-
-export function useAthleteSearch() {
-  const [results, setResults] = useState<Athlete[]>([])
-  const [loading, setLoading] = useState(false)
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
-
-  const search = useCallback((query: string) => {
-    if (debounceRef.current) clearTimeout(debounceRef.current)
-
-    if (!query || query.length < 2) {
-      setResults([])
-      return
-    }
-
-    debounceRef.current = setTimeout(async () => {
-      try {
-        setLoading(true)
-        const data = await repo.searchAthletes(query)
-        setResults(data)
-      } catch {
-        setResults([])
-      } finally {
-        setLoading(false)
-      }
-    }, 300)
-  }, [])
-
-  return { results, loading, search }
-}
+const repo = DiContainer.getInstance().getAthleteRepository()
 
 export function useAthleteProfile(id: number | null) {
   const [athlete, setAthlete] = useState<Athlete | null>(null)
@@ -40,31 +16,42 @@ export function useAthleteProfile(id: number | null) {
   const [transfers, setTransfers] = useState<AthleteTransfer[]>([])
   const [loading, setLoading] = useState(false)
 
-  const fetch = useCallback(async () => {
-    if (id == null) return
-    try {
-      setLoading(true)
-      const [a, c, t, tr] = await Promise.all([
-        repo.getAthleteById(id),
-        repo.getAthleteCareer(id),
-        repo.getAthleteTrophies(id),
-        repo.getAthleteTransfers(id),
-      ])
-      setAthlete(a)
-      setCareer(c)
-      setTrophies(t)
-      setTransfers(tr)
-    } catch {
-      setAthlete(null)
-      setCareer([])
-      setTrophies([])
-      setTransfers([])
-    } finally {
-      setLoading(false)
-    }
-  }, [id])
+  const fetch = useCallback(
+    async (signal?: AbortSignal) => {
+      if (id == null) return
+      try {
+        setLoading(true)
+        const [a, c, t, tr] = await Promise.all([
+          repo.getAthleteById(id),
+          repo.getAthleteCareer(id),
+          repo.getAthleteTrophies(id),
+          repo.getAthleteTransfers(id),
+        ])
+        if (!signal?.aborted) {
+          setAthlete(a)
+          setCareer(c)
+          setTrophies(t)
+          setTransfers(tr)
+        }
+      } catch {
+        if (!signal?.aborted) {
+          setAthlete(null)
+          setCareer([])
+          setTrophies([])
+          setTransfers([])
+        }
+      } finally {
+        if (!signal?.aborted) setLoading(false)
+      }
+    },
+    [id]
+  )
 
-  useEffect(() => { fetch() }, [fetch])
+  useEffect(() => {
+    const ctrl = new AbortController()
+    fetch(ctrl.signal)
+    return () => ctrl.abort()
+  }, [fetch])
 
-  return { athlete, career, trophies, transfers, loading, refetch: fetch }
+  return { athlete, career, trophies, transfers, loading, refetch: () => fetch() }
 }

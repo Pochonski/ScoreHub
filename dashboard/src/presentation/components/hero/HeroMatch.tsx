@@ -37,12 +37,14 @@ export function HeroMatch({ game, compact = false }: HeroMatchProps) {
     return (
       <button
         onClick={handleClick}
-        className="w-full bg-bg-card border-b border-border-card px-4 py-2 text-left focus-visible"
+        className="bg-bg-card border-border-card focus-visible w-full border-b px-4 py-2 text-left"
       >
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
+        <div className="mx-auto flex max-w-7xl items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-full bg-bg-elevated overflow-hidden shrink-0">
-              {game.homeTeam.badgeUrl && <img src={game.homeTeam.badgeUrl} alt="" className="w-full h-full object-contain" />}
+            <div className="bg-bg-elevated h-8 w-8 shrink-0 overflow-hidden rounded-full">
+              {game.homeTeam.badgeUrl && (
+                <img src={game.homeTeam.badgeUrl} alt="" className="h-full w-full object-contain" />
+              )}
             </div>
             <BroadcastScore
               homeScore={game.homeTeam.score}
@@ -53,8 +55,10 @@ export function HeroMatch({ game, compact = false }: HeroMatchProps) {
               awayBadge={game.awayTeam.badgeUrl}
               isLive={isLive}
             />
-            <div className="w-8 h-8 rounded-full bg-bg-elevated overflow-hidden shrink-0">
-              {game.awayTeam.badgeUrl && <img src={game.awayTeam.badgeUrl} alt="" className="w-full h-full object-contain" />}
+            <div className="bg-bg-elevated h-8 w-8 shrink-0 overflow-hidden rounded-full">
+              {game.awayTeam.badgeUrl && (
+                <img src={game.awayTeam.badgeUrl} alt="" className="h-full w-full object-contain" />
+              )}
             </div>
           </div>
           {isLive && <LiveIndicator status="live" minute={game.minute} />}
@@ -66,28 +70,28 @@ export function HeroMatch({ game, compact = false }: HeroMatchProps) {
   return (
     <button
       onClick={handleClick}
-      className="w-full text-left bg-gradient-to-b from-bg-card to-bg-base border-b border-border-card focus-visible"
+      className="from-bg-card to-bg-base border-border-card focus-visible w-full border-b bg-gradient-to-b text-left"
     >
-      <div className="max-w-7xl mx-auto px-4 py-6 sm:py-8 md:py-12">
+      <div className="mx-auto max-w-7xl px-4 py-6 sm:py-8 md:py-12">
         <div className="flex flex-col items-center gap-4">
           <div className="flex items-center gap-3">
             <LiveIndicator status={game.status} minute={game.minute} />
             {game.stage && (
-              <span className="text-text-muted font-body text-xs tracking-wider uppercase">
-                {game.stage}
-              </span>
+              <span className="text-text-muted font-body text-xs tracking-wider uppercase">{game.stage}</span>
             )}
           </div>
 
-          <BroadcastScore
-            homeScore={game.homeTeam.score}
-            awayScore={game.awayTeam.score}
-            homeTeam={game.homeTeam.name}
-            awayTeam={game.awayTeam.name}
-            homeBadge={game.homeTeam.badgeUrl}
-            awayBadge={game.awayTeam.badgeUrl}
-            isLive={isLive}
-          />
+          <div aria-live={isLive ? 'polite' : 'off'} aria-atomic="true" role="status" aria-label="Marcador del partido destacado">
+            <BroadcastScore
+              homeScore={game.homeTeam.score}
+              awayScore={game.awayTeam.score}
+              homeTeam={game.homeTeam.name}
+              awayTeam={game.awayTeam.name}
+              homeBadge={game.homeTeam.badgeUrl}
+              awayBadge={game.awayTeam.badgeUrl}
+              isLive={isLive}
+            />
+          </div>
 
           {isUpcoming && (
             <div className="text-center">
@@ -98,9 +102,7 @@ export function HeroMatch({ game, compact = false }: HeroMatchProps) {
           )}
 
           {isLive && game.statusText && (
-            <p className="text-text-muted font-body text-xs">
-              {game.statusText}
-            </p>
+            <p className="text-text-muted font-body text-xs">{game.statusText}</p>
           )}
         </div>
       </div>

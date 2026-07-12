@@ -1,11 +1,12 @@
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect } from 'vitest'
 import { escapeHtml, sanitizeUrl, truncate, sanitizeHtml } from '@/shared/sanitize'
-import { checkRateLimit, clearRateLimits } from '@/infrastructure/security/rateLimiter'
 
 describe('sanitize', () => {
   describe('escapeHtml', () => {
     it('escapes HTML special characters', () => {
-      expect(escapeHtml('<script>alert("xss")</script>')).toBe('&lt;script&gt;alert(&quot;xss&quot;)&lt;/script&gt;')
+      expect(escapeHtml('<script>alert("xss")</script>')).toBe(
+        '&lt;script&gt;alert(&quot;xss&quot;)&lt;/script&gt;'
+      )
     })
 
     it('does not modify safe strings', () => {
@@ -59,39 +60,5 @@ describe('sanitize', () => {
     it('preserves text content', () => {
       expect(sanitizeHtml('<div>text content</div>')).toBe('text content')
     })
-  })
-})
-
-describe('rateLimiter', () => {
-  beforeEach(() => {
-    clearRateLimits()
-  })
-
-  it('allows first request within limit', () => {
-    expect(checkRateLimit('test-key')).toBe(true)
-  })
-
-  it('blocks requests exceeding max', () => {
-    for (let i = 0; i < 30; i++) {
-      checkRateLimit('test-key')
-    }
-    expect(checkRateLimit('test-key')).toBe(false)
-  })
-
-  it('allows requests on different keys independently', () => {
-    for (let i = 0; i < 30; i++) {
-      checkRateLimit('key-a')
-    }
-    expect(checkRateLimit('key-a')).toBe(false)
-    expect(checkRateLimit('key-b')).toBe(true)
-  })
-
-  it('resets after clear', () => {
-    for (let i = 0; i < 30; i++) {
-      checkRateLimit('test-key')
-    }
-    expect(checkRateLimit('test-key')).toBe(false)
-    clearRateLimits()
-    expect(checkRateLimit('test-key')).toBe(true)
   })
 })

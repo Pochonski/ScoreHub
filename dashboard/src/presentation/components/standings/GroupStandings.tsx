@@ -11,9 +11,7 @@ export function GroupStandings({ groups, hideHeader }: GroupStandingsProps) {
   if (groups.length === 0) {
     return (
       <div className="bg-bg-card rounded-xl p-6 text-center">
-        <p className="text-text-muted font-body text-sm">
-          Tabla de posiciones no disponible
-        </p>
+        <p className="text-text-muted font-body text-sm">Tabla de posiciones no disponible</p>
       </div>
     )
   }
@@ -21,61 +19,102 @@ export function GroupStandings({ groups, hideHeader }: GroupStandingsProps) {
   return (
     <div className="space-y-6">
       {groups.map((group) => (
-        <div key={group.name} className="bg-bg-card rounded-xl overflow-hidden border border-border-card">
+        <div key={group.name} className="bg-bg-card border-border-card overflow-hidden rounded-xl border">
           {!hideHeader && (
-            <div className="px-4 py-3 border-b border-border-card">
-              <h3 className="font-display text-lg font-semibold text-text-primary">
-                {group.name}
-              </h3>
+            <div className="border-border-card border-b px-4 py-3">
+              <h3 className="font-display text-text-primary text-lg font-semibold">{group.name}</h3>
             </div>
           )}
 
           <div className="overflow-x-auto">
             <table className="w-full text-sm" role="table">
               <thead>
-                <tr className="border-b border-border-card">
-                  <th className="px-3 py-2 text-left text-text-dim font-body font-medium text-[11px] tracking-wider uppercase">#</th>
-                  <th className="px-3 py-2 text-left text-text-dim font-body font-medium text-[11px] tracking-wider uppercase">Equipo</th>
-                  <th className="px-2 py-2 text-center text-text-dim font-body font-medium text-[11px] tracking-wider uppercase">PJ</th>
-                  <th className="px-2 py-2 text-center text-text-dim font-body font-medium text-[11px] tracking-wider uppercase hidden sm:table-cell">G</th>
-                  <th className="px-2 py-2 text-center text-text-dim font-body font-medium text-[11px] tracking-wider uppercase hidden sm:table-cell">E</th>
-                  <th className="px-2 py-2 text-center text-text-dim font-body font-medium text-[11px] tracking-wider uppercase hidden sm:table-cell">P</th>
-                  <th className="px-2 py-2 text-center text-text-dim font-body font-medium text-[11px] tracking-wider uppercase hidden md:table-cell">GF</th>
-                  <th className="px-2 py-2 text-center text-text-dim font-body font-medium text-[11px] tracking-wider uppercase hidden md:table-cell">GC</th>
-                  <th className="px-2 py-2 text-center text-text-dim font-body font-medium text-[11px] tracking-wider uppercase hidden md:table-cell">DG</th>
-                  <th className="px-3 py-2 text-center text-text-dim font-body font-medium text-[11px] tracking-wider uppercase">PTS</th>
-                  <th className="px-3 py-2 text-center text-text-dim font-body font-medium text-[11px] tracking-wider uppercase hidden sm:table-cell">Forma</th>
+                <tr className="border-border-card border-b">
+                  <th className="text-text-dim font-body px-3 py-2 text-left text-[11px] font-medium tracking-wider uppercase">
+                    #
+                  </th>
+                  <th className="text-text-dim font-body px-3 py-2 text-left text-[11px] font-medium tracking-wider uppercase">
+                    Equipo
+                  </th>
+                  <th className="text-text-dim font-body px-2 py-2 text-center text-[11px] font-medium tracking-wider uppercase">
+                    PJ
+                  </th>
+                  <th className="text-text-dim font-body hidden px-2 py-2 text-center text-[11px] font-medium tracking-wider uppercase sm:table-cell">
+                    G
+                  </th>
+                  <th className="text-text-dim font-body hidden px-2 py-2 text-center text-[11px] font-medium tracking-wider uppercase sm:table-cell">
+                    E
+                  </th>
+                  <th className="text-text-dim font-body hidden px-2 py-2 text-center text-[11px] font-medium tracking-wider uppercase sm:table-cell">
+                    P
+                  </th>
+                  <th className="text-text-dim font-body hidden px-2 py-2 text-center text-[11px] font-medium tracking-wider uppercase md:table-cell">
+                    GF
+                  </th>
+                  <th className="text-text-dim font-body hidden px-2 py-2 text-center text-[11px] font-medium tracking-wider uppercase md:table-cell">
+                    GC
+                  </th>
+                  <th className="text-text-dim font-body hidden px-2 py-2 text-center text-[11px] font-medium tracking-wider uppercase md:table-cell">
+                    DG
+                  </th>
+                  <th className="text-text-dim font-body px-3 py-2 text-center text-[11px] font-medium tracking-wider uppercase">
+                    PTS
+                  </th>
+                  <th className="text-text-dim font-body hidden px-3 py-2 text-center text-[11px] font-medium tracking-wider uppercase sm:table-cell">
+                    Forma
+                  </th>
                 </tr>
               </thead>
               <tbody>
                 {group.rows.map((row) => (
                   <tr
                     key={row.position}
-                    className="border-b border-border-card/50 hover:bg-bg-elevated/30 transition-colors"
+                    className="border-border-card/50 hover:bg-bg-elevated/30 border-b transition-colors"
                   >
-                    <td className="px-3 py-2.5 font-mono text-xs text-text-muted">{row.position}</td>
+                    <td className="text-text-muted px-3 py-2.5 font-mono text-xs">{row.position}</td>
                     <td className="px-3 py-2.5">
                       <div className="flex items-center gap-2">
                         <TeamBadge src={row.team.badgeUrl} name={row.team.name} size="sm" />
-                        <span className="font-body text-sm font-medium text-text-primary truncate max-w-[120px] sm:max-w-none">
+                        <span className="font-body text-text-primary max-w-[120px] truncate text-sm font-medium sm:max-w-none">
                           {row.team.name}
                         </span>
                       </div>
                     </td>
-                    <td className="px-2 py-2.5 text-center font-mono text-sm text-text-primary">{row.played ?? 0}</td>
-                    <td className="px-2 py-2.5 text-center font-mono text-sm text-text-primary hidden sm:table-cell">{row.won ?? 0}</td>
-                    <td className="px-2 py-2.5 text-center font-mono text-sm text-text-primary hidden sm:table-cell">{row.drawn ?? 0}</td>
-                    <td className="px-2 py-2.5 text-center font-mono text-sm text-text-primary hidden sm:table-cell">{row.lost ?? 0}</td>
-                    <td className="px-2 py-2.5 text-center font-mono text-sm text-text-primary hidden md:table-cell">{row.goalsFor ?? 0}</td>
-                    <td className="px-2 py-2.5 text-center font-mono text-sm text-text-primary hidden md:table-cell">{row.goalsAgainst ?? 0}</td>
-                    <td className={`px-2 py-2.5 text-center font-mono text-sm hidden md:table-cell ${
-                      (row.goalDiff ?? 0) > 0 ? 'text-accent-live' : (row.goalDiff ?? 0) < 0 ? 'text-accent-red' : 'text-text-muted'
-                    }`}>
-                      {(row.goalDiff ?? 0) > 0 ? '+' : ''}{row.goalDiff ?? 0}
+                    <td className="text-text-primary px-2 py-2.5 text-center font-mono text-sm">
+                      {row.played ?? 0}
                     </td>
-                    <td className="px-3 py-2.5 text-center font-display text-lg font-bold text-accent-gold">{row.points ?? 0}</td>
-                    <td className="px-3 py-2.5 hidden sm:table-cell">
-                      <div className="flex items-center gap-1 justify-center">
+                    <td className="text-text-primary hidden px-2 py-2.5 text-center font-mono text-sm sm:table-cell">
+                      {row.won ?? 0}
+                    </td>
+                    <td className="text-text-primary hidden px-2 py-2.5 text-center font-mono text-sm sm:table-cell">
+                      {row.drawn ?? 0}
+                    </td>
+                    <td className="text-text-primary hidden px-2 py-2.5 text-center font-mono text-sm sm:table-cell">
+                      {row.lost ?? 0}
+                    </td>
+                    <td className="text-text-primary hidden px-2 py-2.5 text-center font-mono text-sm md:table-cell">
+                      {row.goalsFor ?? 0}
+                    </td>
+                    <td className="text-text-primary hidden px-2 py-2.5 text-center font-mono text-sm md:table-cell">
+                      {row.goalsAgainst ?? 0}
+                    </td>
+                    <td
+                      className={`hidden px-2 py-2.5 text-center font-mono text-sm md:table-cell ${
+                        (row.goalDiff ?? 0) > 0
+                          ? 'text-accent-live'
+                          : (row.goalDiff ?? 0) < 0
+                            ? 'text-accent-red'
+                            : 'text-text-muted'
+                      }`}
+                    >
+                      {(row.goalDiff ?? 0) > 0 ? '+' : ''}
+                      {row.goalDiff ?? 0}
+                    </td>
+                    <td className="font-display text-accent-gold px-3 py-2.5 text-center text-lg font-bold">
+                      {row.points ?? 0}
+                    </td>
+                    <td className="hidden px-3 py-2.5 sm:table-cell">
+                      <div className="flex items-center justify-center gap-1">
                         {row.recentForm.map((result, i) => (
                           <FormDot key={i} result={result} />
                         ))}

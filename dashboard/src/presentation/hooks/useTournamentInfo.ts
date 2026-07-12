@@ -1,26 +1,30 @@
 import { useState, useEffect, useCallback } from 'react'
 import type { TournamentInfo } from '@/domain/entities/TournamentInfo'
-import { ApiTournamentInfoRepository } from '@/data/repositories/ApiTournamentInfoRepository'
+import { DiContainer } from '@/infrastructure/di/DiContainer'
 
-const repo = new ApiTournamentInfoRepository()
+const repo = DiContainer.getInstance().getTournamentInfoRepository()
 
 export function useTournamentInfo() {
   const [info, setInfo] = useState<TournamentInfo | null>(null)
   const [loading, setLoading] = useState(true)
 
-  const fetch = useCallback(async () => {
+  const fetch = useCallback(async (signal?: AbortSignal) => {
     try {
       setLoading(true)
       const data = await repo.getTournamentInfo()
-      setInfo(data)
+      if (!signal?.aborted) setInfo(data)
     } catch {
-      setInfo(null)
+      if (!signal?.aborted) setInfo(null)
     } finally {
-      setLoading(false)
+      if (!signal?.aborted) setLoading(false)
     }
   }, [])
 
-  useEffect(() => { fetch() }, [fetch])
+  useEffect(() => {
+    const ctrl = new AbortController()
+    fetch(ctrl.signal)
+    return () => ctrl.abort()
+  }, [fetch])
 
-  return { info, loading, refetch: fetch }
+  return { info, loading, refetch: () => fetch() }
 }

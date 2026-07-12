@@ -1,3 +1,5 @@
+import { memo } from 'react'
+
 interface ConfidenceBarProps {
   percentage: number
   label?: string
@@ -10,33 +12,45 @@ const sizeMap = {
   md: 'h-2.5',
 }
 
-export function ConfidenceBar({ percentage, label, value, size = 'md' }: ConfidenceBarProps) {
-  const color = percentage >= 75 ? 'bg-accent-live'
-    : percentage >= 60 ? 'bg-accent-blue'
-    : percentage >= 50 ? 'bg-accent-gold'
-    : 'bg-text-dim'
+const EMOTION_META: Array<{ threshold: number; emoji: string; label: string }> = [
+  { threshold: 75, emoji: '🔥', label: 'Confianza alta' },
+  { threshold: 60, emoji: '📈', label: 'Confianza media-alta' },
+  { threshold: 50, emoji: '➖', label: 'Confianza neutral' },
+]
 
-  const emoji = percentage >= 75 ? '🔥'
-    : percentage >= 60 ? '📈'
-    : percentage >= 50 ? '➖'
-    : '📉'
+export const ConfidenceBar = memo(function ConfidenceBar({
+  percentage,
+  label,
+  value,
+  size = 'md',
+}: ConfidenceBarProps) {
+  const color =
+    percentage >= 75
+      ? 'bg-accent-live'
+      : percentage >= 60
+        ? 'bg-accent-blue'
+        : percentage >= 50
+          ? 'bg-accent-gold'
+          : 'bg-text-dim'
+
+  const meta = EMOTION_META.find((m) => percentage >= m.threshold) ?? { emoji: '📉', label: 'Confianza baja' }
 
   return (
     <div className="space-y-1">
       {(label || value != null) && (
         <div className="flex items-center justify-between">
           {label && (
-            <span className="font-body text-xs text-text-primary font-medium flex items-center gap-1">
-              <span>{emoji}</span>
+            <span className="font-body text-text-primary flex items-center gap-1 text-xs font-medium">
+              <span role="img" aria-label={meta.label}>
+                {meta.emoji}
+              </span>
               {label}
             </span>
           )}
-          {value != null && (
-            <span className="font-mono text-xs text-text-muted">{value}</span>
-          )}
+          {value != null && <span className="text-text-muted font-mono text-xs">{value}</span>}
         </div>
       )}
-      <div className={`w-full ${sizeMap[size]} bg-bg-elevated rounded-full overflow-hidden`}>
+      <div className={`w-full ${sizeMap[size]} bg-bg-elevated overflow-hidden rounded-full`}>
         <div
           className={`${sizeMap[size]} ${color} rounded-full transition-all duration-500 ease-out`}
           style={{ width: `${Math.min(percentage, 100)}%` }}
@@ -44,4 +58,4 @@ export function ConfidenceBar({ percentage, label, value, size = 'md' }: Confide
       </div>
     </div>
   )
-}
+})

@@ -8,31 +8,37 @@ export function useNews(initialLimit = PAGE_SIZE) {
   const [news, setNews] = useState<News[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [hasMore, setHasMore] = useState(true)
   const limitRef = useRef(initialLimit)
 
-  const fetch = useCallback(async () => {
+  const fetch = useCallback(async (signal?: AbortSignal) => {
     try {
       setLoading(true)
       setError(null)
       const repo = DiContainer.getInstance().getNewsRepository()
       const data = await repo.getNews(limitRef.current)
-      setNews(data)
+      if (!signal?.aborted) {
+        setNews(data)
+        if (data.length < limitRef.current) setHasMore(false)
+      }
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Error al cargar noticias')
+      if (!signal?.aborted) setError(e instanceof Error ? e.message : 'Error al cargar noticias')
     } finally {
-      setLoading(false)
+      if (!signal?.aborted) setLoading(false)
     }
   }, [])
 
   const loadMore = useCallback(async () => {
-    if (loading) return
+    if (loading || !hasMore) return
     limitRef.current += PAGE_SIZE
     await fetch()
-  }, [loading, fetch])
+  }, [loading, hasMore, fetch])
 
   useEffect(() => {
-    fetch()
+    const ctrl = new AbortController()
+    fetch(ctrl.signal)
+    return () => ctrl.abort()
   }, [fetch])
 
-  return { news, loading, error, refetch: fetch, loadMore, hasMore: true }
+  return { news, loading, error, refetch: () => fetch(), loadMore, hasMore }
 }

@@ -23,47 +23,52 @@ function AccordionCard({ edition, isBackToBack }: { edition: HistoryEdition; isB
   const [showModal, setShowModal] = useState(false)
   const hasDetails = edition.venue || edition.host || edition.startTime || edition.matchId
 
-  const scoreText = edition.homeScore != null && edition.awayScore != null
-    ? edition.homePenaltyScore != null
-      ? `${edition.homeScore}-${edition.awayScore}(${edition.homePenaltyScore})`
-      : `${edition.homeScore}-${edition.awayScore}`
-    : null
+  const scoreText =
+    edition.homeScore != null && edition.awayScore != null
+      ? edition.homePenaltyScore != null
+        ? `${edition.homeScore}-${edition.awayScore}(${edition.homePenaltyScore})`
+        : `${edition.homeScore}-${edition.awayScore}`
+      : null
 
   return (
-    <div className="bg-bg-card rounded-xl border border-border-card overflow-hidden">
+    <div className="bg-bg-card border-border-card overflow-hidden rounded-xl border">
       <button
         onClick={() => setOpen(!open)}
-        className="w-full flex items-center gap-3 px-4 py-3 hover:bg-bg-elevated/30 transition-colors focus-visible text-left"
+        className="hover:bg-bg-elevated/30 focus-visible flex w-full items-center gap-3 px-4 py-3 text-left transition-colors"
         aria-expanded={open}
       >
-        <span className="font-display text-lg font-bold text-accent-gold min-w-[3.5ch]">{edition.year}</span>
+        <span className="font-display text-accent-gold min-w-[3.5ch] text-lg font-bold">{edition.year}</span>
 
         {edition.champion ? (
-          <div className="flex items-center gap-1.5 min-w-0">
-            <div className="ring-2 ring-accent-gold/30 rounded-full shrink-0">
+          <div className="flex min-w-0 items-center gap-1.5">
+            <div className="ring-accent-gold/30 shrink-0 rounded-full ring-2">
               <TeamBadge src={edition.champion.badgeUrl} name={edition.champion.name} size="sm" />
             </div>
-            <span className="font-body text-xs text-accent-gold font-semibold truncate max-w-[72px] shrink-0">
+            <span className="font-body text-accent-gold max-w-[72px] shrink-0 truncate text-xs font-semibold">
               {edition.champion.name}
             </span>
             {scoreText && (
-              <span className="font-mono text-[11px] font-bold text-text-primary shrink-0 flex items-center gap-0.5">
+              <span className="text-text-primary flex shrink-0 items-center gap-0.5 font-mono text-[11px] font-bold">
                 {scoreText}
-                {edition.penalties && <span className="text-[10px]" title="Definido por penales">⚽</span>}
+                {edition.penalties && (
+                  <span className="text-[10px]" title="Definido por penales">
+                    ⚽
+                  </span>
+                )}
               </span>
             )}
             {edition.runnerUp && (
               <>
-                <div className="rounded-full shrink-0">
+                <div className="shrink-0 rounded-full">
                   <TeamBadge src={edition.runnerUp.badgeUrl} name={edition.runnerUp.name} size="sm" />
                 </div>
-                <span className="font-body text-xs text-text-muted truncate max-w-[72px] shrink-0">
+                <span className="font-body text-text-muted max-w-[72px] shrink-0 truncate text-xs">
                   {edition.runnerUp.name}
                 </span>
               </>
             )}
             {isBackToBack && (
-              <span className="text-[9px] font-body font-semibold text-accent-blue bg-accent-blue/10 px-1.5 py-0.5 rounded shrink-0">
+              <span className="font-body text-accent-blue bg-accent-blue/10 shrink-0 rounded px-1.5 py-0.5 text-[9px] font-semibold">
                 Bicampeón
               </span>
             )}
@@ -71,7 +76,9 @@ function AccordionCard({ edition, isBackToBack }: { edition: HistoryEdition; isB
         ) : null}
 
         {hasDetails && (
-          <span className={`ml-auto text-text-dim transition-transform duration-200 shrink-0 ${open ? 'rotate-180' : ''}`}>
+          <span
+            className={`text-text-dim ml-auto shrink-0 transition-transform duration-200 ${open ? 'rotate-180' : ''}`}
+          >
             <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M3 5l4 4 4-4" />
             </svg>
@@ -85,50 +92,47 @@ function AccordionCard({ edition, isBackToBack }: { edition: HistoryEdition; isB
         }`}
       >
         <div className="overflow-hidden">
-          <div className="px-4 pb-4 pt-3 border-t border-border-card/50 space-y-3">
-          {edition.venue && (
-            <div>
-              <p className="font-body text-[10px] text-text-dim uppercase tracking-wider mb-1">Sede</p>
-              <p className="font-body text-sm text-text-primary">{edition.venue}</p>
-            </div>
-          )}
-          {edition.host && (
-            <div>
-              <p className="font-body text-[10px] text-text-dim uppercase tracking-wider mb-1">País</p>
-              <p className="font-body text-sm text-text-primary">{edition.host}</p>
-            </div>
-          )}
-          {edition.startTime && (
-            <div>
-              <p className="font-body text-[10px] text-text-dim uppercase tracking-wider mb-1">Partido</p>
-              <p className="font-body text-sm text-text-primary">
-                {edition.champion?.name} {edition.homeScore ?? ''}—{edition.awayScore ?? ''} {edition.runnerUp?.name}
-                {edition.homePenaltyScore != null && ` (${edition.homePenaltyScore}-${edition.awayPenaltyScore} pen.)`}
-                {edition.startTime && ` · ${formatDate(edition.startTime)}`}
-              </p>
-            </div>
-          )}
-          {edition.extraTime && (
-            <p className="font-body text-xs text-text-muted">Prórroga: Sí</p>
-          )}
+          <div className="border-border-card/50 space-y-3 border-t px-4 pt-3 pb-4">
+            {edition.venue && (
+              <div>
+                <p className="font-body text-text-dim mb-1 text-[10px] tracking-wider uppercase">Sede</p>
+                <p className="font-body text-text-primary text-sm">{edition.venue}</p>
+              </div>
+            )}
+            {edition.host && (
+              <div>
+                <p className="font-body text-text-dim mb-1 text-[10px] tracking-wider uppercase">País</p>
+                <p className="font-body text-text-primary text-sm">{edition.host}</p>
+              </div>
+            )}
+            {edition.startTime && (
+              <div>
+                <p className="font-body text-text-dim mb-1 text-[10px] tracking-wider uppercase">Partido</p>
+                <p className="font-body text-text-primary text-sm">
+                  {edition.champion?.name} {edition.homeScore ?? ''}—{edition.awayScore ?? ''}{' '}
+                  {edition.runnerUp?.name}
+                  {edition.homePenaltyScore != null &&
+                    ` (${edition.homePenaltyScore}-${edition.awayPenaltyScore} pen.)`}
+                  {edition.startTime && ` · ${formatDate(edition.startTime)}`}
+                </p>
+              </div>
+            )}
+            {edition.extraTime && <p className="font-body text-text-muted text-xs">Prórroga: Sí</p>}
 
-          {edition.matchId && (
-            <button
-              onClick={() => setShowModal(true)}
-              className="px-3 py-1.5 rounded-lg bg-bg-elevated/40 text-text-muted text-[11px] font-body font-medium hover:bg-bg-elevated/60 transition-colors focus-visible"
-            >
-              Ver alineaciones
-            </button>
-          )}
+            {edition.matchId && (
+              <button
+                onClick={() => setShowModal(true)}
+                className="bg-bg-elevated/40 text-text-muted font-body hover:bg-bg-elevated/60 focus-visible rounded-lg px-3 py-1.5 text-[11px] font-medium transition-colors"
+              >
+                Ver alineaciones
+              </button>
+            )}
           </div>
         </div>
       </div>
 
       {showModal && edition.matchId && (
-        <HistoricalMatchStatsModal
-          seasonNum={edition.seasonNum}
-          onClose={() => setShowModal(false)}
-        />
+        <HistoricalMatchStatsModal seasonNum={edition.seasonNum} onClose={() => setShowModal(false)} />
       )}
     </div>
   )
@@ -142,18 +146,18 @@ export function HistoryTab() {
       <div className="space-y-6">
         <div className="flex flex-wrap items-center gap-3">
           {Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="h-8 w-36 rounded-lg bg-bg-card skeleton" />
+            <div key={i} className="bg-bg-card skeleton h-8 w-36 rounded-lg" />
           ))}
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
           {Array.from({ length: 6 }).map((_, i) => (
-            <div key={i} className="bg-bg-card rounded-xl p-4 skeleton">
+            <div key={i} className="bg-bg-card skeleton rounded-xl p-4">
               <div className="flex items-center gap-3">
-                <div className="h-6 w-10 rounded bg-bg-elevated" />
-                <div className="h-8 w-8 rounded-full bg-bg-elevated" />
-                <div className="h-4 w-12 rounded bg-bg-elevated" />
-                <div className="h-8 w-8 rounded-full bg-bg-elevated" />
-                <div className="h-4 flex-1 rounded bg-bg-elevated" />
+                <div className="bg-bg-elevated h-6 w-10 rounded" />
+                <div className="bg-bg-elevated h-8 w-8 rounded-full" />
+                <div className="bg-bg-elevated h-4 w-12 rounded" />
+                <div className="bg-bg-elevated h-8 w-8 rounded-full" />
+                <div className="bg-bg-elevated h-4 flex-1 rounded" />
               </div>
             </div>
           ))}
@@ -165,7 +169,7 @@ export function HistoryTab() {
   if (history.length === 0) {
     return (
       <div className="bg-bg-card rounded-xl p-6 text-center">
-        <p className="font-body text-sm text-text-muted">Historial no disponible</p>
+        <p className="font-body text-text-muted text-sm">Historial no disponible</p>
       </div>
     )
   }
@@ -184,7 +188,7 @@ export function HistoryTab() {
   return (
     <div className="space-y-6">
       <HistoryStatsBanner />
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
         {editions.map((edition) => (
           <AccordionCard
             key={edition.seasonNum}

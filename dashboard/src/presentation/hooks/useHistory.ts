@@ -1,26 +1,30 @@
 import { useState, useEffect, useCallback } from 'react'
 import type { HistoryEdition } from '@/domain/entities/HistoryEdition'
-import { ApiHistoryRepository } from '@/data/repositories/ApiHistoryRepository'
+import { DiContainer } from '@/infrastructure/di/DiContainer'
 
-const repo = new ApiHistoryRepository()
+const repo = DiContainer.getInstance().getHistoryRepository()
 
 export function useHistory() {
   const [history, setHistory] = useState<HistoryEdition[]>([])
   const [loading, setLoading] = useState(true)
 
-  const fetch = useCallback(async () => {
+  const fetch = useCallback(async (signal?: AbortSignal) => {
     try {
       setLoading(true)
       const data = await repo.getHistory()
-      setHistory(data)
+      if (!signal?.aborted) setHistory(data)
     } catch {
-      setHistory([])
+      if (!signal?.aborted) setHistory([])
     } finally {
-      setLoading(false)
+      if (!signal?.aborted) setLoading(false)
     }
   }, [])
 
-  useEffect(() => { fetch() }, [fetch])
+  useEffect(() => {
+    const ctrl = new AbortController()
+    fetch(ctrl.signal)
+    return () => ctrl.abort()
+  }, [fetch])
 
-  return { history, loading, refetch: fetch }
+  return { history, loading, refetch: () => fetch() }
 }

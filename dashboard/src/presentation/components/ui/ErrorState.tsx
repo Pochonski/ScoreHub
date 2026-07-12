@@ -12,22 +12,20 @@ export function ErrorState({ message, code, onRetry, fullPage }: ErrorStateProps
 
   return (
     <div className={container}>
-      <div className="text-center max-w-sm">
-        <div className="w-12 h-12 mx-auto mb-4 rounded-full bg-accent-red/10 flex items-center justify-center">
-          <svg className="w-6 h-6 text-accent-red" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <div className="max-w-sm text-center">
+        <div className="bg-accent-red/10 mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full">
+          <svg className="text-accent-red h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01" />
           </svg>
         </div>
-        <p className="font-body text-sm text-text-muted mb-1">
+        <p className="font-body text-text-muted mb-1 text-sm">
           {message || 'Ocurrió un error al cargar los datos'}
         </p>
-        {code && (
-          <p className="font-mono text-[10px] text-text-dim mb-4">{code}</p>
-        )}
+        {code && <p className="text-text-dim mb-4 font-mono text-[10px]">{code}</p>}
         {onRetry && (
           <button
             onClick={onRetry}
-            className="px-3 py-1.5 rounded-lg bg-accent-blue/10 text-accent-blue text-xs font-body font-medium hover:bg-accent-blue/20 transition-colors focus-visible"
+            className="bg-accent-blue/10 text-accent-blue font-body hover:bg-accent-blue/20 focus-visible rounded-lg px-3 py-1.5 text-xs font-medium transition-colors"
           >
             Reintentar
           </button>

@@ -5,9 +5,9 @@ export function HistoryStatsBanner() {
 
   if (loading) {
     return (
-      <div className="flex flex-wrap items-center gap-3 mb-6">
+      <div className="mb-6 flex flex-wrap items-center gap-3">
         {Array.from({ length: 6 }).map((_, i) => (
-          <div key={i} className="h-8 w-36 rounded-lg bg-bg-card skeleton" />
+          <div key={i} className="bg-bg-card skeleton h-8 w-36 rounded-lg" />
         ))}
       </div>
     )
@@ -16,8 +16,8 @@ export function HistoryStatsBanner() {
   if (!stats) return null
 
   return (
-    <div className="flex flex-wrap items-center gap-2 mb-6">
-      <span className="inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-body font-medium bg-bg-card text-text-muted">
+    <div className="mb-6 flex flex-wrap items-center gap-2">
+      <span className="font-body bg-bg-card text-text-muted inline-flex items-center rounded-lg px-3 py-1.5 text-xs font-medium">
         {stats.totalEditions} ediciones
       </span>
     </div>

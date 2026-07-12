@@ -10,17 +10,17 @@ export function PlayerProfilePage() {
 
   if (loading) {
     return (
-      <div className="max-w-3xl mx-auto px-4 py-8">
+      <div className="mx-auto max-w-3xl px-4 py-8">
         <div className="animate-pulse space-y-6">
           <div className="flex items-center gap-6">
-            <div className="w-32 h-32 rounded-full skeleton" />
-            <div className="space-y-2 flex-1">
-              <div className="h-8 w-48 skeleton" />
-              <div className="h-4 w-32 skeleton" />
+            <div className="skeleton h-32 w-32 rounded-full" />
+            <div className="flex-1 space-y-2">
+              <div className="skeleton h-8 w-48" />
+              <div className="skeleton h-4 w-32" />
             </div>
           </div>
-          <div className="h-20 skeleton" />
-          <div className="h-40 skeleton" />
+          <div className="skeleton h-20" />
+          <div className="skeleton h-40" />
         </div>
       </div>
     )
@@ -28,11 +28,11 @@ export function PlayerProfilePage() {
 
   if (!athlete) {
     return (
-      <div className="max-w-3xl mx-auto px-4 py-8 text-center">
+      <div className="mx-auto max-w-3xl px-4 py-8 text-center">
         <p className="text-text-muted font-body">Jugador no encontrado</p>
         <button
           onClick={() => navigate('/')}
-          className="mt-4 px-4 py-2 rounded-lg bg-accent-blue/15 text-accent-blue font-body text-sm focus-visible"
+          className="bg-accent-blue/15 text-accent-blue font-body focus-visible mt-4 rounded-lg px-4 py-2 text-sm"
         >
           Volver al inicio
         </button>
@@ -41,10 +41,10 @@ export function PlayerProfilePage() {
   }
 
   return (
-    <div className="max-w-3xl mx-auto px-4 py-8">
+    <div className="mx-auto max-w-3xl px-4 py-8">
       <button
         onClick={() => navigate(-1)}
-        className="mb-4 flex items-center gap-1.5 text-text-muted hover:text-text-primary transition-colors font-body text-sm focus-visible"
+        className="text-text-muted hover:text-text-primary font-body focus-visible mb-4 flex items-center gap-1.5 text-sm transition-colors"
       >
         <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2">
           <path d="M10 12L6 8l4-4" />

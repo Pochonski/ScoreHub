@@ -7,23 +7,30 @@ export function useMatchTips(gameId: number | null) {
   const [tips, setTips] = useState<BettingTip | null>(null)
   const [loading, setLoading] = useState(false)
 
-  const fetch = useCallback(async () => {
-    if (gameId == null) {
-      setTips(null)
-      return
-    }
-    try {
-      setLoading(true)
-      const data = await apiClient.get<BettingTip | null>(ENDPOINTS.matchTips(gameId))
-      setTips(data)
-    } catch {
-      setTips(null)
-    } finally {
-      setLoading(false)
-    }
-  }, [gameId])
+  const fetch = useCallback(
+    async (signal?: AbortSignal) => {
+      if (gameId == null) {
+        if (!signal?.aborted) setTips(null)
+        return
+      }
+      try {
+        setLoading(true)
+        const data = await apiClient.get<BettingTip | null>(ENDPOINTS.matchTips(gameId), { signal })
+        if (!signal?.aborted) setTips(data)
+      } catch {
+        if (!signal?.aborted) setTips(null)
+      } finally {
+        if (!signal?.aborted) setLoading(false)
+      }
+    },
+    [gameId]
+  )
 
-  useEffect(() => { fetch() }, [fetch])
+  useEffect(() => {
+    const ctrl = new AbortController()
+    fetch(ctrl.signal)
+    return () => ctrl.abort()
+  }, [fetch])
 
-  return { tips, loading, refetch: fetch }
+  return { tips, loading, refetch: () => fetch() }
 }

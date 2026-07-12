@@ -32,3 +32,44 @@ export const NewsSchema = z.object({
 
 export const GameArraySchema = z.array(GameSchema)
 export const NewsArraySchema = z.array(NewsSchema)
+
+export const AthleteSchema = z.object({
+  id: z.number(),
+  name: z.string(),
+  shortName: z.string().optional(),
+  age: z.number().optional(),
+  position: z.object({ id: z.number(), name: z.string() }).optional(),
+  formationPosition: z.object({ id: z.number(), name: z.string() }).optional(),
+  nationalTeamId: z.number().optional(),
+  clubId: z.number().optional(),
+  nationalTeamStatsText: z.string().optional(),
+  shortBio: z.string().optional(),
+  photoUrl: z.string().optional(),
+  thumbnailUrl: z.string().optional(),
+})
+
+export const StandingRowSchema = z.object({
+  position: z.number(),
+  team: z.object({
+    id: z.number(),
+    name: z.string(),
+    badgeUrl: z.string().optional(),
+  }),
+  played: z.number(),
+  won: z.number(),
+  drawn: z.number(),
+  lost: z.number(),
+  goalsFor: z.number(),
+  goalsAgainst: z.number(),
+  goalDiff: z.number(),
+  points: z.number(),
+  recentForm: z.array(z.string()),
+})
+
+export const StandingGroupSchema = z.object({
+  name: z.string(),
+  rows: z.array(StandingRowSchema),
+})
+
+export const AthleteArraySchema = z.array(AthleteSchema)
+export const StandingGroupArraySchema = z.array(StandingGroupSchema)

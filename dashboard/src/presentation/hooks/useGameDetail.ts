@@ -4,11 +4,11 @@ import type { Lineup } from '@/domain/entities/Lineup'
 import type { BettingTip } from '@/domain/entities/BettingTip'
 import type { Prediction } from '@/domain/entities/Prediction'
 import type { News } from '@/domain/entities/News'
-import { ApiGameRepository } from '@/data/repositories/ApiGameRepository'
+import { DiContainer } from '@/infrastructure/di/DiContainer'
 import { apiClient } from '@/data/datasources/ApiClient'
 import { ENDPOINTS } from '@/infrastructure/config'
 
-const repo = new ApiGameRepository()
+const repo = DiContainer.getInstance().getGameRepository()
 
 export interface GameDetail {
   game: Game | null
@@ -34,24 +34,33 @@ export function useGameDetail(gameId: number | null) {
   })
   const [loading, setLoading] = useState(true)
 
-  const fetch = useCallback(async () => {
-    if (gameId == null) return
-    setLoading(true)
-    const [game, stats, lineups, timeline, predictions, tips, suggestions, news] = await Promise.all([
-      repo.getGameById(gameId).catch(() => null),
-      repo.getGameStats(gameId).catch(() => [] as GameStat[]),
-      repo.getGameLineups(gameId).catch(() => null),
-      repo.getGameTimeline(gameId).catch(() => [] as MatchEvent[]),
-      repo.getGamePredictions(gameId).catch(() => [] as Prediction[]),
-      repo.getGameTips(gameId).catch(() => null),
-      apiClient.get<Game[]>(ENDPOINTS.matchSuggestions(gameId)).catch(() => [] as Game[]),
-      apiClient.get<News[]>(ENDPOINTS.newsByGame(gameId)).catch(() => [] as News[]),
-    ])
-    setData({ game, stats, lineups, timeline, predictions, tips, suggestions, news })
-    setLoading(false)
-  }, [gameId])
+  const fetch = useCallback(
+    async (signal?: AbortSignal) => {
+      if (gameId == null) return
+      setLoading(true)
+      const [game, stats, lineups, timeline, predictions, tips, suggestions, news] = await Promise.all([
+        repo.getGameById(gameId).catch(() => null),
+        repo.getGameStats(gameId).catch(() => [] as GameStat[]),
+        repo.getGameLineups(gameId).catch(() => null),
+        repo.getGameTimeline(gameId).catch(() => [] as MatchEvent[]),
+        repo.getGamePredictions(gameId).catch(() => [] as Prediction[]),
+        repo.getGameTips(gameId).catch(() => null),
+        apiClient.get<Game[]>(ENDPOINTS.matchSuggestions(gameId), { signal }).catch(() => [] as Game[]),
+        apiClient.get<News[]>(ENDPOINTS.newsByGame(gameId), { signal }).catch(() => [] as News[]),
+      ])
+      if (!signal?.aborted) {
+        setData({ game, stats, lineups, timeline, predictions, tips, suggestions, news })
+        setLoading(false)
+      }
+    },
+    [gameId]
+  )
 
-  useEffect(() => { fetch() }, [fetch])
+  useEffect(() => {
+    const ctrl = new AbortController()
+    fetch(ctrl.signal)
+    return () => ctrl.abort()
+  }, [fetch])
 
-  return { ...data, loading, refetch: fetch }
+  return { ...data, loading, refetch: () => fetch() }
 }

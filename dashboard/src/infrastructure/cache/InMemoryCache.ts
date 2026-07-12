@@ -6,8 +6,17 @@ export type CacheEntry<T> = {
 
 export class InMemoryCache {
   private cache = new Map<string, CacheEntry<unknown>>()
+  private maxSize: number
+
+  constructor(maxSize = 500) {
+    this.maxSize = maxSize
+  }
 
   set<T>(key: string, data: T, ttl: number = 60000): void {
+    if (this.cache.size >= this.maxSize) {
+      const firstKey = this.cache.keys().next().value
+      if (firstKey) this.cache.delete(firstKey)
+    }
     this.cache.set(key, { data, timestamp: Date.now(), ttl })
   }
 

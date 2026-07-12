@@ -1,1 +1,1 @@
-export {}; // Mark as module
+export {} // Mark as module

@@ -7,19 +7,23 @@ export function useTrends() {
   const [trends, setTrends] = useState<Trend[]>([])
   const [loading, setLoading] = useState(true)
 
-  const fetch = useCallback(async () => {
+  const fetch = useCallback(async (signal?: AbortSignal) => {
     try {
       setLoading(true)
-      const data = await apiClient.get<Trend[]>(ENDPOINTS.trends)
-      setTrends(data)
+      const data = await apiClient.get<Trend[]>(ENDPOINTS.trends, { signal })
+      if (!signal?.aborted) setTrends(data)
     } catch {
-      setTrends([])
+      if (!signal?.aborted) setTrends([])
     } finally {
-      setLoading(false)
+      if (!signal?.aborted) setLoading(false)
     }
   }, [])
 
-  useEffect(() => { fetch() }, [fetch])
+  useEffect(() => {
+    const ctrl = new AbortController()
+    fetch(ctrl.signal)
+    return () => ctrl.abort()
+  }, [fetch])
 
-  return { trends, loading, refetch: fetch }
+  return { trends, loading, refetch: () => fetch() }
 }

@@ -2,7 +2,12 @@ import { apiClient } from '@/data/datasources/ApiClient'
 import { ENDPOINTS } from '@/infrastructure/config'
 import { mapAthlete, mapAthletes } from '@/data/mappers/AthleteMapper'
 import type { AthleteRepository } from '@/domain/repositories/AthleteRepository'
-import type { Athlete, AthleteCareerSeason, AthleteTrophyCategory, AthleteTransfer } from '@/domain/entities/Athlete'
+import type {
+  Athlete,
+  AthleteCareerSeason,
+  AthleteTrophyCategory,
+  AthleteTransfer,
+} from '@/domain/entities/Athlete'
 
 export class ApiAthleteRepository implements AthleteRepository {
   async searchAthletes(query: string, teamId?: number): Promise<Athlete[]> {

@@ -14,14 +14,12 @@ export function validateEnv(): void {
   const result = envSchema.safeParse(import.meta.env)
   if (!result.success) {
     logger.warn('[EnvValidator] Invalid or missing environment variables', {
-      issues: result.error.issues.map(i => ({ path: i.path.join('.'), message: i.message })),
+      issues: result.error.issues.map((i) => ({ path: i.path.join('.'), message: i.message })),
     })
   }
 }
 
-export function getEnvVar<K extends keyof z.infer<typeof envSchema>>(
-  key: K
-): z.infer<typeof envSchema>[K] {
+export function getEnvVar<K extends keyof z.infer<typeof envSchema>>(key: K): z.infer<typeof envSchema>[K] {
   const result = envSchema.safeParse(import.meta.env)
   if (!result.success) {
     throw new Error(`[EnvValidator] Missing required env var: ${key}`)

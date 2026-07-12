@@ -1,28 +1,32 @@
 import { useState, useEffect, useCallback } from 'react'
 import type { StandingGroup } from '@/domain/entities/Standing'
-import { ApiStandingRepository } from '@/data/repositories/ApiStandingRepository'
+import { DiContainer } from '@/infrastructure/di/DiContainer'
 
-const repo = new ApiStandingRepository()
+const repo = DiContainer.getInstance().getStandingRepository()
 
 export function useStandings() {
   const [groups, setGroups] = useState<StandingGroup[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  const fetch = useCallback(async () => {
+  const fetch = useCallback(async (signal?: AbortSignal) => {
     try {
       setLoading(true)
       setError(null)
       const data = await repo.getStandings()
-      setGroups(data)
+      if (!signal?.aborted) setGroups(data)
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Error al cargar tabla de posiciones')
+      if (!signal?.aborted) setError(e instanceof Error ? e.message : 'Error al cargar tabla de posiciones')
     } finally {
-      setLoading(false)
+      if (!signal?.aborted) setLoading(false)
     }
   }, [])
 
-  useEffect(() => { fetch() }, [fetch])
+  useEffect(() => {
+    const ctrl = new AbortController()
+    fetch(ctrl.signal)
+    return () => ctrl.abort()
+  }, [fetch])
 
-  return { groups, loading, error, refetch: fetch }
+  return { groups, loading, error, refetch: () => fetch() }
 }

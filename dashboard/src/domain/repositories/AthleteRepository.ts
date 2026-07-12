@@ -1,4 +1,9 @@
-import type { Athlete, AthleteCareerSeason, AthleteTrophyCategory, AthleteTransfer } from '@/domain/entities/Athlete'
+import type {
+  Athlete,
+  AthleteCareerSeason,
+  AthleteTrophyCategory,
+  AthleteTransfer,
+} from '@/domain/entities/Athlete'
 
 export interface AthleteRepository {
   searchAthletes(query: string, teamId?: number): Promise<Athlete[]>

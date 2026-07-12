@@ -8,19 +8,23 @@ export function useHistoryStats() {
   const [stats, setStats] = useState<HistoryStats | null>(null)
   const [loading, setLoading] = useState(true)
 
-  const fetch = useCallback(async () => {
+  const fetch = useCallback(async (signal?: AbortSignal) => {
     try {
       setLoading(true)
       const data = await repo.getHistoryStats()
-      setStats(data)
+      if (!signal?.aborted) setStats(data)
     } catch {
-      setStats(null)
+      if (!signal?.aborted) setStats(null)
     } finally {
-      setLoading(false)
+      if (!signal?.aborted) setLoading(false)
     }
   }, [])
 
-  useEffect(() => { fetch() }, [fetch])
+  useEffect(() => {
+    const ctrl = new AbortController()
+    fetch(ctrl.signal)
+    return () => ctrl.abort()
+  }, [fetch])
 
-  return { stats, loading, refetch: fetch }
+  return { stats, loading, refetch: () => fetch() }
 }

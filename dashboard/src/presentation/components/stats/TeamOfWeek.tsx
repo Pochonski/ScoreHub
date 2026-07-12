@@ -13,7 +13,7 @@ function PlayerAvatar({ name, photoUrl }: { name: string; photoUrl?: string }) {
 
   if (!photoUrl || imgFailed) {
     return (
-      <span className="flex items-center justify-center w-full h-full font-display text-xs text-text-muted">
+      <span className="font-display text-text-muted flex h-full w-full items-center justify-center text-xs">
         {name.charAt(0)}
       </span>
     )
@@ -23,7 +23,7 @@ function PlayerAvatar({ name, photoUrl }: { name: string; photoUrl?: string }) {
     <img
       src={photoUrl}
       alt=""
-      className="w-full h-full object-cover"
+      className="h-full w-full object-cover"
       loading="lazy"
       onError={() => setImgFailed(true)}
     />
@@ -53,10 +53,10 @@ export function TeamOfWeek({ formation, players }: TeamOfWeekProps) {
 
   return (
     <div>
-      <h3 className="font-body text-xs font-semibold text-text-muted uppercase tracking-wider mb-3 flex items-center gap-1.5">
+      <h3 className="font-body text-text-muted mb-3 flex items-center gap-1.5 text-xs font-semibold tracking-wider uppercase">
         <span>🏆</span> Once Ideal · {formation}
       </h3>
-      <div className="bg-bg-elevated/40 rounded-xl p-4 space-y-2">
+      <div className="bg-bg-elevated/40 space-y-2 rounded-xl p-4">
         {rowLayout.map((count, rowIndex) => (
           <div key={rowIndex} className="flex justify-center gap-2">
             {Array.from({ length: count }).map((_, ci) => {
@@ -64,15 +64,15 @@ export function TeamOfWeek({ formation, players }: TeamOfWeekProps) {
               playerIndex++
               if (!player) return <div key={ci} className="w-14" />
               return (
-                <div key={ci} className="flex flex-col items-center gap-0.5 w-14">
-                  <div className="w-8 h-8 rounded-full bg-bg-card overflow-hidden border border-border-card">
+                <div key={ci} className="flex w-14 flex-col items-center gap-0.5">
+                  <div className="bg-bg-card border-border-card h-8 w-8 overflow-hidden rounded-full border">
                     <PlayerAvatar name={player.name} photoUrl={player.photoUrl} />
                   </div>
-                  <span className="font-body text-[10px] text-text-primary text-center leading-tight truncate w-full">
+                  <span className="font-body text-text-primary w-full truncate text-center text-[10px] leading-tight">
                     {player.name}
                   </span>
                   {player.rating != null && (
-                    <span className="font-mono text-[10px] text-accent-gold">{player.rating.toFixed(1)}</span>
+                    <span className="text-accent-gold font-mono text-[10px]">{player.rating.toFixed(1)}</span>
                   )}
                 </div>
               )

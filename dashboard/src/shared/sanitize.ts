@@ -9,7 +9,7 @@ const HTML_ENTITIES: Record<string, string> = {
 const UNSAFE_URL_PATTERN = /^(javascript|data|vbscript):/i
 
 export function escapeHtml(str: string): string {
-  return str.replace(/[&<>"']/g, ch => HTML_ENTITIES[ch] || ch)
+  return str.replace(/[&<>"']/g, (ch) => HTML_ENTITIES[ch] || ch)
 }
 
 export function sanitizeUrl(url: string): string {

@@ -10,10 +10,8 @@ export function BettingTrends({ trends }: BettingTrendsProps) {
 
   return (
     <div>
-      <h2 className="font-display text-xl font-semibold text-text-primary mb-3">
-        Tendencias
-      </h2>
-      <div className="bg-bg-card rounded-xl border border-border-card p-4 space-y-4">
+      <h2 className="font-display text-text-primary mb-3 text-xl font-semibold">Tendencias</h2>
+      <div className="bg-bg-card border-border-card space-y-4 rounded-xl border p-4">
         {trends.slice(0, 8).map((t, i) => (
           <ConfidenceBar
             key={i}
@@ -22,7 +20,7 @@ export function BettingTrends({ trends }: BettingTrendsProps) {
             value={`${(t.percentage * 100).toFixed(0)}%`}
           />
         ))}
-        <p className="font-body text-[10px] text-text-dim text-center pt-1 border-t border-border-card">
+        <p className="font-body text-text-dim border-border-card border-t pt-1 text-center text-[10px]">
           Las tendencias se actualizan cada 30 minutos
         </p>
       </div>

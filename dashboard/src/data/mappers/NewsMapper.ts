@@ -12,10 +12,10 @@ export function mapNews(raw: Record<string, unknown>): News {
     id: raw.id as string,
     title: raw.title as string,
     publishDate: raw.publishDate as string,
-    image: raw.image as string || undefined,
+    image: (raw.image as string) || undefined,
     url: raw.url as string,
-    sourceId: raw.sourceId as number || undefined,
-    gameId: raw.gameId as number || undefined,
+    sourceId: (raw.sourceId as number) || undefined,
+    gameId: (raw.gameId as number) || undefined,
   }
 }
 

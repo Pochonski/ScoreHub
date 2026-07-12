@@ -19,30 +19,34 @@ export function mapGame(raw: Record<string, unknown>): Game {
     throw new AppError('Game data validation failed', ErrorCode.VALIDATION_ERROR)
   }
 
+  const d = parsed.data
+  const ht = d.homeTeam
+  const at = d.awayTeam
+
   return {
-    id: raw.id as number,
-    statusGroup: raw.statusGroup as GameStatusGroup,
-    status: mapGameStatus(raw.statusGroup as GameStatusGroup),
-    stage: raw.stageName as string || '',
-    stageName: raw.stageName as string || '',
-    groupNum: raw.groupNum as number | undefined,
-    startTime: raw.startTime as string,
+    id: d.id,
+    statusGroup: d.statusGroup as GameStatusGroup,
+    status: mapGameStatus(d.statusGroup as GameStatusGroup),
+    stage: (raw.stageName as string) || '',
+    stageName: d.stage || '',
+    groupNum: ((raw.groupNum as number | undefined) ?? d.statusGroup === 2) ? undefined : undefined,
+    startTime: d.startTime || '',
     homeTeam: {
-      id: (raw.homeTeam as Record<string, unknown>)?.id as number,
-      name: (raw.homeTeam as Record<string, unknown>)?.name as string,
-      shortName: (raw.homeTeam as Record<string, unknown>)?.shortName as string,
-      score: (raw.homeTeam as Record<string, unknown>)?.score as number,
+      id: ht?.id ?? ((raw.homeTeam as Record<string, unknown>)?.id as number),
+      name: ht?.name || ((raw.homeTeam as Record<string, unknown>)?.name as string) || '',
+      shortName: ht?.name || ((raw.homeTeam as Record<string, unknown>)?.shortName as string),
+      score: ht?.score ?? undefined,
       badgeUrl: (raw.homeTeam as Record<string, unknown>)?.badgeUrl as string,
     },
     awayTeam: {
-      id: (raw.awayTeam as Record<string, unknown>)?.id as number,
-      name: (raw.awayTeam as Record<string, unknown>)?.name as string,
-      shortName: (raw.awayTeam as Record<string, unknown>)?.shortName as string,
-      score: (raw.awayTeam as Record<string, unknown>)?.score as number,
+      id: at?.id ?? ((raw.awayTeam as Record<string, unknown>)?.id as number),
+      name: at?.name || ((raw.awayTeam as Record<string, unknown>)?.name as string) || '',
+      shortName: at?.name || ((raw.awayTeam as Record<string, unknown>)?.shortName as string),
+      score: at?.score ?? undefined,
       badgeUrl: (raw.awayTeam as Record<string, unknown>)?.badgeUrl as string,
     },
-    statusText: raw.statusText as string || undefined,
-    minute: raw.minute as number || undefined,
+    statusText: (raw.statusText as string) || undefined,
+    minute: (raw.minute as number) || undefined,
     events: raw.events as Game['events'],
     stats: raw.stats as Game['stats'],
   }

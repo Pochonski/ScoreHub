@@ -1,5 +1,8 @@
 node_modules/
 dist/
 server/node_modules/
+coverage/
+*.tsbuildinfo
 .DS_Store
 *.local
+stats.html

@@ -59,10 +59,8 @@ export function MatchGrid({ games, onSelect, featuredId, emptyMessage }: MatchGr
 
   if (games.length === 0) {
     return (
-      <div className="text-center py-12">
-        <p className="text-text-muted font-body text-sm">
-          {emptyMessage || 'No hay partidos para mostrar'}
-        </p>
+      <div className="py-12 text-center">
+        <p className="text-text-muted font-body text-sm">{emptyMessage || 'No hay partidos para mostrar'}</p>
       </div>
     )
   }
@@ -75,37 +73,34 @@ export function MatchGrid({ games, onSelect, featuredId, emptyMessage }: MatchGr
         <div key={group.date}>
           {/* Premium date header */}
           <div className="mb-5">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="h-px flex-1 bg-gradient-to-r from-transparent via-border-card to-transparent" />
-              <span className="font-mono text-[10px] text-text-dim tracking-[0.2em] uppercase">
+            <div className="mb-2 flex items-center gap-3">
+              <div className="via-border-card h-px flex-1 bg-gradient-to-r from-transparent to-transparent" />
+              <span className="text-text-dim font-mono text-[10px] tracking-[0.2em] uppercase">
                 {group.labelUpper}
               </span>
-              <div className="h-px flex-1 bg-gradient-to-r from-transparent via-border-card to-transparent" />
+              <div className="via-border-card h-px flex-1 bg-gradient-to-r from-transparent to-transparent" />
             </div>
-            <Link
-              to="/competicion"
-              className="group block text-center"
-            >
-              <h2 className="font-display text-xl sm:text-2xl font-bold text-accent-gold/90 group-hover:text-accent-gold transition-colors tracking-wide">
+            <Link to="/competicion" className="group block text-center">
+              <h2 className="font-display text-accent-gold/90 group-hover:text-accent-gold text-xl font-bold tracking-wide transition-colors sm:text-2xl">
                 {compName}
-                <span className="inline-block ml-2 text-accent-gold/50 group-hover:translate-x-0.5 group-hover:text-accent-gold transition-all">
+                <span className="text-accent-gold/50 group-hover:text-accent-gold ml-2 inline-block transition-all group-hover:translate-x-0.5">
                   →
                 </span>
               </h2>
             </Link>
-            <div className="flex items-center justify-center gap-2 mt-2">
-              <span className="font-body text-[11px] text-text-dim">
+            <div className="mt-2 flex items-center justify-center gap-2">
+              <span className="font-body text-text-dim text-[11px]">
                 {group.games.length} partido{group.games.length !== 1 ? 's' : ''}
               </span>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
             {group.games.map((game, index) => (
               <div
                 key={game.id}
                 className={`card-enter transition-all duration-200 ${
-                  game.id === featuredId ? 'ring-2 ring-accent-gold/30 rounded-xl scale-[1.02]' : ''
+                  game.id === featuredId ? 'ring-accent-gold/30 scale-[1.02] rounded-xl ring-2' : ''
                 }`}
                 style={{ animationDelay: `${index * 50}ms` }}
               >

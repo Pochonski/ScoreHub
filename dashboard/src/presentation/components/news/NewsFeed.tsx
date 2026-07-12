@@ -24,7 +24,7 @@ export function NewsFeed({ news, onLoadMore, hasMore = false, loading = false }:
 
   if (news.length === 0) {
     return (
-      <div className="text-center py-12">
+      <div className="py-12 text-center">
         <p className="text-text-muted font-body text-sm">No hay noticias disponibles</p>
       </div>
     )
@@ -32,22 +32,20 @@ export function NewsFeed({ news, onLoadMore, hasMore = false, loading = false }:
 
   return (
     <section aria-label="Últimas noticias">
-      <h2 className="font-display text-xl font-semibold text-text-primary mb-3">
-        Noticias
-      </h2>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      <h2 className="font-display text-text-primary mb-3 text-xl font-semibold">Noticias</h2>
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {news.map((item) => (
           <NewsCard key={item.id} item={item} />
         ))}
       </div>
       {(hasMore || loading) && (
-        <div className="flex justify-center mt-6">
+        <div className="mt-6 flex justify-center">
           {loadingMore || loading ? (
-            <span className="font-body text-sm text-text-muted animate-pulse">Cargando...</span>
+            <span className="font-body text-text-muted animate-pulse text-sm">Cargando...</span>
           ) : hasMore ? (
             <button
               onClick={handleLoadMore}
-              className="px-6 py-2 rounded-lg bg-bg-card text-text-primary font-body text-sm font-medium hover:bg-bg-elevated transition-colors border border-border-card focus-visible"
+              className="bg-bg-card text-text-primary font-body hover:bg-bg-elevated border-border-card focus-visible rounded-lg border px-6 py-2 text-sm font-medium transition-colors"
             >
               Cargar más noticias
             </button>

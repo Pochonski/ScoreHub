@@ -63,9 +63,11 @@ export class DateUtils {
       const date = new Date(iso)
       if (!DateUtils.isValidDate(date)) return false
       const today = new Date()
-      return date.getDate() === today.getDate() &&
-             date.getMonth() === today.getMonth() &&
-             date.getFullYear() === today.getFullYear()
+      return (
+        date.getDate() === today.getDate() &&
+        date.getMonth() === today.getMonth() &&
+        date.getFullYear() === today.getFullYear()
+      )
     } catch {
       return false
     }
@@ -86,7 +88,7 @@ export class ArrayUtils {
   }
 
   static filterBy<T>(array: T[], predicates: ((item: T) => boolean)[]): T[] {
-    return array.filter(item => predicates.every(predicate => predicate(item)))
+    return array.filter((item) => predicates.every((predicate) => predicate(item)))
   }
 
   static sortBy<T>(array: T[], compareFn: (a: T, b: T) => number): T[] {
@@ -98,7 +100,7 @@ export class ArrayUtils {
       return [...new Set(array)]
     }
     const seen = new Set<string>()
-    return array.filter(item => {
+    return array.filter((item) => {
       const k = key(item)
       if (seen.has(k)) {
         return false
@@ -137,9 +139,7 @@ export class AsyncUtils {
   static withTimeout<T>(promise: Promise<T>, timeout: number, errorMessage: string): Promise<T> {
     return Promise.race([
       promise,
-      new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error(errorMessage)), timeout)
-      ),
+      new Promise<never>((_, reject) => setTimeout(() => reject(new Error(errorMessage)), timeout)),
     ])
   }
 

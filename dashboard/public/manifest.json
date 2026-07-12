@@ -1,0 +1,42 @@
+{
+  "name": "Mundialista 2026",
+  "short_name": "Mundialista",
+  "description": "Centro de comando de la Copa Mundial FIFA 2026",
+  "lang": "es",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#070B15",
+  "theme_color": "#070B15",
+  "categories": ["sports", "news"],
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Partidos en vivo",
+      "short_name": "En vivo",
+      "description": "Ver partidos en vivo ahora",
+      "url": "/?filter=live",
+      "icons": [{ "src": "/favicon.svg", "sizes": "any" }]
+    }
+  ]
+}

@@ -10,7 +10,7 @@ interface PageShellProps {
 export function PageShell({ children }: PageShellProps) {
   return (
     <ErrorBoundary>
-      <div className="min-h-screen flex flex-col">
+      <div className="flex min-h-screen flex-col">
         <a href="#main-content" className="skip-link">
           Saltar al contenido principal
         </a>

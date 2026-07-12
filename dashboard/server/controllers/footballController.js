@@ -158,13 +158,17 @@ function formatTime(iso) {
 async function getMatches(req, res) {
   try {
     const { statusGroup, stage, teamId } = req.query;
-    let query = `SELECT * FROM c WHERE c.competitionId = ${MUNDIAL_ID}`;
-    const params = [];
+    const params = [{ name: '@compId', value: COMPETITION_PK }];
+    let query = 'SELECT * FROM c WHERE c.competitionId = @compId';
 
     if (statusGroup) {
       const groups = statusGroup.split(',').map(Number).filter(n => !isNaN(n));
       if (groups.length > 0) {
-        query += ` AND c.statusGroup IN (${groups.join(',')})`;
+        const groupParams = groups.map((g, i) => {
+          params.push({ name: `@sg${i}`, value: g });
+          return `@sg${i}`;
+        });
+        query += ` AND c.statusGroup IN (${groupParams.join(',')})`;
       }
     }
     if (stage) {
@@ -174,7 +178,8 @@ async function getMatches(req, res) {
     if (teamId) {
       const tid = Number(teamId);
       if (!isNaN(tid)) {
-        query += ` AND (c.homeCompetitor.id = ${tid} OR c.awayCompetitor.id = ${tid})`;
+        params.push({ name: '@tid', value: tid });
+        query += ' AND (c.homeCompetitor.id = @tid OR c.awayCompetitor.id = @tid)';
       }
     }
 
@@ -561,7 +566,8 @@ async function getStandings(req, res) {
   try {
     // Try Cosmos first
     const query = {
-      query: `SELECT * FROM c WHERE c.competitionId = ${MUNDIAL_ID} AND c.stageNum = 1 ORDER BY c.seasonNum DESC`,
+      query: 'SELECT * FROM c WHERE c.competitionId = @compId AND c.stageNum = 1 ORDER BY c.seasonNum DESC',
+      parameters: [{ name: '@compId', value: COMPETITION_PK }],
     };
     const docs = await cosmos.queryAll('standings', query);
 
@@ -1137,8 +1143,12 @@ async function getNews(req, res) {
     const scope = req.query.scope || 'comp';
 
     const news = await cosmos.queryAll('news', {
-      query: `SELECT * FROM c WHERE c.scope = @s AND c.competitionId = ${MUNDIAL_ID} ORDER BY c.publishDate DESC OFFSET 0 LIMIT ${limit}`,
-      parameters: [{ name: '@s', value: scope }],
+      query: 'SELECT * FROM c WHERE c.scope = @s AND c.competitionId = @compId ORDER BY c.publishDate DESC OFFSET 0 LIMIT @limit',
+      parameters: [
+        { name: '@s', value: scope },
+        { name: '@compId', value: COMPETITION_PK },
+        { name: '@limit', value: limit },
+      ],
     });
     res.json(news.map(n => ({
       id: n.id,
@@ -1189,7 +1199,8 @@ async function searchAthletes(req, res) {
     if (teamId) {
       const tid = Number(teamId);
       if (!isNaN(tid)) {
-        query += ` AND c.nationalTeamId = ${tid}`;
+        params.push({ name: '@tid', value: tid });
+        query += ' AND c.nationalTeamId = @tid';
       }
     }
     query += ' OFFSET 0 LIMIT 20';

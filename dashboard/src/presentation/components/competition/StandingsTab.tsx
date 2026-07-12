@@ -3,17 +3,27 @@ import { useStandings } from '@/presentation/hooks/useStandings'
 import { GroupStandings } from '@/presentation/components/standings/GroupStandings'
 import { StandingsSkeleton } from '@/presentation/components/ui/Skeleton'
 
-function AccordionSection({ title, defaultOpen, children }: { title: string; defaultOpen?: boolean; children: React.ReactNode }) {
+function AccordionSection({
+  title,
+  defaultOpen,
+  children,
+}: {
+  title: string
+  defaultOpen?: boolean
+  children: React.ReactNode
+}) {
   const [open, setOpen] = useState(defaultOpen ?? true)
   return (
-    <div className="bg-bg-card rounded-xl border border-border-card overflow-hidden">
+    <div className="bg-bg-card border-border-card overflow-hidden rounded-xl border">
       <button
         onClick={() => setOpen(!open)}
-        className="w-full flex items-center justify-between px-5 py-4 hover:bg-bg-elevated/20 transition-colors focus-visible text-left"
+        className="hover:bg-bg-elevated/20 focus-visible flex w-full items-center justify-between px-5 py-4 text-left transition-colors"
         aria-expanded={open}
       >
-        <span className="font-display text-lg font-semibold text-text-primary">{title}</span>
-        <span className={`text-text-dim transition-transform duration-200 shrink-0 ${open ? 'rotate-180' : ''}`}>
+        <span className="font-display text-text-primary text-lg font-semibold">{title}</span>
+        <span
+          className={`text-text-dim shrink-0 transition-transform duration-200 ${open ? 'rotate-180' : ''}`}
+        >
           <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2">
             <path d="M3 5l4 4 4-4" />
           </svg>
@@ -25,9 +35,7 @@ function AccordionSection({ title, defaultOpen, children }: { title: string; def
         }`}
       >
         <div className="overflow-hidden">
-          <div className="border-t border-border-card/50">
-            {children}
-          </div>
+          <div className="border-border-card/50 border-t">{children}</div>
         </div>
       </div>
     </div>
@@ -42,7 +50,7 @@ export function StandingsTab() {
   if (error) {
     return (
       <div className="bg-bg-card rounded-xl p-6 text-center">
-        <p className="font-body text-sm text-text-muted">{error}</p>
+        <p className="font-body text-text-muted text-sm">{error}</p>
       </div>
     )
   }
