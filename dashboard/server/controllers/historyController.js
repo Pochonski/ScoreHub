@@ -14,13 +14,34 @@ async function getCompetitorMap() {
 
 async function fetchHistoryRows() {
   const { rows } = await pool.query('SELECT data FROM competition_history WHERE competition_id = $1', [COMPETITION_ID]);
+  if (rows.length) {
+    const teamMap = await getCompetitorMap();
+    return rows.map(r => {
+      const doc = {
+        id: `${COMPETITION_ID}-se${r.data.seasonNum}`,
+        competitionId: COMPETITION_ID,
+        seasonNum: r.data.seasonNum,
+        ...r.data,
+      };
+      return parseHistoryDoc(doc, teamMap);
+    });
+  }
+  // Fallback: derive current season from the competition document.
+  const { rows: compRows } = await pool.query(
+    "SELECT data->'competitions'->0 as comp FROM competitions WHERE id = $1",
+    [COMPETITION_ID]
+  );
+  const comp = compRows[0]?.comp;
+  if (!comp) return [];
   const teamMap = await getCompetitorMap();
-  return rows.map(r => {
+  return (comp.seasons || []).map(s => {
     const doc = {
-      id: `${COMPETITION_ID}-se${r.data.seasonNum}`,
+      id: `${COMPETITION_ID}-se${s.num}`,
       competitionId: COMPETITION_ID,
-      seasonNum: r.data.seasonNum,
-      ...r.data,
+      seasonNum: s.num,
+      seasonName: s.name,
+      stages: s.stages,
+      host: comp.name?.includes('Canada') ? 'Canada/Mexico/USA' : null,
     };
     return parseHistoryDoc(doc, teamMap);
   });
@@ -108,15 +129,36 @@ async function getHistoryBySeason(req, res, next) {
       'SELECT data FROM competition_history WHERE competition_id = $1 AND (data->>\'seasonNum\')::int = $2',
       [COMPETITION_ID, seasonNum]
     );
-    if (!rows.length) return res.status(404).json({ error: 'Edición no encontrada' });
+    if (rows.length) {
+      const rawDoc = {
+        id: `${COMPETITION_ID}-se${rows[0].data.seasonNum}`,
+        competitionId: COMPETITION_ID,
+        seasonNum: rows[0].data.seasonNum,
+        ...rows[0].data,
+      };
+      const teamMap = await getCompetitorMap();
+      const doc = parseHistoryDoc(rawDoc, teamMap);
+      return res.json(doc);
+    }
 
-    const rawDoc = {
-      id: `${COMPETITION_ID}-se${rows[0].data.seasonNum}`,
-      competitionId: COMPETITION_ID,
-      seasonNum: rows[0].data.seasonNum,
-      ...rows[0].data,
-    };
+    // Fallback to current competition seasons
+    const { rows: compRows } = await pool.query(
+      "SELECT data->'competitions'->0 as comp FROM competitions WHERE id = $1",
+      [COMPETITION_ID]
+    );
+    const comp = compRows[0]?.comp;
+    const season = comp?.seasons?.find(s => s.num === seasonNum);
+    if (!season) return res.status(404).json({ error: 'Edición no encontrada' });
+
     const teamMap = await getCompetitorMap();
+    const rawDoc = {
+      id: `${COMPETITION_ID}-se${seasonNum}`,
+      competitionId: COMPETITION_ID,
+      seasonNum,
+      seasonName: season.name,
+      stages: season.stages,
+      host: comp.name?.includes('Canada') ? 'Canada/Mexico/USA' : null,
+    };
     const doc = parseHistoryDoc(rawDoc, teamMap);
     res.json(doc);
   } catch (err) {
@@ -133,7 +175,7 @@ async function getHistoryMatchStats(req, res, next) {
       'SELECT data FROM competition_history WHERE competition_id = $1 AND (data->>\'seasonNum\')::int = $2',
       [COMPETITION_ID, seasonNum]
     );
-    if (!rows.length) return res.status(404).json({ error: 'Edición no encontrada' });
+    if (!rows.length) return res.json(null);
 
     const game = rows[0].data?.group?.games?.[0];
     const gameData = game?.game || game;
@@ -157,7 +199,7 @@ async function getHistoryMatchOverview(req, res, next) {
       'SELECT data FROM competition_history WHERE competition_id = $1 AND (data->>\'seasonNum\')::int = $2',
       [COMPETITION_ID, seasonNum]
     );
-    if (!rows.length) return res.status(404).json({ error: 'Edición no encontrada' });
+    if (!rows.length) return res.json(null);
 
     const game = rows[0].data?.group?.games?.[0];
     const gameData = game?.game || game;
@@ -181,7 +223,7 @@ async function getHistoryDescription(req, res, next) {
       'SELECT data FROM competition_history WHERE competition_id = $1 AND (data->>\'seasonNum\')::int = $2',
       [COMPETITION_ID, seasonNum]
     );
-    if (!rows.length) return res.status(404).json({ error: 'Edición no encontrada' });
+    if (!rows.length) return res.json([]);
 
     const doc = rows[0].data;
     const sections = doc?.sections || [];

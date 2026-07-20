@@ -107,19 +107,22 @@ function formatTime(iso) {
 
 function extractLineup(competitor) {
   if (!competitor?.lineups?.members?.length) return null;
-  const members = (competitor.lineups.members || []).filter(m => m.athleteId || m.name);
+  const members = (competitor.lineups.members || []).filter(m => m.athleteId || m.id || m.name);
   if (!members.length) return null;
   return {
     formation: competitor.lineups.formation || '',
-    members: members.map(m => ({
-      athleteId: m.athleteId || m.id,
-      name: m.name,
-      shortName: m.shortName,
-      position: m.position?.name || m.positionName || '',
-      shirtNumber: m.shirtNumber,
-      photoUrl: (m.athleteId || m.id) ? images.getAthleteThumbUrl(m.athleteId || m.id) : null,
-      rating: m.rating,
-    })),
+    members: members.map(m => {
+      const athleteId = m.athleteId || m.id;
+      return {
+        athleteId,
+        name: m.name,
+        shortName: m.shortName,
+        position: m.position?.name || m.positionName || '',
+        shirtNumber: m.shirtNumber,
+        photoUrl: athleteId ? images.getAthleteThumbUrl(athleteId) : null,
+        rating: m.rating,
+      };
+    }),
   };
 }
 
@@ -180,15 +183,32 @@ function parseHistoryDoc(d, teamMap) {
   }));
   const game = d.group?.games?.[0];
   const gameData = game?.game || game;
-  const year = game?.startTime ? new Date(game.startTime).getFullYear() : (SEASON_TO_YEAR[d.seasonNum] || d.seasonNum + 1930 - 1);
+  // Year: prefer startTime from final game; otherwise parse from seasonName;
+  // otherwise SEASON_TO_YEAR; otherwise approximate seasonNum+1930-1
+  let year;
+  if (game?.startTime) {
+    year = new Date(game.startTime).getFullYear();
+  } else if (d.seasonName) {
+    const m = String(d.seasonName).match(/(\d{4})/);
+    if (m) year = parseInt(m[1], 10);
+  }
+  if (!year) year = SEASON_TO_YEAR[d.seasonNum] || (d.seasonNum ? d.seasonNum + 1930 - 1 : null);
+
   const hostMatch = d.title ? d.title.match(/^(.+?)\s+\d{4}$/) : null;
+  // host fallback: if seasonName contains a known pattern (e.g. "Canada/Mexico/USA")
+  // extract that as the host country.
+  let host = hostMatch ? hostMatch[1].trim() : (d.host || null);
+  if (!host && d.seasonName) {
+    const m = String(d.seasonName).match(/\d{4}\s+(.+)$/);
+    if (m) host = m[1].trim();
+  }
 
   return {
     seasonNum: d.seasonNum,
     year,
-    title: d.title || null,
+    title: d.title || d.seasonName || null,
     secondaryTitle: d.secondaryTitle || null,
-    host: hostMatch ? hostMatch[1].trim() : null,
+    host,
     entityId: d.entityId || null,
     matchId: gameData?.id || null,
     homeScore: gameData?.homeCompetitor?.score != null ? gameData.homeCompetitor.score : null,

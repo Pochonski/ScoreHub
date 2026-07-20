@@ -30,8 +30,9 @@ async function searchAthletes(req, res, next) {
       const game = r.data?.game;
       if (!game) continue;
       for (const team of [game.homeCompetitor, game.awayCompetitor]) {
-        if (!team?.members) continue;
-        for (const m of team.members) {
+        if (!team) continue;
+        const members = team.members || team.lineups?.members || [];
+        for (const m of members) {
           if (m.id && !seen.has(m.id)) {
             seen.add(m.id);
             athletes.push({ ...m, nationalTeamId: team.id, teamId: team.id, competitorId: team.id });

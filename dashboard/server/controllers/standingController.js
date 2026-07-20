@@ -46,16 +46,20 @@ async function getBrackets(req, res, next) {
     if (!rows.length) return res.json([]);
 
     const doc = rows[0].data;
-    if (!doc?.stages) return res.json([]);
+    const bracket = doc?.brackets?.[0];
+    if (!bracket?.stages) return res.json([]);
 
-    const stages = doc.stages.map(s => ({
+    const stages = bracket.stages.map(s => ({
       name: s.name,
+      num: s.num,
+      isFinal: s.isFinal || false,
       games: (s.games || []).map(g => ({
         id: g.id,
         homeTeam: g.homeCompetitor ? enrichTeam(g.homeCompetitor) : undefined,
         awayTeam: g.awayCompetitor ? enrichTeam(g.awayCompetitor) : undefined,
         score: g.homeCompetitor?.score != null ? { home: g.homeCompetitor.score, away: g.awayCompetitor?.score } : undefined,
         startTime: g.startTime,
+        status: g.status,
       })),
     }));
     res.json(stages);

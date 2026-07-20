@@ -282,16 +282,19 @@ async function getMatchTimeline(req, res, next) {
     const gid = Number(id);
 
     const { rows } = await pool.query('SELECT data FROM game_stats WHERE game_id = $1', [gid]);
-    if (!rows.length) return res.json([]);
+    const liveEvents = rows[0]?.data?.timeline || rows[0]?.data?.events || [];
 
-    const statsData = rows[0].data;
-    const events = statsData?.timeline || statsData?.events || [];
+    const { rows: overviewRows } = await pool.query('SELECT data FROM game_overviews WHERE game_id = $1', [gid]);
+    const chartEvents = overviewRows[0]?.data?.game?.chartEvents?.events || [];
+
+    const events = liveEvents.length ? liveEvents : chartEvents;
     const data = events.map(e => ({
-      minute: e.minute || e.matchTime,
-      type: e.type === 1 ? 'goal' : e.type === 2 ? 'yellow_card' : e.type === 3 ? 'red_card' : 'event',
+      minute: e.minute || e.matchTime || e.time,
+      type: e.type === 1 ? 'goal' : e.type === 2 ? 'yellow_card' : e.type === 3 ? 'red_card' : (e.subType ? 'shot' : 'event'),
       teamId: e.teamId || e.competitorId,
+      playerId: e.playerId,
       playerName: e.playerName || e.player?.name,
-      description: e.description || e.text,
+      description: e.description || e.text || e.goalDescription,
     }));
     res.json(data);
   } catch (err) {
@@ -310,17 +313,23 @@ async function getMatchSuggestions(req, res, next) {
     const game = rows[0].data?.game;
     if (!game) return res.json([]);
 
-    const matchupId = buildMatchupId(game);
-
-    const { rows: suggestions } = await pool.query(
-      'SELECT data FROM game_overviews WHERE game_id = $1',
-      [Number(matchupId.split('-')[0]) || gid]
-    );
-    if (!suggestions.length) return res.json([]);
-
-    const suggestionsData = suggestions[0].data;
-    const games = suggestionsData?.games || [];
-    res.json(games.map(enrichGame));
+    const predictions = game.promotedPredictions?.predictions || [];
+    const data = predictions.map(p => {
+      const totalVotes = (p.options || []).reduce((acc, o) => acc + (o.vote?.count || 0), 0);
+      return {
+        id: p.id,
+        type: p.type,
+        title: p.title,
+        totalVotes,
+        options: (p.options || []).map(o => ({
+          name: o.name,
+          num: o.num,
+          count: o.vote?.count || 0,
+          percentage: o.vote?.percentage ?? null,
+        })),
+      };
+    });
+    res.json(data);
   } catch (err) {
     next(err);
   }
