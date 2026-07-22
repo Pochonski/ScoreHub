@@ -68,7 +68,9 @@ async function getAthleteById(req, res, next) {
     const { id } = req.params;
     const { rows } = await pool.query('SELECT data FROM athletes WHERE id = $1', [Number(id)]);
     if (!rows.length) return res.status(404).json({ error: 'Jugador no encontrado' });
-    const athlete = rows[0].data?.athlete;
+    // syncAthletes guarda el miembro del overview directamente en data
+    // (data: JSON.stringify(member)), sin envolverlo en { athlete: ... }.
+    const athlete = rows[0].data;
     if (!athlete) return res.status(404).json({ error: 'Jugador no encontrado' });
     res.json(enrichAthlete(athlete));
   } catch (err) {
@@ -81,7 +83,7 @@ async function getAthleteCareer(req, res, next) {
     const { id } = req.params;
     const { rows } = await pool.query('SELECT data FROM athletes WHERE id = $1', [Number(id)]);
     if (!rows.length) return res.json([]);
-    const careers = (rows[0].data?.athlete?.careers || []).map(c => ({
+    const careers = (rows[0].data?.careers || []).map(c => ({
       seasonKey: c.seasonKey,
       name: c.name,
       stats: c.stats,
@@ -97,7 +99,7 @@ async function getAthleteTrophies(req, res, next) {
     const { id } = req.params;
     const { rows } = await pool.query('SELECT data FROM athletes WHERE id = $1', [Number(id)]);
     if (!rows.length) return res.json([]);
-    const doc = rows[0].data?.athlete?.trophies || rows[0].data?.athlete?.honours || {};
+    const doc = rows[0].data?.trophies || rows[0].data?.honours || {};
     const categories = doc.categories || doc;
     if (!categories || typeof categories !== 'object') return res.json([]);
     const trophies = Object.values(categories).map(cat => ({
@@ -119,7 +121,7 @@ async function getAthleteTransfers(req, res, next) {
     const { id } = req.params;
     const { rows } = await pool.query('SELECT data FROM athletes WHERE id = $1', [Number(id)]);
     if (!rows.length) return res.json([]);
-    const rawTransfers = rows[0].data?.athlete?.transfers || [];
+    const rawTransfers = rows[0].data?.transfers || [];
     const map = await getCompetitorMap();
     const transfers = rawTransfers.map(t => enrichTransferWithTeam({
       date: t.date,
