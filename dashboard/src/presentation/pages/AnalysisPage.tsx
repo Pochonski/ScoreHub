@@ -6,10 +6,7 @@ import { Ratings } from '@/presentation/components/stats/Ratings'
 import { TeamOfWeek, type TeamOfWeekPlayer } from '@/presentation/components/stats/TeamOfWeek'
 import { BettingTrends } from '@/presentation/components/trends/BettingTrends'
 import { MatchTips } from '@/presentation/components/trends/MatchTips'
-import { NewsFeed } from '@/presentation/components/news/NewsFeed'
-import { ErrorState } from '@/presentation/components/ui/ErrorState'
 import { useFeaturedGame } from '@/presentation/hooks/useGames'
-import { useNews } from '@/presentation/hooks/useNews'
 import { useTournamentStats } from '@/presentation/hooks/useTournamentStats'
 import { useTrends } from '@/presentation/hooks/useTrends'
 import { apiClient } from '@/data/datasources/ApiClient'
@@ -22,13 +19,6 @@ interface PredictionItem {
 
 export function AnalysisPage() {
   const { game: featured } = useFeaturedGame()
-  const {
-    news,
-    loading: newsLoading,
-    loadMore: newsLoadMore,
-    hasMore: newsHasMore,
-    error: newsError,
-  } = useNews(8)
   const { scorers, assists, ratings, teamOfWeek, loading: statsLoading } = useTournamentStats()
   const { trends, loading: trendsLoading } = useTrends()
   const [featuredTips, setFeaturedTips] = useState<BettingTip | null>(null)
@@ -108,19 +98,6 @@ export function AnalysisPage() {
 
         <aside className="min-w-0 space-y-6">{!trendsLoading && <BettingTrends trends={trends} />}</aside>
       </div>
-
-      {newsError && <ErrorState message={newsError} fullPage />}
-
-      {(news.length > 0 || newsLoading) && (
-        <div>
-          <NewsFeed
-            news={news}
-            onLoadMore={newsLoadMore}
-            hasMore={newsHasMore}
-            loading={newsLoading && news.length === 0}
-          />
-        </div>
-      )}
     </div>
   )
 }
