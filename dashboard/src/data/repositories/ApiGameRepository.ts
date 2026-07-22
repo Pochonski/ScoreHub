@@ -1,27 +1,46 @@
 import { apiClient } from '@/data/datasources/ApiClient'
 import { ENDPOINTS } from '@/infrastructure/config'
 import { mapGame, mapGames } from '@/data/mappers/GameMapper'
-import type { GameRepository } from '@/domain/repositories/GameRepository'
+import type { GameRepository, GetGamesParams } from '@/domain/repositories/GameRepository'
 import type { Game, MatchEvent, GameStat } from '@/domain/entities/Game'
 import type { Lineup } from '@/domain/entities/Lineup'
 import type { BettingTip, Trend } from '@/domain/entities/BettingTip'
 import type { Prediction } from '@/domain/entities/Prediction'
 
+function buildGamesParams(params?: GetGamesParams): Record<string, string | number | undefined> {
+  const out: Record<string, string | number | undefined> = {
+    statusGroup: params?.statusGroup,
+    stage: params?.stage,
+    teamId: params?.teamId,
+  }
+  if (params?.all) out.all = 'true'
+  else if (params?.competitionId != null) out.competitionId = params.competitionId
+  return out
+}
+
 export class ApiGameRepository implements GameRepository {
-  async getGames(params?: { statusGroup?: string; stage?: string; teamId?: string }): Promise<Game[]> {
+  async getGames(params?: GetGamesParams): Promise<Game[]> {
     const raw = await apiClient.get<Record<string, unknown>[]>(ENDPOINTS.matches, {
-      params: params as Record<string, string | undefined>,
+      params: buildGamesParams(params),
     })
     return mapGames(raw)
   }
 
-  async getLiveGames(): Promise<Game[]> {
-    const raw = await apiClient.get<Record<string, unknown>[]>(ENDPOINTS.matchesLive)
+  async getLiveGames(params?: { competitionId?: number; all?: boolean }): Promise<Game[]> {
+    const query: Record<string, string | number | undefined> = {}
+    if (params?.all) query.all = 'true'
+    else if (params?.competitionId != null) query.competitionId = params.competitionId
+    const raw = await apiClient.get<Record<string, unknown>[]>(ENDPOINTS.matchesLive, {
+      params: query,
+    })
     return mapGames(raw)
   }
 
-  async getFeaturedGame(): Promise<Game | null> {
-    const raw = await apiClient.get<Record<string, unknown> | null>(ENDPOINTS.matchesFeatured)
+  async getFeaturedGame(competitionId?: number): Promise<Game | null> {
+    const raw = await apiClient.get<Record<string, unknown> | null>(
+      ENDPOINTS.matchesFeatured,
+      { params: competitionId ? { competitionId } : undefined }
+    )
     return raw ? mapGame(raw) : null
   }
 

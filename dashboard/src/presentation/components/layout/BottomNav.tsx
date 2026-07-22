@@ -36,7 +36,7 @@ const NAV_ITEMS = [
   {
     id: 'standings',
     label: 'Tabla',
-    route: '/competicion',
+    route: '/competiciones',
     icon: (
       <>
         <line x1="4" y1="6" x2="20" y2="6" />
@@ -80,6 +80,13 @@ export function BottomNav() {
   const isActive = (item: (typeof NAV_ITEMS)[number]) => {
     // Caso especial: tanto 'live' como 'matches' apuntan a la home.
     if (item.id === 'live' || item.id === 'matches') return location.pathname === '/'
+    // 'Tabla' está activo tanto en /competiciones como en /competicion/:id/...
+    if (item.id === 'standings') {
+      return (
+        location.pathname === '/competiciones' ||
+        location.pathname.startsWith('/competicion/')
+      )
+    }
     return location.pathname.startsWith(item.route)
   }
 

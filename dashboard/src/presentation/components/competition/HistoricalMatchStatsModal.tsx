@@ -4,6 +4,7 @@ import { useFocusTrap } from '@/presentation/hooks/useFocusTrap'
 
 interface Props {
   seasonNum: number
+  competitionId?: number
   onClose: () => void
 }
 
@@ -57,8 +58,8 @@ function useEscapeClose(isActive: boolean, onClose: () => void) {
   }, [isActive, onClose])
 }
 
-export function HistoricalMatchStatsModal({ seasonNum, onClose }: Props) {
-  const { edition, matchStats, lineups, loading } = useHistoryDetail(seasonNum)
+export function HistoricalMatchStatsModal({ seasonNum, competitionId, onClose }: Props) {
+  const { edition, matchStats, lineups, loading } = useHistoryDetail(seasonNum, competitionId)
   const overlayRef = useRef<HTMLDivElement>(null)
   const dialogRef = useRef<HTMLDivElement>(null)
   useFocusTrap(dialogRef, true)

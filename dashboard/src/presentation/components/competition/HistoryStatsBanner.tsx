@@ -1,7 +1,7 @@
 import { useHistoryStats } from '@/presentation/hooks/useHistoryStats'
 
-export function HistoryStatsBanner() {
-  const { stats, loading } = useHistoryStats()
+export function HistoryStatsBanner({ competitionId }: { competitionId?: number }) {
+  const { stats, loading } = useHistoryStats(competitionId)
 
   if (loading) {
     return (

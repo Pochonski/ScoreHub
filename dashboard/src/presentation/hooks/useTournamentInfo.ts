@@ -4,21 +4,26 @@ import { DiContainer } from '@/infrastructure/di/DiContainer'
 
 const repo = DiContainer.getInstance().getTournamentInfoRepository()
 
-export function useTournamentInfo() {
+export function useTournamentInfo(competitionId?: number | null) {
   const [info, setInfo] = useState<TournamentInfo | null>(null)
   const [loading, setLoading] = useState(true)
 
-  const fetch = useCallback(async (signal?: AbortSignal) => {
-    try {
-      setLoading(true)
-      const data = await repo.getTournamentInfo()
-      if (!signal?.aborted) setInfo(data)
-    } catch {
-      if (!signal?.aborted) setInfo(null)
-    } finally {
-      if (!signal?.aborted) setLoading(false)
-    }
-  }, [])
+  /* eslint-disable react-hooks/exhaustive-deps */
+  const fetch = useCallback(
+    async (signal?: AbortSignal) => {
+      try {
+        setLoading(true)
+        const data = await repo.getTournamentInfo(competitionId ?? undefined)
+        if (!signal?.aborted) setInfo(data)
+      } catch {
+        if (!signal?.aborted) setInfo(null)
+      } finally {
+        if (!signal?.aborted) setLoading(false)
+      }
+    },
+    [competitionId]
+  )
+  /* eslint-enable react-hooks/exhaustive-deps */
 
   useEffect(() => {
     const ctrl = new AbortController()

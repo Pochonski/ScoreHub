@@ -59,6 +59,8 @@ export function HistoryEditionPage() {
   const { seasonNum } = useParams<{ seasonNum: string }>()
   const navigate = useNavigate()
   const num = seasonNum ? parseInt(seasonNum, 10) : null
+  // History se mantiene scoped al Mundial (primary comp) por ahora;
+  // cuando se implemente navegación multi-comp histórica se añadirá.
   const { edition, matchStats, lineups, loading } = useHistoryDetail(num)
   const { history } = useHistory()
 
@@ -87,10 +89,10 @@ export function HistoryEditionPage() {
       <div className="mx-auto max-w-3xl px-4 py-16 text-center">
         <p className="font-body text-text-muted mb-4 text-sm">Edición no encontrada</p>
         <button
-          onClick={() => navigate('/competicion')}
+          onClick={() => navigate('/competiciones')}
           className="bg-accent-gold/10 text-accent-gold font-body hover:bg-accent-gold/20 focus-visible rounded-lg px-4 py-2 text-sm font-medium transition-colors"
         >
-          Volver a la competencia
+          Volver a competiciones
         </button>
       </div>
     )

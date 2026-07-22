@@ -4,7 +4,9 @@ import type { TournamentInfoRepository } from '@/domain/repositories/TournamentI
 import type { TournamentInfo } from '@/domain/entities/TournamentInfo'
 
 export class ApiTournamentInfoRepository implements TournamentInfoRepository {
-  async getTournamentInfo(): Promise<TournamentInfo> {
-    return apiClient.get<TournamentInfo>(ENDPOINTS.tournamentInfo)
+  async getTournamentInfo(competitionId?: number): Promise<TournamentInfo> {
+    return apiClient.get<TournamentInfo>(ENDPOINTS.tournamentInfo, {
+      params: competitionId ? { competitionId } : undefined,
+    })
   }
 }

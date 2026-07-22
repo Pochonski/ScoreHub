@@ -1,8 +1,8 @@
 import type { TournamentStatEntry } from '@/domain/entities/BettingTip'
 
 export interface TournamentStatsRepository {
-  getTopScorers(): Promise<TournamentStatEntry[]>
-  getTopAssists(): Promise<TournamentStatEntry[]>
-  getTopRatings(): Promise<TournamentStatEntry[]>
-  getTeamOfWeek(): Promise<unknown>
+  getTopScorers(competitionId?: number): Promise<TournamentStatEntry[]>
+  getTopAssists(competitionId?: number): Promise<TournamentStatEntry[]>
+  getTopRatings(competitionId?: number): Promise<TournamentStatEntry[]>
+  getTeamOfWeek(competitionId?: number): Promise<unknown>
 }

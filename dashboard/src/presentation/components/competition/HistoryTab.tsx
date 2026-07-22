@@ -18,7 +18,15 @@ function formatDate(iso: string | undefined): string {
   }
 }
 
-function AccordionCard({ edition, isBackToBack }: { edition: HistoryEdition; isBackToBack: boolean }) {
+function AccordionCard({
+  edition,
+  isBackToBack,
+  competitionId,
+}: {
+  edition: HistoryEdition
+  isBackToBack: boolean
+  competitionId?: number
+}) {
   const [open, setOpen] = useState(false)
   const [showModal, setShowModal] = useState(false)
   const hasDetails = edition.venue || edition.host || edition.startTime || edition.matchId
@@ -132,14 +140,18 @@ function AccordionCard({ edition, isBackToBack }: { edition: HistoryEdition; isB
       </div>
 
       {showModal && edition.matchId && (
-        <HistoricalMatchStatsModal seasonNum={edition.seasonNum} onClose={() => setShowModal(false)} />
+        <HistoricalMatchStatsModal
+          seasonNum={edition.seasonNum}
+          competitionId={competitionId}
+          onClose={() => setShowModal(false)}
+        />
       )}
     </div>
   )
 }
 
-export function HistoryTab() {
-  const { history, loading } = useHistory()
+export function HistoryTab({ competitionId }: { competitionId?: number }) {
+  const { history, loading } = useHistory(competitionId)
 
   if (loading) {
     return (
@@ -187,13 +199,14 @@ export function HistoryTab() {
 
   return (
     <div className="space-y-6">
-      <HistoryStatsBanner />
+      <HistoryStatsBanner competitionId={competitionId} />
       <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
         {editions.map((edition) => (
           <AccordionCard
             key={edition.seasonNum}
             edition={edition}
             isBackToBack={backToBack.has(edition.seasonNum)}
+            competitionId={competitionId}
           />
         ))}
       </div>

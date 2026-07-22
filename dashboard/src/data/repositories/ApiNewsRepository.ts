@@ -5,9 +5,9 @@ import type { NewsRepository } from '@/domain/repositories/NewsRepository'
 import type { News } from '@/domain/entities/News'
 
 export class ApiNewsRepository implements NewsRepository {
-  async getNews(limit = 20, scope?: string): Promise<News[]> {
+  async getNews(limit = 20, scope = 'competition', competitionId?: number): Promise<News[]> {
     const raw = await apiClient.get<Record<string, unknown>[]>(ENDPOINTS.news, {
-      params: { limit: String(limit), scope },
+      params: { limit: String(limit), scope, competitionId },
     })
     return mapNewsList(raw)
   }

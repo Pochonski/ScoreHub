@@ -42,8 +42,8 @@ function AccordionSection({
   )
 }
 
-export function StandingsTab() {
-  const { groups, loading, error } = useStandings()
+export function StandingsTab({ competitionId }: { competitionId?: number }) {
+  const { groups, loading, error } = useStandings(competitionId)
 
   if (loading) return <StandingsSkeleton />
 
@@ -51,6 +51,16 @@ export function StandingsTab() {
     return (
       <div className="bg-bg-card rounded-xl p-6 text-center">
         <p className="font-body text-text-muted text-sm">{error}</p>
+      </div>
+    )
+  }
+
+  if (groups.length === 0) {
+    return (
+      <div className="bg-bg-card border-border-card rounded-xl border p-8 text-center">
+        <p className="font-body text-text-muted text-sm">
+          La tabla de posiciones aún no está disponible.
+        </p>
       </div>
     )
   }

@@ -4,19 +4,20 @@ import { DiContainer } from '@/infrastructure/di/DiContainer'
 
 const PAGE_SIZE = 6
 
-export function useNews(initialLimit = PAGE_SIZE) {
+export function useNews(initialLimit = PAGE_SIZE, competitionId?: number | null) {
   const [news, setNews] = useState<News[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [hasMore, setHasMore] = useState(true)
   const limitRef = useRef(initialLimit)
 
+  /* eslint-disable react-hooks/exhaustive-deps */
   const fetch = useCallback(async (signal?: AbortSignal) => {
     try {
       setLoading(true)
       setError(null)
       const repo = DiContainer.getInstance().getNewsRepository()
-      const data = await repo.getNews(limitRef.current)
+      const data = await repo.getNews(limitRef.current, 'competition', competitionId ?? undefined)
       if (!signal?.aborted) {
         setNews(data)
         if (data.length < limitRef.current) setHasMore(false)
@@ -26,7 +27,8 @@ export function useNews(initialLimit = PAGE_SIZE) {
     } finally {
       if (!signal?.aborted) setLoading(false)
     }
-  }, [])
+  }, [competitionId])
+  /* eslint-enable react-hooks/exhaustive-deps */
 
   const loadMore = useCallback(async () => {
     if (loading || !hasMore) return

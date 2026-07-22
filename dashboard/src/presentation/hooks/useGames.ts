@@ -2,14 +2,13 @@ import { useState, useEffect, useCallback } from 'react'
 import type { Game } from '@/domain/entities/Game'
 import { DiContainer } from '@/infrastructure/di/DiContainer'
 import { logger } from '@/infrastructure/logging/Logger'
+import type { GetGamesParams } from '@/domain/repositories/GameRepository'
 
-export function useGames(params?: { statusGroup?: string; stage?: string; teamId?: string }) {
+export function useGames(params?: GetGamesParams) {
   const [games, setGames] = useState<Game[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  // Deps granulares (statusGroup/stage/teamId) en lugar de `params` completo
-  // para evitar re-fetch loops si el caller pasa un objeto inline cada render.
   /* eslint-disable react-hooks/exhaustive-deps */
   const fetch = useCallback(
     async (signal?: AbortSignal) => {
@@ -20,7 +19,11 @@ export function useGames(params?: { statusGroup?: string; stage?: string; teamId
         const data = await gameRepo.getGames(params)
         if (!signal?.aborted) {
           setGames(data)
-          logger.debug('Partidos cargados', { count: data.length, params }, 'useGames')
+          logger.debug(
+            'Partidos cargados',
+            { count: data.length, competitionId: params?.competitionId, all: params?.all },
+            'useGames'
+          )
         }
       } catch (e) {
         if (signal?.aborted) return
@@ -33,7 +36,7 @@ export function useGames(params?: { statusGroup?: string; stage?: string; teamId
         if (!signal?.aborted) setLoading(false)
       }
     },
-    [params?.statusGroup, params?.stage, params?.teamId]
+    [params?.statusGroup, params?.stage, params?.teamId, params?.competitionId, params?.all]
   )
   /* eslint-enable react-hooks/exhaustive-deps */
 
@@ -46,19 +49,24 @@ export function useGames(params?: { statusGroup?: string; stage?: string; teamId
   return { games, loading, error, refetch: () => fetch() }
 }
 
-export function useLiveGames() {
+export function useLiveGames(params?: { competitionId?: number; all?: boolean }) {
   const [games, setGames] = useState<Game[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
+  /* eslint-disable react-hooks/exhaustive-deps */
   const fetch = useCallback(async (signal?: AbortSignal) => {
     try {
       setError(null)
       const gameRepo = DiContainer.getInstance().getGameRepository()
-      const data = await gameRepo.getLiveGames()
+      const data = await gameRepo.getLiveGames(params)
       if (!signal?.aborted) {
         setGames(data)
-        logger.debug('Partidos en vivo cargados', { count: data.length }, 'useLiveGames')
+        logger.debug(
+          'Partidos en vivo cargados',
+          { count: data.length, competitionId: params?.competitionId, all: params?.all },
+          'useLiveGames'
+        )
       }
     } catch (e) {
       if (signal?.aborted) return
@@ -68,7 +76,8 @@ export function useLiveGames() {
     } finally {
       if (!signal?.aborted) setLoading(false)
     }
-  }, [])
+  }, [params?.competitionId, params?.all])
+  /* eslint-enable react-hooks/exhaustive-deps */
 
   useEffect(() => {
     const ctrl = new AbortController()
@@ -79,18 +88,19 @@ export function useLiveGames() {
   return { games, loading, error, refetch: () => fetch() }
 }
 
-export function useFeaturedGame() {
+export function useFeaturedGame(competitionId?: number | null) {
   const [game, setGame] = useState<Game | null>(null)
   const [loading, setLoading] = useState(true)
 
+  /* eslint-disable react-hooks/exhaustive-deps */
   const fetch = useCallback(async (signal?: AbortSignal) => {
     try {
       setLoading(true)
       const gameRepo = DiContainer.getInstance().getGameRepository()
-      const data = await gameRepo.getFeaturedGame()
+      const data = await gameRepo.getFeaturedGame(competitionId ?? undefined)
       if (!signal?.aborted) {
         setGame(data)
-        logger.debug('Partido destacado cargado', { hasData: !!data }, 'useFeaturedGame')
+        logger.debug('Partido destacado cargado', { hasData: !!data, competitionId }, 'useFeaturedGame')
       }
     } catch (e) {
       if (signal?.aborted) return
@@ -106,7 +116,8 @@ export function useFeaturedGame() {
     } finally {
       if (!signal?.aborted) setLoading(false)
     }
-  }, [])
+  }, [competitionId])
+  /* eslint-enable react-hooks/exhaustive-deps */
 
   useEffect(() => {
     const ctrl = new AbortController()

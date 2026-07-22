@@ -126,21 +126,23 @@ function mapLineups(raw: Record<string, unknown> | null): HistoricalMatchLineup 
   }
 }
 
-export function useHistoryDetail(seasonNum: number | null) {
+export function useHistoryDetail(seasonNum: number | null, competitionId?: number | null) {
   const [edition, setEdition] = useState<HistoryEdition | null>(null)
   const [matchStats, setMatchStats] = useState<HistoricalMatchStats | null>(null)
   const [lineups, setLineups] = useState<HistoricalMatchLineup | null>(null)
   const [loading, setLoading] = useState(true)
 
+  /* eslint-disable react-hooks/exhaustive-deps */
   const fetch = useCallback(
     async (signal?: AbortSignal) => {
       if (!seasonNum) return
       try {
         setLoading(true)
+        const cid = competitionId ?? undefined
         const [ed, rawStats, rawLineups] = await Promise.all([
-          repo.getHistoryBySeason(seasonNum),
-          repo.getHistoryMatchStats(seasonNum).catch(() => null),
-          repo.getHistoryMatchLineup(seasonNum).catch(() => null),
+          repo.getHistoryBySeason(seasonNum, cid),
+          repo.getHistoryMatchStats(seasonNum, cid).catch(() => null),
+          repo.getHistoryMatchLineup(seasonNum, cid).catch(() => null),
         ])
         if (!signal?.aborted) {
           setEdition(ed)
@@ -153,8 +155,9 @@ export function useHistoryDetail(seasonNum: number | null) {
         if (!signal?.aborted) setLoading(false)
       }
     },
-    [seasonNum]
+    [seasonNum, competitionId]
   )
+  /* eslint-enable react-hooks/exhaustive-deps */
 
   useEffect(() => {
     const ctrl = new AbortController()

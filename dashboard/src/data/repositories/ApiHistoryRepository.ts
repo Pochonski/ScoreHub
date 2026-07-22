@@ -7,23 +7,33 @@ import type { HistoricalMatchStats } from '@/domain/entities/HistoricalMatchStat
 import type { HistoricalMatchLineup } from '@/domain/entities/HistoricalMatchLineup'
 
 export class ApiHistoryRepository implements HistoryRepository {
-  async getHistory(): Promise<HistoryEdition[]> {
-    return apiClient.get<HistoryEdition[]>(ENDPOINTS.history)
+  async getHistory(competitionId?: number): Promise<HistoryEdition[]> {
+    return apiClient.get<HistoryEdition[]>(ENDPOINTS.history, {
+      params: competitionId ? { competitionId } : undefined,
+    })
   }
 
-  async getHistoryStats(): Promise<HistoryStats> {
-    return apiClient.get<HistoryStats>(ENDPOINTS.historyStats)
+  async getHistoryStats(competitionId?: number): Promise<HistoryStats> {
+    return apiClient.get<HistoryStats>(ENDPOINTS.historyStats, {
+      params: competitionId ? { competitionId } : undefined,
+    })
   }
 
-  async getHistoryBySeason(seasonNum: number): Promise<HistoryEdition | null> {
-    return apiClient.get<HistoryEdition>(ENDPOINTS.historyBySeason(seasonNum))
+  async getHistoryBySeason(seasonNum: number, competitionId?: number): Promise<HistoryEdition | null> {
+    return apiClient.get<HistoryEdition | null>(ENDPOINTS.historyBySeason(seasonNum), {
+      params: competitionId ? { competitionId } : undefined,
+    })
   }
 
-  async getHistoryMatchStats(seasonNum: number): Promise<HistoricalMatchStats | null> {
-    return apiClient.get<HistoricalMatchStats>(ENDPOINTS.historyMatchStats(seasonNum))
+  async getHistoryMatchStats(seasonNum: number, competitionId?: number): Promise<HistoricalMatchStats | null> {
+    return apiClient.get<HistoricalMatchStats | null>(ENDPOINTS.historyMatchStats(seasonNum), {
+      params: competitionId ? { competitionId } : undefined,
+    })
   }
 
-  async getHistoryMatchLineup(seasonNum: number): Promise<HistoricalMatchLineup | null> {
-    return apiClient.get<HistoricalMatchLineup>(ENDPOINTS.historyMatchLineup(seasonNum))
+  async getHistoryMatchLineup(seasonNum: number, competitionId?: number): Promise<HistoricalMatchLineup | null> {
+    return apiClient.get<HistoricalMatchLineup | null>(ENDPOINTS.historyMatchLineup(seasonNum), {
+      params: competitionId ? { competitionId } : undefined,
+    })
   }
 }

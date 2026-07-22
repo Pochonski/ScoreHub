@@ -4,8 +4,10 @@ import type { BettingTipRepository } from '@/domain/repositories/BettingTipRepos
 import type { Trend, BettingTip } from '@/domain/entities/BettingTip'
 
 export class ApiBettingTipRepository implements BettingTipRepository {
-  async getCompetitionTrends(): Promise<Trend[]> {
-    return apiClient.get<Trend[]>(ENDPOINTS.trends)
+  async getCompetitionTrends(competitionId?: number): Promise<Trend[]> {
+    return apiClient.get<Trend[]>(ENDPOINTS.trends, {
+      params: competitionId ? { competitionId } : undefined,
+    })
   }
 
   async getGameTips(gameId: number): Promise<BettingTip | null> {

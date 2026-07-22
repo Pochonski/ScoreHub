@@ -4,19 +4,23 @@ import type { TournamentStatsRepository } from '@/domain/repositories/Tournament
 import type { TournamentStatEntry } from '@/domain/entities/BettingTip'
 
 export class ApiTournamentStatsRepository implements TournamentStatsRepository {
-  async getTopScorers(): Promise<TournamentStatEntry[]> {
-    return apiClient.get<TournamentStatEntry[]>(ENDPOINTS.statsScorers)
+  private params(competitionId?: number) {
+    return competitionId ? { competitionId } : undefined
   }
 
-  async getTopAssists(): Promise<TournamentStatEntry[]> {
-    return apiClient.get<TournamentStatEntry[]>(ENDPOINTS.statsAssists)
+  async getTopScorers(competitionId?: number): Promise<TournamentStatEntry[]> {
+    return apiClient.get<TournamentStatEntry[]>(ENDPOINTS.statsScorers, { params: this.params(competitionId) })
   }
 
-  async getTopRatings(): Promise<TournamentStatEntry[]> {
-    return apiClient.get<TournamentStatEntry[]>(ENDPOINTS.statsRatings)
+  async getTopAssists(competitionId?: number): Promise<TournamentStatEntry[]> {
+    return apiClient.get<TournamentStatEntry[]>(ENDPOINTS.statsAssists, { params: this.params(competitionId) })
   }
 
-  async getTeamOfWeek(): Promise<unknown> {
-    return apiClient.get<unknown>(ENDPOINTS.statsTeamOfWeek)
+  async getTopRatings(competitionId?: number): Promise<TournamentStatEntry[]> {
+    return apiClient.get<TournamentStatEntry[]>(ENDPOINTS.statsRatings, { params: this.params(competitionId) })
+  }
+
+  async getTeamOfWeek(competitionId?: number): Promise<unknown> {
+    return apiClient.get<unknown>(ENDPOINTS.statsTeamOfWeek, { params: this.params(competitionId) })
   }
 }

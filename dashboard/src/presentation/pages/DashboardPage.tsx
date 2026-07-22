@@ -6,18 +6,40 @@ import { MatchTicker } from '@/presentation/components/matches/MatchTicker'
 import { MatchGrid } from '@/presentation/components/matches/MatchGrid'
 import { MatchFilterBar } from '@/presentation/components/matches/MatchFilterBar'
 import { useFeaturedGame, useLiveGames, useGames } from '@/presentation/hooks/useGames'
+import { useFeaturedCompetitions } from '@/presentation/hooks/useCompetitions'
 import { ErrorState } from '@/presentation/components/ui/ErrorState'
 import { HeroSkeleton, MatchCardSkeleton } from '@/presentation/components/ui/Skeleton'
 
 type FilterValue = 'all' | 'live' | 'upcoming' | 'finished'
+type CompetitionScope = { kind: 'all' } | { kind: 'one'; id: number }
+
+const PRIMARY_COMPETITION_ID = parseInt(
+  import.meta.env.VITE_PRIMARY_COMPETITION_ID || '5930',
+  10
+)
 
 export function DashboardPage() {
   const navigate = useNavigate()
   const [filter, setFilter] = useState<FilterValue>('all')
   const [dateOffset, setDateOffset] = useState<number | null>(null)
-  const { game: featuredGame, loading: featuredLoading, refetch: refetchFeatured } = useFeaturedGame()
-  const { games: liveGames, error: liveError, refetch: refetchLive } = useLiveGames()
-  const { games: allGames, loading: gamesLoading, error: gamesError, refetch: refetchGames } = useGames()
+  const [scope, setScope] = useState<CompetitionScope>({ kind: 'one', id: PRIMARY_COMPETITION_ID })
+  const { competitions: featured } = useFeaturedCompetitions()
+
+  // Si el backend aún no tiene featured y el default es primary, mantenemos.
+  // Si hay varias featured, dejamos la primary fija y "Todas" como alternativa.
+  const featuredSorted = useMemo(
+    () => [...featured].sort((a, b) => a.displayOrder - b.displayOrder),
+    [featured]
+  )
+
+  const competitionParam = scope.kind === 'all' ? { all: true } : { competitionId: scope.id }
+  const liveParams = scope.kind === 'all' ? { all: true } : { competitionId: scope.id }
+
+  const { game: featuredGame, loading: featuredLoading, refetch: refetchFeatured } =
+    useFeaturedGame(scope.kind === 'one' ? scope.id : undefined)
+  const { games: liveGames, error: liveError, refetch: refetchLive } = useLiveGames(liveParams)
+  const { games: allGames, loading: gamesLoading, error: gamesError, refetch: refetchGames } =
+    useGames(competitionParam)
   const [heroCompact, setHeroCompact] = useState(false)
   const heroRef = useRef<HTMLDivElement>(null)
 
@@ -98,6 +120,12 @@ export function DashboardPage() {
     [navigate]
   )
 
+  const handleScopeChange = (next: CompetitionScope) => {
+    setScope(next)
+    setFilter('all')
+    setDateOffset(null)
+  }
+
   if (gamesError && allGames.length === 0 && liveGames.length === 0) {
     return (
       <div className="mx-auto max-w-7xl px-4 py-12">
@@ -148,8 +176,6 @@ export function DashboardPage() {
 
       {/* Match Grid */}
       <div className="mt-6 px-4">
-        {/* Header: en mobile, heading y link "Análisis" arriba, filtros abajo
-            en su propia fila (no inline). En desktop, todo en una línea. */}
         <div className="mb-3 flex items-center justify-between gap-2">
           <h2 className="font-display text-text-primary text-lg font-semibold">Partidos</h2>
           <button
@@ -159,6 +185,54 @@ export function DashboardPage() {
             Análisis →
           </button>
         </div>
+
+        {/* Competition tabs */}
+        {featuredSorted.length > 0 && (
+          <div className="no-scrollbar mb-3 flex gap-1 overflow-x-auto">
+            <button
+              type="button"
+              onClick={() => handleScopeChange({ kind: 'one', id: PRIMARY_COMPETITION_ID })}
+              className={`font-body focus-visible shrink-0 rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
+                scope.kind === 'one' && scope.id === PRIMARY_COMPETITION_ID
+                  ? 'bg-accent-gold/10 text-accent-gold'
+                  : 'bg-bg-card text-text-muted hover:text-text-primary'
+              }`}
+            >
+              {featuredSorted.find(c => c.id === PRIMARY_COMPETITION_ID)?.shortName ||
+                featuredSorted[0]?.shortName ||
+                'Principal'}
+            </button>
+            {featuredSorted
+              .filter(c => c.id !== PRIMARY_COMPETITION_ID)
+              .map(c => (
+                <button
+                  key={c.id}
+                  type="button"
+                  onClick={() => handleScopeChange({ kind: 'one', id: c.id })}
+                  className={`font-body focus-visible shrink-0 rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
+                    scope.kind === 'one' && scope.id === c.id
+                      ? 'bg-accent-gold/10 text-accent-gold'
+                      : 'bg-bg-card text-text-muted hover:text-text-primary'
+                  }`}
+                >
+                  {c.shortName || c.displayName}
+                </button>
+              ))}
+            {featuredSorted.length > 1 && (
+              <button
+                type="button"
+                onClick={() => handleScopeChange({ kind: 'all' })}
+                className={`font-body focus-visible shrink-0 rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
+                  scope.kind === 'all'
+                    ? 'bg-accent-gold/10 text-accent-gold'
+                    : 'bg-bg-card text-text-muted hover:text-text-primary'
+                }`}
+              >
+                Todas
+              </button>
+            )}
+          </div>
+        )}
 
         <div className="mb-4">
           <MatchFilterBar

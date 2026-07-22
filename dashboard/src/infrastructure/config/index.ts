@@ -38,4 +38,8 @@ export const ENDPOINTS = {
   teamMatches: (id: number | string) => `/teams/${id}/matches`,
   countries: `/countries`,
   tournamentInfo: `/tournament-info`,
+  competitions: `/competitions`,
+  competitionsFeatured: `/competitions/featured`,
+  competitionById: (id: number | string) => `/competitions/${id}`,
+  competitionSeasons: (id: number | string) => `/competitions/${id}/seasons`,
 } as const

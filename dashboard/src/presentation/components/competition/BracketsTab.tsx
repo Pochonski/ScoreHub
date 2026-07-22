@@ -57,18 +57,20 @@ function AccordionSection({
   )
 }
 
-export function BracketsTab() {
+export function BracketsTab({ competitionId }: { competitionId?: number }) {
   const [stages, setStages] = useState<BracketStage[]>([])
   const [loading, setLoading] = useState(true)
   const [treeView, setTreeView] = useState(false)
 
   useEffect(() => {
     apiClient
-      .get<BracketStage[]>(ENDPOINTS.brackets)
+      .get<BracketStage[]>(ENDPOINTS.brackets, {
+        params: competitionId ? { competitionId } : undefined,
+      })
       .then(setStages)
       .catch(() => setStages([]))
       .finally(() => setLoading(false))
-  }, [])
+  }, [competitionId])
 
   if (loading) {
     return (

@@ -8,6 +8,7 @@ import type { NewsRepository } from '@/domain/repositories/NewsRepository'
 import type { TournamentStatsRepository } from '@/domain/repositories/TournamentStatsRepository'
 import type { BettingTipRepository } from '@/domain/repositories/BettingTipRepository'
 import type { BracketRepository } from '@/domain/repositories/BracketRepository'
+import type { CompetitionRepository } from '@/domain/repositories/CompetitionRepository'
 import { ApiGameRepository } from '@/data/repositories/ApiGameRepository'
 import { ApiNewsRepository } from '@/data/repositories/ApiNewsRepository'
 import { ApiTournamentStatsRepository } from '@/data/repositories/ApiTournamentStatsRepository'
@@ -18,6 +19,7 @@ import { ApiHistoryRepository } from '@/data/repositories/ApiHistoryRepository'
 import { ApiTournamentInfoRepository } from '@/data/repositories/ApiTournamentInfoRepository'
 import { ApiStandingRepository } from '@/data/repositories/ApiStandingRepository'
 import { ApiBracketRepository } from '@/data/repositories/ApiBracketRepository'
+import { ApiCompetitionRepository } from '@/data/repositories/ApiCompetitionRepository'
 
 export class DiContainer {
   private static instance: DiContainer
@@ -77,5 +79,9 @@ export class DiContainer {
 
   getBracketRepository(): BracketRepository {
     return this.getOrCreate('bracket', () => new ApiBracketRepository())
+  }
+
+  getCompetitionRepository(): CompetitionRepository {
+    return this.getOrCreate('competition', () => new ApiCompetitionRepository())
   }
 }

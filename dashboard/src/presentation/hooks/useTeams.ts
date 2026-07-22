@@ -5,15 +5,16 @@ import { DiContainer } from '@/infrastructure/di/DiContainer'
 
 const repo = DiContainer.getInstance().getTeamRepository()
 
-export function useTeams(nationalOnly?: boolean) {
+export function useTeams(nationalOnly?: boolean, competitionId?: number | null) {
   const [teams, setTeams] = useState<Team[]>([])
   const [loading, setLoading] = useState(true)
 
+  /* eslint-disable react-hooks/exhaustive-deps */
   const fetch = useCallback(
     async (signal?: AbortSignal) => {
       try {
         setLoading(true)
-        const data = await repo.getTeams(nationalOnly)
+        const data = await repo.getTeams(nationalOnly, competitionId ?? undefined)
         if (!signal?.aborted) setTeams(data)
       } catch {
         if (!signal?.aborted) setTeams([])
@@ -21,8 +22,9 @@ export function useTeams(nationalOnly?: boolean) {
         if (!signal?.aborted) setLoading(false)
       }
     },
-    [nationalOnly]
+    [nationalOnly, competitionId]
   )
+  /* eslint-enable react-hooks/exhaustive-deps */
 
   useEffect(() => {
     const ctrl = new AbortController()
@@ -33,17 +35,21 @@ export function useTeams(nationalOnly?: boolean) {
   return { teams, loading, refetch: () => fetch() }
 }
 
-export function useTeam(id: number | null) {
+export function useTeam(id: number | null, competitionId?: number | null) {
   const [team, setTeam] = useState<Team | null>(null)
   const [matches, setMatches] = useState<Game[]>([])
   const [loading, setLoading] = useState(false)
 
+  /* eslint-disable react-hooks/exhaustive-deps */
   const fetch = useCallback(
     async (signal?: AbortSignal) => {
       if (id == null) return
       try {
         setLoading(true)
-        const [t, m] = await Promise.all([repo.getTeamById(id), repo.getTeamMatches(id)])
+        const [t, m] = await Promise.all([
+          repo.getTeamById(id),
+          repo.getTeamMatches(id, competitionId ?? undefined),
+        ])
         if (!signal?.aborted) {
           setTeam(t)
           setMatches(m)
@@ -57,8 +63,9 @@ export function useTeam(id: number | null) {
         if (!signal?.aborted) setLoading(false)
       }
     },
-    [id]
+    [id, competitionId]
   )
+  /* eslint-enable react-hooks/exhaustive-deps */
 
   useEffect(() => {
     const ctrl = new AbortController()

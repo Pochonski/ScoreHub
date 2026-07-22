@@ -1,23 +1,25 @@
 import { useState, useEffect, useCallback } from 'react'
 import type { Trend } from '@/domain/entities/BettingTip'
-import { apiClient } from '@/data/datasources/ApiClient'
-import { ENDPOINTS } from '@/infrastructure/config'
+import { DiContainer } from '@/infrastructure/di/DiContainer'
 
-export function useTrends() {
+export function useTrends(competitionId?: number | null) {
   const [trends, setTrends] = useState<Trend[]>([])
   const [loading, setLoading] = useState(true)
 
+  /* eslint-disable react-hooks/exhaustive-deps */
   const fetch = useCallback(async (signal?: AbortSignal) => {
     try {
       setLoading(true)
-      const data = await apiClient.get<Trend[]>(ENDPOINTS.trends, { signal })
+      const repo = DiContainer.getInstance().getBettingTipRepository()
+      const data = await repo.getCompetitionTrends(competitionId ?? undefined)
       if (!signal?.aborted) setTrends(data)
     } catch {
       if (!signal?.aborted) setTrends([])
     } finally {
       if (!signal?.aborted) setLoading(false)
     }
-  }, [])
+  }, [competitionId])
+  /* eslint-enable react-hooks/exhaustive-deps */
 
   useEffect(() => {
     const ctrl = new AbortController()
