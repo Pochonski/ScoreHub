@@ -90,13 +90,22 @@ async function getMatchById(req, res, next) {
     const { id } = req.params;
     const gid = Number(id);
 
+    // Preferir game_overviews (tiene datos mas ricos: lineups, predictions, etc.).
     const { rows } = await pool.query('SELECT data FROM game_overviews WHERE game_id = $1', [gid]);
-    if (!rows.length) return res.status(404).json({ error: 'Partido no encontrado' });
+    if (rows.length) {
+      const game = rows[0].data?.game;
+      if (game) return res.json(enrichGame(game));
+    }
 
-    const game = rows[0].data?.game;
-    if (!game) return res.status(404).json({ error: 'Partido no encontrado' });
+    // Fallback a la tabla games: cubre los partidos que todavia no tienen
+    // overview sincronizado (la mayoria). games.data ya esta en formato crudo
+    // de 365scores (homeCompetitor/awayCompetitor), enrichGame lo normaliza.
+    const { rows: gameRows } = await pool.query('SELECT data FROM games WHERE id = $1', [gid]);
+    if (gameRows.length && gameRows[0].data) {
+      return res.json(enrichGame(gameRows[0].data));
+    }
 
-    res.json(enrichGame(game));
+    res.status(404).json({ error: 'Partido no encontrado' });
   } catch (err) {
     next(err);
   }
