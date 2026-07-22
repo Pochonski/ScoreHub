@@ -1,15 +1,15 @@
 # ScoreHub
 
-Asistente de fútbol y apuestas centrado en el **Mundial FIFA 2026**, con tres interfaces integradas sobre una base de datos común (Supabase PostgreSQL).
+Asistente de fútbol y apuestas multi-competición, con tres interfaces integradas sobre una base de datos común (Supabase PostgreSQL). Soporta Mundial 2026, Liga Promerica CR y futuras competiciones vía la tabla `active_competitions`.
 
-[Bot de Telegram](https://t.me/botmundialistabot) · [Dashboard Web](https://scorehub-pocho.vercel.app) · [Documentación](./docs)
+[Bot de Telegram](https://t.me/botmundialistabot) · [Dashboard Web](https://scorehub-pocho.vercel.app) · [Documentación](./docs) · [Multi-comp](./docs/multi-competition.md)
 
 ---
 
 ## Qué hace
 
 - **Bot de Telegram** (`@botmundialistabot`): la interfaz principal. Entiende español natural (vía Gemini) y ~50 comandos slash. Da partidos en vivo, fixture, tablas/grupos/llaves, info de equipos, H2H, alineaciones, previas, estadísticas, noticias, predicciones, cuotas, goleadores e historial de mundiales (1930–2022).
-- **Dashboard web premium "ScoreHub"** (React 19 + Vite): centro de comando visual con partidos en vivo, marcadores animados, tablas, bracket, estadísticas, noticias y perfil de jugadores.
+- **Dashboard web premium "ScoreHub"** (React 19 + Vite): centro de comando visual con partidos en vivo, marcadores animados, tablas, bracket, estadísticas, noticias y perfil de jugadores. Soporta múltiples competiciones con tabs y switcher en el navbar.
 - **Panel admin**: UI interna para ver métricas de uso (usuarios, consultas, equipos seguidos).
 - **Seguimiento de apuestas por captura**: el usuario manda una foto de su cupón de Bet365/Betway, Tesseract.js hace OCR, se normaliza a 9+ tipos de mercado, se empareja con un partido en vivo y cada 60s se notifica a Telegram cuando se gana/pierde cada selección.
 

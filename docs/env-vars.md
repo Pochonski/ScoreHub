@@ -5,15 +5,22 @@ Ver [`.env.example`](../.env.example) para una plantilla copiable.
 
 ## Categorías
 
-### 1. Competencia / temporada
+### 1. Competiciones (multi-comp)
+
+Las competiciones activas se leen de la tabla `active_competitions` en la DB
+(migración 008). Las env vars de esta sección son solo **fallbacks** para el
+caso en que la tabla esté vacía o para identificar la "primary comp" en el frontend.
 
 | Var | Default | Notas |
 |---|---|---|
-| `PRIMARY_COMPETITION_ID` | `5930` | Mundial 2026 en 365scores |
-| `PRIMARY_SEASON` | `25` | Temporada del Mundial 2026 |
-| `CURRENT_SEASON` | `25` | Temporada "actual" para algunas queries |
-| `SYNC_START_DATE` | `20260601` | Inicio de ventana de sync (YYYYMMDD) |
-| `SYNC_END_DATE` | `20260815` | Fin de ventana de sync |
+| `PRIMARY_COMPETITION_ID` | `5930` | ID upstream del Mundial 2026; fallback si `?competitionId=` no se pasa en la request |
+| `PRIMARY_SEASON` | `25` | Temporada del Mundial |
+| `CURRENT_SEASON` | `25` | Alias usado por algunos controllers |
+| `SYNC_START_DATE` | `20260601` | (legacy) Inicio de ventana para `syncGames` cuando no se usa `start_date` de la tabla |
+| `SYNC_END_DATE` | `20260815` | (legacy) Fin de ventana |
+
+Para añadir más competiciones, **insertar en `active_competitions`** (no requiere redeploy).
+Ver [`docs/multi-competition.md`](./multi-competition.md) para el detalle.
 
 ### 2. Base de datos (Supabase PostgreSQL)
 

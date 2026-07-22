@@ -1,6 +1,9 @@
 # ScoreHub Dashboard
 
-Dashboard web premium para la Copa Mundial FIFA 2026.
+Dashboard web multi-competición para fútbol en vivo, estadísticas, historia y jugadores.
+
+Competiciones soportadas actualmente: Copa Mundial de la FIFA 2026 (5930) y Liga Promerica CR (5056).
+La lista activa vive en `database/active_competitions` y se mantiene vía SQL. Ver [docs/multi-competition.md](../docs/multi-competition.md).
 
 ## Stack
 
