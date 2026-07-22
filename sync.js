@@ -50,6 +50,12 @@ async function main() {
   // News — every 10 minutes
   every('*/10 * * * *', 'syncNews', sync.syncNews);
 
+  // Suggestions (top upcoming games) — every 30 minutes (cambian poco)
+  every('*/30 * * * *', 'syncSuggestions', sync.syncSuggestions);
+
+  // Transfers (fichajes por equipo) — cada 6 horas (cambian lento)
+  every('0 */6 * * *', 'syncTransfers', sync.syncTransfers);
+
   // Catalog and countries — every 6 hours
   every('0 */6 * * *', 'syncCatalog', sync.syncCatalog);
   every('0 */6 * * *', 'syncCountries', sync.syncCountries);
