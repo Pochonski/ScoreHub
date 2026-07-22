@@ -550,29 +550,100 @@ async function syncCountries() {
 async function syncAthletes() {
   log('Syncing athletes...');
   try {
+    // Read members from game_lineups (populated by syncGameDetails) instead
+    // of game_overviews. game_lineups members expose the canonical
+    // upstream athleteId plus name/imageVersion/position, which are not
+    // reliably present in the overview cache.
     const { rows } = await pool.query(
-      'SELECT data FROM game_overviews WHERE game_id IN (SELECT id FROM games WHERE competition_id = $1)',
+      `SELECT gl.data AS lineups
+         FROM game_lineups gl
+         JOIN games g ON g.id = gl.game_id
+        WHERE g.competition_id = $1`,
       [COMPETITION_ID]
     );
+
+    // 1. Discover canonical athlete ids from roster members.
+    //    Upstream members expose both a roster/member record id (`m.id`) and
+    //    the canonical upstream player id (`m.athleteId`). Tournament stats
+    //    and the dashboard /player/:id route use the canonical one.
     const seen = new Set();
-    const athletes = [];
+    const athleteIds = [];
     for (const r of rows) {
-      const members = r.data?.game?.members || r.data?.members || [];
+      const members = r.lineups?.members || [];
       for (const m of members) {
-        if (!m.id || seen.has(m.id)) continue;
-        seen.add(m.id);
-        athletes.push({
-          id: m.id,
-          name: m.name ?? null,
-          data: JSON.stringify(m),
-          updated_at: new Date().toISOString(),
-        });
+        const aid = Number(m.athleteId ?? m.id);
+        if (!Number.isFinite(aid) || seen.has(aid)) continue;
+        seen.add(aid);
+        athleteIds.push({ id: aid, name: m.name ?? m.shortName ?? null, rosterMember: m });
       }
     }
-    for (const row of athletes) {
-      await upsertMany('athletes', 'id', [row]);
+
+    if (!athleteIds.length) {
+      log('No athletes discovered in game overviews; skipping.');
+      return;
     }
-    log(`Synced ${athletes.length} athletes`);
+
+    // 2. Insert lightweight rows immediately so /player/:id hits don't 404
+    //    while we hydrate. data.id is the canonical id (re-keyed via 007).
+    const rosterRows = athleteIds.map((a) => ({
+      id: a.id,
+      name: a.name,
+      data: JSON.stringify({ ...a.rosterMember, id: a.id }),
+      updated_at: new Date().toISOString(),
+    }));
+    await upsertMany('athletes', 'id', rosterRows);
+    log(`Synced ${rosterRows.length} athlete roster rows`);
+
+    // 3. Hydrate full profiles from 365scores. Skip ids that already have a
+    //    fresh cached profile to avoid hammering the upstream and to keep
+    //    the job within reasonable runtime.
+    const STALE_AFTER_MS = parseInt(process.env.ATHLETE_STALE_AFTER_MS || String(24 * 60 * 60 * 1000), 10);
+    const { rows: freshRows } = await pool.query(
+      `SELECT id, updated_at,
+              (data ? 'trophies') AS has_trophies,
+              (data ? 'transfers') AS has_transfers,
+              (data ? 'careerStats') AS has_career
+         FROM athletes
+        WHERE id = ANY($1::bigint[])`,
+      [athleteIds.map((a) => a.id)]
+    );
+    const freshMap = new Map(freshRows.map((r) => [Number(r.id), r]));
+    const cutoff = Date.now() - STALE_AFTER_MS;
+
+    let hydrated = 0;
+    let skipped = 0;
+    for (const { id } of athleteIds) {
+      const cached = freshMap.get(id);
+      const updatedTs = cached?.updated_at ? new Date(cached.updated_at).getTime() : 0;
+      const isFresh =
+        cached &&
+        updatedTs >= cutoff &&
+        cached.has_trophies &&
+        cached.has_transfers &&
+        cached.has_career;
+      if (isFresh) { skipped++; continue; }
+
+      try {
+        const res = await api.getAthlete(id, true);
+        const a = res?.athletes?.[0];
+        if (!a || !a.id) { skipped++; continue; }
+        const normalized = { ...a, id: Number(a.id) };
+        await pool.query(
+          `INSERT INTO athletes (id, name, data, updated_at)
+           VALUES ($1, $2, $3::jsonb, now())
+           ON CONFLICT (id) DO UPDATE
+             SET name = COALESCE(EXCLUDED.name, athletes.name),
+                 data = EXCLUDED.data,
+                 updated_at = now()`,
+          [normalized.id, normalized.name ?? null, JSON.stringify(normalized)]
+        );
+        hydrated++;
+      } catch (e) {
+        log(`  hydrate ${id} failed: ${e.message}`);
+      }
+    }
+
+    log(`Hydrated ${hydrated} profiles, skipped ${skipped} (fresh or upstream-error)`);
   } catch (e) {
     log('Error syncing athletes:', e.message);
   }

@@ -225,25 +225,27 @@
 - **Servicio:** `api.getAthlete(athleteId, fullDetails)`
 - **Params:** `athletes={id}{&fullDetails=true}`
 - **Devuelve:** perfil completo: `trophies.categories[]`, `transfers[]`, `careerStats.seasons[]`, `nationalTeamStatsText`
-- **Cache Cosmos:** `athletes` (partition `/id`)
-- **Uso en bot:** 1,300 atletas del Mundial con careers/trophies/transfers (13,661 + 1,113 + 2,714 docs derivados)
+- **Cache Supabase:** tabla `athletes` (PK canónico `id`; columna generada `canonical_id`)
+- **Cache-on-read:** el endpoint `/api/football/athletes/:id` rehidrata desde este upstream si la fila está vacía o es más vieja que `ATHLETE_STALE_AFTER_MS` (default 24 h)
+- **Sync:** `syncAthletes()` recorre `game_lineups` (no `game_overviews`) y para cada `athleteId` canónico llama a este endpoint y upserts el JSON completo
+- **Uso en dashboard:** `https://<host>/player/:id` con `:id` = id canónico (Mbappé = 39820)
 
 ### `GET /athletes/nextGame/`
 - **Servicio:** `api.getAthleteNextGame(athleteId)`
 - **Devuelve:** próximo partido del atleta
-- **Cache Cosmos:** `athlete_next_games` (partition `/athleteId`, TTL 7d)
+- **Cache Cosmos:** `athlete_next_games` (partition `/athleteId`, TTL 7d) — *legacy, no migrado a Supabase*
 - **Uso en bot:** lazy load
 
 ### `GET /athletes/games/`
 - **Servicio:** `api.getAthleteGames(athleteId)`
 - **Devuelve:** historial de partidos del atleta con `athleteStats[]` (rendimiento por partido)
-- **Cache Cosmos:** `athlete_games` (partition `/athleteId`)
+- **Cache Cosmos:** `athlete_games` (partition `/athleteId`) — *legacy, no migrado a Supabase*
 - **Uso en bot:** lazy load
 
 ### `GET /athletes/chartEvents/`
 - **Servicio:** `api.getAthleteChartEvents(athleteId)`
 - **Devuelve:** `chartEvents[]` con `xg`, `xgot`, `bodyPart`, `goalDescription`, `coordinates` (line/side/y/z), `gameId`
-- **Cache Cosmos:** `athlete_chart_events` (partition `/athleteId`)
+- **Cache Cosmos:** `athlete_chart_events` (partition `/athleteId`) — *legacy, no migrado a Supabase*
 - **Uso en bot:** 33 atletas con shot map (lazy load)
 
 ---

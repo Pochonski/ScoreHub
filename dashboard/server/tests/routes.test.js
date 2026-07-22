@@ -118,8 +118,8 @@ describe('CORS headers', () => {
     mockQuery.mockResolvedValueOnce({ rows: [] });
     const res = await request(app)
       .get('/api/football/matches')
-      .set('Origin', 'https://scorehub-rust.vercel.app');
-    expect(res.headers['access-control-allow-origin']).toBe('https://scorehub-rust.vercel.app');
+      .set('Origin', 'https://scorehub-pocho.vercel.app');
+    expect(res.headers['access-control-allow-origin']).toBe('https://scorehub-pocho.vercel.app');
   });
 
   it('rechaza origenes no permitidos', async () => {

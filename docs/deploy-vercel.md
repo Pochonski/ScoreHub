@@ -37,7 +37,7 @@ Mínimas para que arranque la API:
 | `SUPABASE_DB_URL` | `postgresql://postgres.xxxx@aws-0-xx.pipeliner.supabase.com:6543/postgres` | Pooler Supavisor. Alternativa: usar `DB_HOST`/`DB_PORT`/`DB_USER`/`DB_PASSWORD`/`DB_NAME`/`DB_SSL=true`. |
 | `PRIMARY_COMPETITION_ID` | `5930` | Mundial 2026. |
 | `PRIMARY_SEASON` | `25` | |
-| `CORS_ORIGINS` | `https://scorehub-rust.vercel.app` | Separar por comas. Si no se setea, default seguro (localhost + URL Vercel). |
+| `CORS_ORIGINS` | `https://scorehub-pocho.vercel.app` | Separar por comas. Si no se setea, default seguro (localhost + URL Vercel). |
 | `SCORES365_HTTP_TIMEOUT_MS` | `15000` | Timeout por request a 365scores. |
 | `LOG_LEVEL` | `info` | |
 | `NODE_ENV` | `production` | |

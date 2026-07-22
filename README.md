@@ -2,7 +2,7 @@
 
 Asistente de fútbol y apuestas centrado en el **Mundial FIFA 2026**, con tres interfaces integradas sobre una base de datos común (Supabase PostgreSQL).
 
-[Bot de Telegram](https://t.me/botmundialistabot) · [Dashboard Web](https://scorehub-rust.vercel.app) · [Documentación](./docs)
+[Bot de Telegram](https://t.me/botmundialistabot) · [Dashboard Web](https://scorehub-pocho.vercel.app) · [Documentación](./docs)
 
 ---
 
@@ -25,7 +25,7 @@ Asistente de fútbol y apuestas centrado en el **Mundial FIFA 2026**, con tres i
                 │
         ┌───────▼────────┐     ┌──────────────────────┐
         │  sync.js (cron)│────▶│  365scores Web API   │
-        │  18 jobs ETL   │     │  webws.365scores.com │
+        │  20 jobs ETL   │     │  webws.365scores.com │
         └───────┬────────┘     └──────────────────────┘
                 │ upsert
         ┌───────▼────────┐
@@ -40,7 +40,7 @@ Asistente de fútbol y apuestas centrado en el **Mundial FIFA 2026**, con tres i
 - **Frontend**: React 19 + TypeScript + Tailwind 4 + Zod 4 (Clean Architecture).
 - **DB**: Supabase PostgreSQL vía `pg.Pool` (sin ORM), 19 tablas cache JSONB.
 - **Fuente datos**: API web de 365scores (`webws.365scores.com`).
-- **Scheduling**: `node-cron` con 18 jobs en capas (15s, 1m, 2m, 5m, 10m, 6h, 24h).
+- **Scheduling**: `node-cron` con 20 jobs en capas (15s, 1m, 2m, 5m, 10m, 6h, 24h).
 
 ## Stack
 
@@ -58,7 +58,7 @@ Asistente de fútbol y apuestas centrado en el **Mundial FIFA 2026**, con tres i
 .
 ├── telegramBot.js          # Bot de Telegram (entrada principal)
 ├── bot.js                  # Bot de WhatsApp (legacy, inactivo)
-├── sync.js                 # Servicio ETL con 18 crons
+├── sync.js                 # Servicio ETL con 20 crons
 ├── api/index.js            # Entry serverless para Vercel
 ├── handlers/               # Ruteo de mensajes (match, team, betting, OCR…)
 ├── services/               # Lógica de negocio (scores365, sync, bet evaluator…)

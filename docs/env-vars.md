@@ -75,7 +75,7 @@ Opción B (fallback, variables individuales):
 | `PORT` | `8080` | Puerto HTTP del health server (bot) |
 | `ADMIN_PORT` | `3001` | Puerto del panel admin standalone |
 | `DASHBOARD_PORT` | `3002` | Puerto del dashboard server |
-| `CORS_ORIGINS` | `http://localhost:5173,https://scorehub-rust.vercel.app` | Orígenes permitidos para el dashboard (CSV) |
+| `CORS_ORIGINS` | `http://localhost:5173,https://scorehub-pocho.vercel.app` | Orígenes permitidos para el dashboard (CSV) |
 | `LOG_LEVEL` | `info` | Nivel de log pino (info, warn, error, debug) |
 | `NODE_ENV` | — | `production` activa comportamiento de prod |
 

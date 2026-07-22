@@ -10,6 +10,9 @@ interface PlayerProfileProps {
   career: AthleteCareerSeason[]
   trophies: AthleteTrophyCategory[]
   transfers: AthleteTransfer[]
+  /** When true, supplement fetches (career/trophies/transfers) failed but
+   *  the core profile loaded. We render a small banner so users know. */
+  partialData?: boolean
 }
 
 function formatDate(d: string) {
@@ -43,11 +46,50 @@ function buildTeamTimeline(transfers: AthleteTransfer[]) {
   return stints
 }
 
-export function PlayerProfile({ athlete, career: _career, trophies, transfers }: PlayerProfileProps) {
+/**
+ * Career stats come from upstream as:
+ *   { seasonKey, name, stats: { categories, tables, legend } }
+ *
+ * `tables` is the most readable for human display: array of stat tables,
+ * each with rows of (label, value) pairs grouped under a header.
+ */
+function flattenCareerTables(tables: unknown): { label: string; value: string | number }[] {
+  if (!Array.isArray(tables)) return []
+  const out: { label: string; value: string | number }[] = []
+  for (const tbl of tables) {
+    if (!tbl || typeof tbl !== 'object') continue
+    const t = tbl as { name?: string; title?: string; rows?: unknown[] }
+    const header = t.name || t.title
+    if (Array.isArray(t.rows)) {
+      for (const row of t.rows) {
+        if (!row || typeof row !== 'object') continue
+        const r = row as { name?: string; title?: string; value?: string | number; displayValue?: string | number }
+        const label = r.name || r.title
+        const value = r.displayValue ?? r.value
+        if (label != null && value != null) {
+          out.push({ label: header ? `${header} · ${label}` : String(label), value })
+        }
+      }
+    }
+  }
+  return out
+}
+
+export function PlayerProfile({ athlete, career, trophies, transfers, partialData }: PlayerProfileProps) {
   const teamStints = buildTeamTimeline(transfers)
 
   return (
     <div className="space-y-6">
+      {partialData && (
+        <div
+          role="status"
+          className="bg-accent-gold/10 border-accent-gold/40 text-text-muted font-body rounded-lg border px-3 py-2 text-xs"
+        >
+          Algunos datos (palmarés, transferencias o carrera) no pudieron cargarse.
+          El perfil base se muestra correctamente.
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex flex-col items-center gap-4 sm:flex-row sm:items-start sm:gap-6">
         <div className="bg-bg-elevated border-border-card h-24 w-24 shrink-0 overflow-hidden rounded-full border-2 sm:h-32 sm:w-32">
@@ -119,10 +161,42 @@ export function PlayerProfile({ athlete, career: _career, trophies, transfers }:
         </section>
       )}
 
-      {/* Trofeos */}
-      {trophies.length > 0 && (
+      {/* Estadísticas por temporada */}
+      {career.length > 0 && (
         <section>
-          <h2 className="font-display text-text-primary mb-3 text-lg font-semibold">Trofeos</h2>
+          <h2 className="font-display text-text-primary mb-3 text-lg font-semibold">Estadísticas</h2>
+          <div className="space-y-3">
+            {career.map((s) => {
+              const rows = flattenCareerTables(s.stats?.tables)
+              if (!rows.length) return null
+              return (
+                <details
+                  key={s.seasonKey}
+                  open={s.seasonKey !== '-1'}
+                  className="bg-bg-card border-border-card rounded-lg border"
+                >
+                  <summary className="font-body text-text-primary cursor-pointer list-none px-3 py-2 text-sm font-medium select-none">
+                    {s.name}
+                  </summary>
+                  <div className="border-border-card/50 space-y-1 border-t px-3 py-2 text-sm">
+                    {rows.map((r, i) => (
+                      <div key={i} className="flex items-center justify-between gap-3">
+                        <span className="font-body text-text-muted truncate">{r.label}</span>
+                        <span className="text-text-primary font-mono">{r.value}</span>
+                      </div>
+                    ))}
+                  </div>
+                </details>
+              )
+            })}
+          </div>
+        </section>
+      )}
+
+      {/* Trofeos */}
+      <section>
+        <h2 className="font-display text-text-primary mb-3 text-lg font-semibold">Trofeos</h2>
+        {trophies.length > 0 ? (
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             {trophies.map((category, i) => (
               <div key={i} className="bg-bg-card border-border-card rounded-lg border p-3">
@@ -133,22 +207,22 @@ export function PlayerProfile({ athlete, career: _career, trophies, transfers }:
                   {category.trophies.map((trophy, j) => (
                     <div key={j} className="flex items-center justify-between">
                       <span className="font-body text-text-primary text-sm">{trophy.name}</span>
-                      <span className="font-display text-accent-gold text-base font-bold">
-                        ×{trophy.count}
-                      </span>
+                      <span className="font-display text-accent-gold text-base font-bold">×{trophy.count}</span>
                     </div>
                   ))}
                 </div>
               </div>
             ))}
           </div>
-        </section>
-      )}
+        ) : (
+          <p className="font-body text-text-dim text-sm">Sin trofeos registrados.</p>
+        )}
+      </section>
 
       {/* Transferencias */}
-      {transfers.length > 0 && (
-        <section>
-          <h2 className="font-display text-text-primary mb-3 text-lg font-semibold">Transferencias</h2>
+      <section>
+        <h2 className="font-display text-text-primary mb-3 text-lg font-semibold">Transferencias</h2>
+        {transfers.length > 0 ? (
           <div className="space-y-2">
             {transfers.map((t, i) => {
               let contractYear: string | null = null
@@ -186,8 +260,10 @@ export function PlayerProfile({ athlete, career: _career, trophies, transfers }:
               )
             })}
           </div>
-        </section>
-      )}
+        ) : (
+          <p className="font-body text-text-dim text-sm">Sin transferencias registradas.</p>
+        )}
+      </section>
     </div>
   )
 }

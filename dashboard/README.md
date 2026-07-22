@@ -54,7 +54,7 @@ Copia `.env.example` a `.env` y configura:
 |---|---|---|
 | `VITE_API_BASE_URL` | `/api/football` | URL base del backend |
 | `DASHBOARD_PORT` | `3002` | Puerto del servidor backend |
-| `CORS_ORIGINS` | `http://localhost:5173,https://scorehub-rust.vercel.app` | Orígenes permitidos (CSV) |
+| `CORS_ORIGINS` | `http://localhost:5173,https://scorehub-pocho.vercel.app` | Orígenes permitidos (CSV) |
 | `LOG_LEVEL` | `info` | Nivel de log (info, warn, error, debug) |
 
 > Nota: el servidor (`dashboard/server`) lee estas variables del `.env` de la **raíz del repo**, no de `dashboard/.env`. La competencia y temporada se controlan con `PRIMARY_COMPETITION_ID` y `PRIMARY_SEASON` (ver `.env.example` raíz).

@@ -15,7 +15,7 @@ const isDev = process.env.NODE_ENV !== 'production';
 
 const whitelist = process.env.CORS_ORIGINS
   ? process.env.CORS_ORIGINS.split(',')
-  : ['http://localhost:5173', 'https://scorehub-rust.vercel.app'];
+  : ['http://localhost:5173', 'https://scorehub-pocho.vercel.app', 'https://scorehub-rust.vercel.app'];
 
 const pino = require('pino');
 const serverLogger = pino({
