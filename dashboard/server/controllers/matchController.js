@@ -8,11 +8,27 @@ const COMPETITION_ID = parseInt(process.env.PRIMARY_COMPETITION_ID || '5930', 10
  * Pivotear la lista plana de statistics de 365scores a una fila por stat
  * con homeValue/awayValue. Cada entrada del upstream tiene
  * { id, competitorId, value, isMajor, isTop }; hay que agrupar por id y
- * separar por equipo. Solo se devuelven stats isTop=true (las que 365scores
- * muestra en su UI), ordenadas con isMajor primero.
+ * separar por equipo.
+ *
+ * Si homeId/awayId no se conocen (p.ej. el partido no esta en la tabla games),
+ * se infieren del orden de aparicion: el primer competitorId visto es home,
+ * el segundo es away.
  */
 function pivotStats(flat, homeId, awayId) {
   if (!Array.isArray(flat)) return [];
+  // Inferir competitorIds si no vinieron.
+  let inferredHome = homeId;
+  let inferredAway = awayId;
+  if (inferredHome == null || inferredAway == null) {
+    const seen = [];
+    for (const s of flat) {
+      if (s.competitorId != null && !seen.includes(s.competitorId)) seen.push(s.competitorId);
+      if (seen.length >= 2) break;
+    }
+    if (inferredHome == null) inferredHome = seen[0];
+    if (inferredAway == null) inferredAway = seen[1];
+  }
+
   const byStat = new Map();
   for (const s of flat) {
     const sid = s.id ?? s.statId ?? s.type;
@@ -30,15 +46,13 @@ function pivotStats(flat, homeId, awayId) {
     if (s.isMajor) row.isMajor = true;
     if (s.isTop) row.isTop = true;
     const val = s.value ?? 0;
-    if (s.competitorId === homeId) row.homeValue = val;
-    else if (s.competitorId === awayId) row.awayValue = val;
+    if (s.competitorId === inferredHome) row.homeValue = val;
+    else if (s.competitorId === inferredAway) row.awayValue = val;
   }
   return [...byStat.values()]
     // Mostrar TODAS las stats mapeadas que tengan al menos un valor.
-    // Antes filtrabamos por isTop=true del upstream, lo que descartaba 34 de 43 stats.
     .filter(r => (r.isMajor || r.isTop || SCORE_STAT_IDS[r.statId]) && (r.homeValue != null || r.awayValue != null))
     .sort((a, b) => {
-      // isMajor primero, luego isTop, luego por statId.
       if (a.isMajor !== b.isMajor) return a.isMajor ? -1 : 1;
       if (a.isTop !== b.isTop) return a.isTop ? -1 : 1;
       return a.statId - b.statId;
