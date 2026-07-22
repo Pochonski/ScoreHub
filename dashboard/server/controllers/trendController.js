@@ -1,13 +1,16 @@
 const { pool } = require('../../../database/connection');
+const { resolveCompetition } = require('../utils/competition');
 const { enrichTrend } = require('../utils/mappers');
-
-const COMPETITION_ID = parseInt(process.env.PRIMARY_COMPETITION_ID || '5930', 10);
 
 async function getCompetitionTrends(req, res, next) {
   try {
+    const resolved = await resolveCompetition(req, res);
+    if (!resolved) return;
+    const { competitionId } = resolved;
+
     const { rows } = await pool.query(
       'SELECT data FROM trends WHERE scope = $1 AND entity_id = $2',
-      ['competition', COMPETITION_ID]
+      ['competition', competitionId]
     );
     const trends = rows.map(r => r.data);
     const seen = new Set();

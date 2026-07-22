@@ -2,15 +2,17 @@ const { pool } = require('../../../database/connection');
 const scores365 = require('../../../services/scores365Service');
 const images = require('../../../services/images');
 const { GROUP_NAMES, transformStandingRow, enrichTeam } = require('../utils/mappers');
-
-const COMPETITION_ID = parseInt(process.env.PRIMARY_COMPETITION_ID || '5930', 10);
-const CURRENT_SEASON = parseInt(process.env.PRIMARY_SEASON || '25', 10);
+const { resolveCompetition } = require('../utils/competition');
 
 async function getStandings(req, res, next) {
   try {
+    const resolved = await resolveCompetition(req, res);
+    if (!resolved) return;
+    const { competitionId, seasonNum } = resolved;
+
     const { rows } = await pool.query(
       'SELECT data FROM standings WHERE competition_id = $1 AND stage_num = 1 AND season_num = $2',
-      [COMPETITION_ID, CURRENT_SEASON]
+      [competitionId, seasonNum]
     );
     if (!rows.length) return res.json([]);
 
@@ -41,36 +43,20 @@ async function getStandings(req, res, next) {
   }
 }
 
-/**
- * Mapea la estructura de brackets de 365scores a la del frontend.
- *
- * Estructura del upstream:
- *   brackets[0].stages[] -> cada stage tiene { num, name, stageType, isFinal, groups[] }
- *   cada group tiene { name, games[] }
- *   cada game del bracket es { gameId, venue, game: { id, homeCompetitor, awayCompetitor, ... } }
- *
- * Hay que aplanar groups[].games[] a un solo games[] por stage, extraer el
- * objeto interno .game (que tiene los competitors con scores), y filtrar
- * solo las stages de eliminatoria (stageType > 1 o isFinal=true), porque la
- * fase de grupos se ve en Standings.
- */
 function mapBrackets(doc) {
   const bracket = doc?.brackets?.[0];
   if (!bracket?.stages) return [];
 
   return bracket.stages
     .filter(s => {
-      // Excluir fase de grupos (stageType=1 o sin hasBrackets).
       if (s.stageType === 1 || (!s.isFinal && !s.hasBrackets && s.num <= 2)) return false;
-      // Incluir solo stages que tienen games de eliminatoria.
       const games = (s.groups || []).flatMap(g => g.games || []);
       return games.length > 0;
     })
     .map(s => {
-      // Aplanar groups[].games[] y extraer gg.game.
       const allGames = (s.groups || []).flatMap(g => {
         return (g.games || []).map(gg => {
-          const game = gg.game || gg; // fallback por si no viene envuelto
+          const game = gg.game || gg;
           const home = game.homeCompetitor;
           const away = game.awayCompetitor;
           const homeScore = home?.score;
@@ -98,16 +84,23 @@ function mapBrackets(doc) {
 
 async function getBrackets(req, res, next) {
   try {
-    // 1. Cache en DB.
-    const { rows } = await pool.query('SELECT data FROM brackets WHERE competition_id = $1', [COMPETITION_ID]);
+    const resolved = await resolveCompetition(req, res);
+    if (!resolved) return;
+    const { competitionId } = resolved;
+
+    if (!resolved.comp.hasBrackets) {
+      // Devolver empty array en lugar de 404 — la UI ya muestra empty state.
+      return res.json([]);
+    }
+
+    const { rows } = await pool.query('SELECT data FROM brackets WHERE competition_id = $1', [competitionId]);
     if (rows.length) {
       const stages = mapBrackets(rows[0].data);
       if (stages.length) return res.json(stages);
     }
 
-    // 2. Fallback a API en vivo.
     try {
-      const live = await scores365.getBrackets(COMPETITION_ID);
+      const live = await scores365.getBrackets(competitionId);
       const stages = mapBrackets(live);
       if (stages.length) return res.json(stages);
     } catch (_) { /* fallthrough */ }

@@ -1,15 +1,18 @@
 const { pool } = require('../../../database/connection');
 const images = require('../../../services/images');
 const { enrichGame } = require('../utils/mappers');
-
-const COMPETITION_ID = parseInt(process.env.PRIMARY_COMPETITION_ID || '5930', 10);
+const { resolveCompetition } = require('../utils/competition');
 
 async function getTeams(req, res, next) {
   try {
     const nationalOnly = req.query.national === 'true';
+    const resolved = await resolveCompetition(req, res);
+    if (!resolved) return;
+    const { competitionId } = resolved;
+
     const { rows } = await pool.query(
       'SELECT id, name, data FROM competitors WHERE competition_id = $1',
-      [COMPETITION_ID]
+      [competitionId]
     );
     let data = rows.map(r => {
       const t = r.data;
@@ -62,9 +65,13 @@ async function getTeamMatches(req, res, next) {
   try {
     const { id } = req.params;
     const tid = Number(id);
+    const resolved = await resolveCompetition(req, res);
+    if (!resolved) return;
+    const { competitionId } = resolved;
+
     const { rows } = await pool.query(
       'SELECT data FROM games WHERE competition_id = $1 AND (home_competitor_id = $2 OR away_competitor_id = $2) ORDER BY start_time DESC',
-      [COMPETITION_ID, tid]
+      [competitionId, tid]
     );
     const games = rows.map(r => enrichGame(r.data));
     res.json(games);

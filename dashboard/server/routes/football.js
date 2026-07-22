@@ -67,4 +67,10 @@ router.get('/teams/:id/matches', teamController.getTeamMatches);
 router.get('/countries', infoController.getCountries);
 router.get('/tournament-info', infoController.getTournamentInfo);
 
+// Competition catalog (multi-comp)
+router.get('/competitions/featured', infoController.getFeaturedCompetitions);
+router.get('/competitions/:id/seasons', infoController.getCompetitionSeasons);
+router.get('/competitions/:id', infoController.getCompetitionDetail);
+router.get('/competitions', infoController.getCompetitions);
+
 module.exports = router;

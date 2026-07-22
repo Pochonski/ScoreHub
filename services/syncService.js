@@ -1,11 +1,7 @@
 require('dotenv').config();
 const api = require('./scores365Service');
 const { pool } = require('../database/connection');
-
-const COMPETITION_ID = parseInt(process.env.PRIMARY_COMPETITION_ID || process.env.COMPETITION_ID || '5930', 10);
-const CURRENT_SEASON = parseInt(process.env.PRIMARY_SEASON || process.env.CURRENT_SEASON || '25', 10);
-const START_DATE = process.env.SYNC_START_DATE || '20260601';
-const END_DATE = process.env.SYNC_END_DATE || '20260815';
+const { getActiveCompetitions, forEachActive } = require('./syncCompetitions');
 
 const LOG_PREFIX = '[Sync]';
 
@@ -53,132 +49,182 @@ async function upsertGames(games) {
   await upsertMany('games', 'id', rows);
 }
 
-async function syncGames() {
-  log('Fetching all games...');
+// ============================================================================
+// Per-competition sync functions (each receives a `comp` object).
+// ============================================================================
+
+async function syncGamesForComp(comp) {
+  log(`[comp=${comp.id}] Fetching all games (${comp.startDate || 'auto'} - ${comp.endDate || 'auto'})...`);
   try {
-    const data = await api.getGamesAllScores(START_DATE, END_DATE, 1, {
+    // 365scores pide YYYYMMDD. Si la comp no tiene fechas, usamos una
+    // ventana generosa (3 meses atrás hasta 6 meses adelante).
+    const now = new Date();
+    const startDate = comp.startDate || new Date(now.getTime() - 90 * 86400000).toISOString().slice(0, 10).replace(/-/g, '');
+    const endDate = comp.endDate || new Date(now.getTime() + 180 * 86400000).toISOString().slice(0, 10).replace(/-/g, '');
+    const data = await api.getGamesAllScores(startDate, endDate, 1, {
       onlyMajorGames: true,
       withTop: true,
       showOdds: true,
     });
-    const games = (data?.games ?? []).filter(g => g.competitionId === COMPETITION_ID);
+    const games = (data?.games ?? []).filter(g => Number(g.competitionId) === comp.id);
     await upsertGames(games);
-    log(`Synced ${games.length} games`);
+    log(`[comp=${comp.id}] Synced ${games.length} games`);
   } catch (e) {
-    log('Error syncing games:', e.message);
+    log(`[comp=${comp.id}] Error syncing games:`, e.message);
+  }
+}
+
+async function syncGames() {
+  log('Fetching all games (multi-comp)...');
+  await forEachActive(syncGamesForComp);
+}
+
+async function syncLiveGamesForComp(comp) {
+  log(`[comp=${comp.id}] Fetching live games...`);
+  try {
+    const data = await api.getGamesCurrent(comp.id);
+    const games = data?.games ?? [];
+    await upsertGames(games);
+    log(`[comp=${comp.id}] Synced ${games.length} live games`);
+  } catch (e) {
+    log(`[comp=${comp.id}] Error syncing live games:`, e.message);
   }
 }
 
 async function syncLiveGames() {
-  log('Fetching live games...');
+  await forEachActive(syncLiveGamesForComp);
+}
+
+async function syncGamesResultsForComp(comp) {
+  log(`[comp=${comp.id}] Fetching results...`);
   try {
-    const data = await api.getGamesCurrent(COMPETITION_ID);
+    const data = await api.getGamesResults(comp.id);
     const games = data?.games ?? [];
     await upsertGames(games);
-    log(`Synced ${games.length} live games`);
+    log(`[comp=${comp.id}] Synced ${games.length} results`);
   } catch (e) {
-    log('Error syncing live games:', e.message);
+    log(`[comp=${comp.id}] Error syncing results:`, e.message);
   }
 }
 
 async function syncGamesResults() {
-  log('Fetching results...');
+  await forEachActive(syncGamesResultsForComp);
+}
+
+async function syncFixturesForComp(comp) {
+  log(`[comp=${comp.id}] Fetching fixtures...`);
   try {
-    const data = await api.getGamesResults(COMPETITION_ID);
+    const data = await api.getFixtures(comp.id);
     const games = data?.games ?? [];
     await upsertGames(games);
-    log(`Synced ${games.length} results`);
+    log(`[comp=${comp.id}] Synced ${games.length} fixtures`);
   } catch (e) {
-    log('Error syncing results:', e.message);
+    log(`[comp=${comp.id}] Error syncing fixtures:`, e.message);
   }
 }
 
 async function syncFixtures() {
-  log('Fetching fixtures...');
-  try {
-    const data = await api.getFixtures(COMPETITION_ID);
-    const games = data?.games ?? [];
-    await upsertGames(games);
-    log(`Synced ${games.length} fixtures`);
-  } catch (e) {
-    log('Error syncing fixtures:', e.message);
-  }
+  await forEachActive(syncFixturesForComp);
 }
 
-async function syncStandings() {
-  log('Fetching standings...');
+async function syncStandingsForComp(comp) {
+  log(`[comp=${comp.id}] Fetching standings...`);
   try {
-    const data = await api.getStandings(COMPETITION_ID, 1, CURRENT_SEASON);
+    const data = await api.getStandings(comp.id, 1, comp.seasonNum);
     const rows = [{
-      competition_id: COMPETITION_ID,
+      competition_id: comp.id,
       stage_num: 1,
-      season_num: CURRENT_SEASON,
+      season_num: comp.seasonNum,
       data: JSON.stringify(data),
       updated_at: new Date().toISOString(),
     }];
     await upsertMany('standings', ['competition_id', 'stage_num', 'season_num'], rows);
-    log('Synced standings');
+    log(`[comp=${comp.id}] Synced standings`);
   } catch (e) {
-    log('Error syncing standings:', e.message);
+    log(`[comp=${comp.id}] Error syncing standings:`, e.message);
   }
 }
 
-async function syncBrackets() {
-  log('Fetching brackets...');
+async function syncStandings() {
+  await forEachActive(syncStandingsForComp);
+}
+
+async function syncBracketsForComp(comp) {
+  if (!comp.hasBrackets) {
+    log(`[comp=${comp.id}] Skipping brackets (not supported)`);
+    return;
+  }
+  log(`[comp=${comp.id}] Fetching brackets...`);
   try {
-    const data = await api.getBrackets(COMPETITION_ID);
+    const data = await api.getBrackets(comp.id);
     const rows = [{
-      competition_id: COMPETITION_ID,
+      competition_id: comp.id,
       data: JSON.stringify(data),
       updated_at: new Date().toISOString(),
     }];
     await upsertMany('brackets', 'competition_id', rows);
-    log('Synced brackets');
+    log(`[comp=${comp.id}] Synced brackets`);
   } catch (e) {
-    log('Error syncing brackets:', e.message);
+    log(`[comp=${comp.id}] Error syncing brackets:`, e.message);
   }
 }
 
-async function syncTournamentStats() {
-  log('Fetching tournament stats...');
+async function syncBrackets() {
+  await forEachActive(syncBracketsForComp);
+}
+
+async function syncTournamentStatsForComp(comp) {
+  log(`[comp=${comp.id}] Fetching tournament stats...`);
   try {
-    const data = await api.getTournamentStats(COMPETITION_ID, CURRENT_SEASON);
+    const data = await api.getTournamentStats(comp.id, comp.seasonNum);
     const rows = [{
-      competition_id: COMPETITION_ID,
-      season_num: CURRENT_SEASON,
+      competition_id: comp.id,
+      season_num: comp.seasonNum,
       data: JSON.stringify(data),
       updated_at: new Date().toISOString(),
     }];
     await upsertMany('tournament_stats', ['competition_id', 'season_num'], rows);
-    log('Synced tournament stats');
+    log(`[comp=${comp.id}] Synced tournament stats`);
   } catch (e) {
-    log('Error syncing tournament stats:', e.message);
+    log(`[comp=${comp.id}] Error syncing tournament stats:`, e.message);
   }
 }
 
-async function syncTeamOfWeek() {
-  log('Fetching team of week...');
+async function syncTournamentStats() {
+  await forEachActive(syncTournamentStatsForComp);
+}
+
+async function syncTeamOfWeekForComp(comp) {
+  log(`[comp=${comp.id}] Fetching team of week...`);
   try {
-    const data = await api.getTeamOfWeek(COMPETITION_ID);
+    const data = await api.getTeamOfWeek(comp.id);
     const rows = [{
-      competition_id: COMPETITION_ID,
+      competition_id: comp.id,
       data: JSON.stringify(data),
       updated_at: new Date().toISOString(),
     }];
     await upsertMany('team_of_week', 'competition_id', rows);
-    log('Synced team of week');
+    log(`[comp=${comp.id}] Synced team of week`);
   } catch (e) {
-    log('Error syncing team of week:', e.message);
+    log(`[comp=${comp.id}] Error syncing team of week:`, e.message);
   }
 }
 
-async function syncCompetitionHistory() {
-  log('Fetching competition history...');
+async function syncTeamOfWeek() {
+  await forEachActive(syncTeamOfWeekForComp);
+}
+
+async function syncCompetitionHistoryForComp(comp) {
+  if (!comp.hasHistory) {
+    log(`[comp=${comp.id}] Skipping history (not supported)`);
+    return;
+  }
+  log(`[comp=${comp.id}] Fetching competition history...`);
   try {
-    const data = await api.getCompetitionHistory(COMPETITION_ID);
+    const data = await api.getCompetitionHistory(comp.id);
     const docs = data?.docs ?? [];
     const rows = docs.map(d => ({
-      competition_id: COMPETITION_ID,
+      competition_id: comp.id,
       season_num: d.seasonNum ?? null,
       data: JSON.stringify(d),
       updated_at: new Date().toISOString(),
@@ -186,64 +232,79 @@ async function syncCompetitionHistory() {
     if (rows.length) {
       await upsertMany('competition_history', ['competition_id', 'season_num'], rows);
     }
-    log(`Synced ${rows.length} history docs`);
+    log(`[comp=${comp.id}] Synced ${rows.length} history docs`);
   } catch (e) {
-    log('Error syncing competition history:', e.message);
+    log(`[comp=${comp.id}] Error syncing competition history:`, e.message);
   }
 }
 
-async function syncNews() {
-  log('Fetching news...');
+async function syncCompetitionHistory() {
+  await forEachActive(syncCompetitionHistoryForComp);
+}
+
+async function syncNewsForComp(comp) {
+  log(`[comp=${comp.id}] Fetching news...`);
   try {
-    const data = await api.getNews('competition', COMPETITION_ID);
+    const data = await api.getNews('competition', comp.id);
     const items = data?.news ?? [];
     const rows = items.map(n => ({
       id: n.id,
       scope: 'competition',
-      entity_id: COMPETITION_ID,
+      entity_id: comp.id,
       game_id: n.gameId ?? null,
       publish_date: n.publishDate ? new Date(n.publishDate).toISOString() : null,
       data: JSON.stringify(n),
       updated_at: new Date().toISOString(),
     }));
-    await upsertMany('news', 'id', rows);
-    log(`Synced ${rows.length} news items`);
+    if (rows.length) await upsertMany('news', 'id', rows);
+    log(`[comp=${comp.id}] Synced ${rows.length} news items`);
   } catch (e) {
-    log('Error syncing news:', e.message);
+    log(`[comp=${comp.id}] Error syncing news:`, e.message);
   }
 }
 
-async function syncTrends() {
-  log('Fetching trends...');
+async function syncNews() {
+  await forEachActive(syncNewsForComp);
+}
+
+async function syncTrendsForComp(comp) {
+  log(`[comp=${comp.id}] Fetching trends...`);
   try {
-    const data = await api.getTrends('competition', COMPETITION_ID);
+    const data = await api.getTrends('competition', comp.id);
     const items = data?.trends ?? [];
     const rows = items.map(t => ({
       scope: 'competition',
-      entity_id: COMPETITION_ID,
+      entity_id: comp.id,
       game_id: t.gameId ?? t.homeTeamGameId ?? null,
       line_type_id: t.lineTypeId ?? null,
       data: JSON.stringify(t),
       updated_at: new Date().toISOString(),
     }));
-    await pool.query('DELETE FROM trends WHERE scope = $1 AND entity_id = $2', ['competition', COMPETITION_ID]);
+    await pool.query('DELETE FROM trends WHERE scope = $1 AND entity_id = $2', ['competition', comp.id]);
     if (rows.length) {
       const placeholders = rows.map((_, i) =>
         `($${i * 5 + 1}, $${i * 5 + 2}, $${i * 5 + 3}, $${i * 5 + 4}, $${i * 5 + 5})`
       ).join(', ');
       const values = rows.flatMap(r => [r.scope, r.entity_id, r.game_id, r.line_type_id, r.data]);
+      // updated_at usa DEFAULT now() — no lo pasamos.
       await pool.query(
-        `INSERT INTO trends (scope, entity_id, game_id, line_type_id, data, updated_at) VALUES ${placeholders}`,
+        `INSERT INTO trends (scope, entity_id, game_id, line_type_id, data) VALUES ${placeholders}`,
         values
       );
     }
-    log(`Synced ${rows.length} trends`);
+    log(`[comp=${comp.id}] Synced ${rows.length} trends`);
   } catch (e) {
-    log('Error syncing trends:', e.message);
+    log(`[comp=${comp.id}] Error syncing trends:`, e.message);
   }
 }
 
+async function syncTrends() {
+  await forEachActive(syncTrendsForComp);
+}
+
 async function syncPredictions() {
+  // No depende de competition_id: predictions viene del feed global de
+  // fútbol. Lo dejamos como está.
   log('Fetching predictions...');
   try {
     const data = await api.getPredictions(1);
@@ -274,12 +335,16 @@ async function syncOddsForGame(gameId) {
   }
 }
 
+// Odds se syncen por partido; los partidos pertenecen a competiciones
+// activas. Filtramos los IDs de games de las competiciones activas.
 async function syncOdds() {
   log('Fetching odds for active games...');
   try {
+    const comps = await getActiveCompetitions();
+    const ids = comps.map(c => c.id);
     const { rows } = await pool.query(
-      'SELECT id FROM games WHERE competition_id = $1 AND status_group IN (1, 2) ORDER BY start_time DESC LIMIT 20',
-      [COMPETITION_ID]
+      'SELECT id FROM games WHERE competition_id = ANY($1::int[]) AND status_group IN (1, 2) ORDER BY start_time DESC LIMIT 30',
+      [ids]
     );
     let count = 0;
     for (const { id } of rows) {
@@ -292,20 +357,24 @@ async function syncOdds() {
   }
 }
 
-async function syncOutrights() {
-  log('Fetching outrights...');
+async function syncOutrightsForComp(comp) {
+  log(`[comp=${comp.id}] Fetching outrights...`);
   try {
-    const data = await api.getOutrights(COMPETITION_ID);
+    const data = await api.getOutrights(comp.id);
     const rows = [{
-      competition_id: COMPETITION_ID,
+      competition_id: comp.id,
       data: JSON.stringify(data),
       updated_at: new Date().toISOString(),
     }];
     await upsertMany('odds_outrights', 'competition_id', rows);
-    log('Synced outrights');
+    log(`[comp=${comp.id}] Synced outrights`);
   } catch (e) {
-    log('Error syncing outrights:', e.message);
+    log(`[comp=${comp.id}] Error syncing outrights:`, e.message);
   }
+}
+
+async function syncOutrights() {
+  await forEachActive(syncOutrightsForComp);
 }
 
 async function syncGameDetailsForGame(gameId) {
@@ -343,7 +412,6 @@ async function syncGameDetailsForGame(gameId) {
       }];
       await upsertMany('game_pre_stats', 'game_id', rows);
     }
-    // Alineaciones enriquecidas (endpoint dedicado con names, athleteIds, stats).
     if (lineups.status === 'fulfilled' && lineups.value) {
       const rows = [{
         game_id: gameId,
@@ -352,7 +420,6 @@ async function syncGameDetailsForGame(gameId) {
       }];
       await upsertMany('game_lineups', 'game_id', rows);
     }
-    // Stats completas del partido (no solo live).
     if (stats.status === 'fulfilled' && stats.value) {
       const lastUpdateId = stats.value.lastUpdateId || 0;
       const rows = [{
@@ -390,11 +457,13 @@ async function syncGameNewsForGame(gameId) {
 }
 
 async function syncGameDetails() {
-  log('Fetching game details...');
+  log('Fetching game details (multi-comp)...');
   try {
+    const comps = await getActiveCompetitions();
+    const ids = comps.map(c => c.id);
     const { rows } = await pool.query(
-      'SELECT id FROM games WHERE competition_id = $1 AND status_group IN (1, 2, 4) ORDER BY start_time DESC LIMIT 50',
-      [COMPETITION_ID]
+      'SELECT id FROM games WHERE competition_id = ANY($1::int[]) AND status_group IN (1, 2, 4) ORDER BY start_time DESC LIMIT 50',
+      [ids]
     );
     let count = 0;
     for (const { id } of rows) {
@@ -409,11 +478,13 @@ async function syncGameDetails() {
 }
 
 async function syncLiveStats() {
-  log('Fetching live stats...');
+  log('Fetching live stats (multi-comp)...');
   try {
+    const comps = await getActiveCompetitions();
+    const ids = comps.map(c => c.id);
     const { rows } = await pool.query(
-      'SELECT id FROM games WHERE competition_id = $1 AND status_group = 1',
-      [COMPETITION_ID]
+      'SELECT id FROM games WHERE competition_id = ANY($1::int[]) AND status_group = 1',
+      [ids]
     );
     let count = 0;
     for (const { id } of rows) {
@@ -436,60 +507,81 @@ async function syncLiveStats() {
   }
 }
 
+/**
+ * syncCatalog guarda el detalle de cada comp en la tabla `competitions`
+ * (catálogo upstream) y reconstruye `competitors` desde standings + top.
+ */
 async function syncCatalog() {
-  log('Syncing catalog...');
+  log('Syncing catalog (multi-comp)...');
   try {
-    const [compData, topData, standingsData] = await Promise.allSettled([
-      api.getCompetition(COMPETITION_ID),
-      api.getTopCompetitors(300),
-      api.getStandings(COMPETITION_ID, 1, CURRENT_SEASON),
-    ]);
+    const comps = await getActiveCompetitions();
+    const ids = comps.map(c => c.id);
 
-    if (compData.status === 'fulfilled') {
-      const comps = compData.value?.competitions || [];
-      const comp = comps[0];
-      if (comp) {
-        const rows = [{
-          id: comp.id,
-          data: JSON.stringify(compData.value),
+    // 1. Llamar `getCompetition(id)` en paralelo para todas las activas.
+    const compResults = await Promise.allSettled(
+      comps.map(c => api.getCompetition(c.id))
+    );
+
+    const compRows = [];
+    const competitorsByComp = new Map(); // competitorId -> { competitor, competitionId }
+
+    for (let i = 0; i < compResults.length; i++) {
+      const r = compResults[i];
+      const comp = comps[i];
+      if (r.status !== 'fulfilled') {
+        log(`[comp=${comp.id}] getCompetition failed:`, r.reason?.message);
+        continue;
+      }
+      const list = r.value?.competitions || [];
+      const upstreamComp = list[0];
+      if (upstreamComp) {
+        compRows.push({
+          id: upstreamComp.id,
+          data: JSON.stringify(r.value),
           updated_at: new Date().toISOString(),
-        }];
-        await upsertMany('competitions', 'id', rows);
+        });
       }
     }
+    if (compRows.length) {
+      await upsertMany('competitions', 'id', compRows);
+    }
 
-    // Source of truth for the Mundial competitors: the standings endpoint.
-    // Each row.competitor has mainCompetitionId matching COMPETITION_ID.
-    const competitorsByComp = new Map();
-    if (standingsData.status === 'fulfilled') {
-      const stages = standingsData.value?.standings ?? [];
+    // 2. Standings por comp (source of truth para los competidores).
+    const standingsResults = await Promise.allSettled(
+      comps.map(c => api.getStandings(c.id, 1, c.seasonNum))
+    );
+    for (let i = 0; i < standingsResults.length; i++) {
+      const r = standingsResults[i];
+      const comp = comps[i];
+      if (r.status !== 'fulfilled') {
+        log(`[comp=${comp.id}] getStandings failed:`, r.reason?.message);
+        continue;
+      }
+      const stages = r.value?.standings ?? [];
       for (const stage of stages) {
         for (const row of stage.rows ?? []) {
           const c = row.competitor;
           if (!c || !c.id) continue;
           const cid = c.mainCompetitionId ?? c.competitionId ?? null;
           competitorsByComp.set(c.id, { competitor: c, competitionId: cid });
-        }
-      }
-      // Ensure Mundial competitors are tagged with COMPETITION_ID even if the
-      // API returns a different mainCompetitionId for some rows.
-      for (const [, v] of competitorsByComp) {
-        if (v.competitor.id && (v.competitor.mainCompetitionId ?? null) === null) {
-          v.competitionId = COMPETITION_ID;
+          // Force compId para esta comp si upstream devolvió null.
+          const v = competitorsByComp.get(c.id);
+          if (v.competitionId == null) v.competitionId = comp.id;
         }
       }
     }
 
-    // Merge in any extra teams from getTopCompetitors (clubs, leagues) that
-    // aren't already tracked.
-    if (topData.status === 'fulfilled') {
-      for (const c of topData.value?.competitors ?? []) {
+    // 3. Top competitors (clubs, ligas) merge.
+    try {
+      const topData = await api.getTopCompetitors(300);
+      for (const c of topData?.competitors ?? []) {
         if (!competitorsByComp.has(c.id)) {
           competitorsByComp.set(c.id, { competitor: c, competitionId: c.competitionId ?? null });
         }
       }
-    }
+    } catch (_) { /* skip */ }
 
+    // 4. Persistir competidores (replace por active comp ids).
     if (competitorsByComp.size) {
       const rows = [];
       for (const { competitor, competitionId } of competitorsByComp.values()) {
@@ -501,11 +593,13 @@ async function syncCatalog() {
           updated_at: new Date().toISOString(),
         });
       }
-      await pool.query('DELETE FROM competitors WHERE competition_id = $1', [COMPETITION_ID]);
+      // Solo borramos competidores de competiciones activas; respetamos los
+      // de competiciones históricas que el historial pueda necesitar.
+      await pool.query('DELETE FROM competitors WHERE competition_id = ANY($1::int[])', [ids]);
       await upsertMany('competitors', 'id', rows);
     }
 
-    log('Synced catalog');
+    log(`Synced catalog (${compRows.length} competitions, ${competitorsByComp.size} competitors)`);
   } catch (e) {
     log('Error syncing catalog:', e.message);
   }
@@ -548,24 +642,19 @@ async function syncCountries() {
 }
 
 async function syncAthletes() {
-  log('Syncing athletes...');
+  log('Syncing athletes (multi-comp)...');
   try {
-    // Read members from game_lineups (populated by syncGameDetails) instead
-    // of game_overviews. game_lineups members expose the canonical
-    // upstream athleteId plus name/imageVersion/position, which are not
-    // reliably present in the overview cache.
+    const comps = await getActiveCompetitions();
+    const ids = comps.map(c => c.id);
+
     const { rows } = await pool.query(
       `SELECT gl.data AS lineups
          FROM game_lineups gl
          JOIN games g ON g.id = gl.game_id
-        WHERE g.competition_id = $1`,
-      [COMPETITION_ID]
+        WHERE g.competition_id = ANY($1::int[])`,
+      [ids]
     );
 
-    // 1. Discover canonical athlete ids from roster members.
-    //    Upstream members expose both a roster/member record id (`m.id`) and
-    //    the canonical upstream player id (`m.athleteId`). Tournament stats
-    //    and the dashboard /player/:id route use the canonical one.
     const seen = new Set();
     const athleteIds = [];
     for (const r of rows) {
@@ -583,10 +672,6 @@ async function syncAthletes() {
       return;
     }
 
-    // 2a. Clean stale roster-id rows for these canonical ids. If a previous
-    //     sync (or the pre-007 Cosmos-era bootstrap) left a row at id=roster
-    //     while canonical_id was set, the unique index idx_athletes_canonical_id
-    //     would block inserting/updating the row at id=canonical.
     const canonicalIds = athleteIds.map((a) => a.id);
     const { rowCount: staleDeleted } = await pool.query(
       `DELETE FROM athletes
@@ -598,8 +683,6 @@ async function syncAthletes() {
       log(`Removed ${staleDeleted} stale roster-id rows before upsert`);
     }
 
-    // 2b. Insert lightweight rows immediately so /player/:id hits don't 404
-    //     while we hydrate. data.id is the canonical id (re-keyed via 007).
     const rosterRows = athleteIds.map((a) => ({
       id: a.id,
       name: a.name,
@@ -609,9 +692,6 @@ async function syncAthletes() {
     await upsertMany('athletes', 'id', rosterRows);
     log(`Synced ${rosterRows.length} athlete roster rows`);
 
-    // 3. Hydrate full profiles from 365scores. Skip ids that already have a
-    //    fresh cached profile to avoid hammering the upstream and to keep
-    //    the job within reasonable runtime.
     const STALE_AFTER_MS = parseInt(process.env.ATHLETE_STALE_AFTER_MS || String(24 * 60 * 60 * 1000), 10);
     const { rows: freshRows } = await pool.query(
       `SELECT id, updated_at,
@@ -665,11 +745,13 @@ async function syncAthletes() {
 }
 
 async function syncVenues() {
-  log('Syncing venues...');
+  log('Syncing venues (multi-comp)...');
   try {
+    const comps = await getActiveCompetitions();
+    const ids = comps.map(c => c.id);
     const { rows } = await pool.query(
-      'SELECT data FROM game_overviews WHERE game_id IN (SELECT id FROM games WHERE competition_id = $1)',
-      [COMPETITION_ID]
+      'SELECT data FROM game_overviews WHERE game_id IN (SELECT id FROM games WHERE competition_id = ANY($1::int[]))',
+      [ids]
     );
     const seen = new Set();
     const venues = [];
@@ -697,7 +779,7 @@ async function syncVenues() {
 }
 
 async function syncAll() {
-  log('Running full sync...');
+  log('Running full sync (multi-comp)...');
   await syncCatalog();
   await syncCountries();
   await syncGames();

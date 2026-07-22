@@ -1,7 +1,6 @@
 const { pool } = require('../../../database/connection');
 const { parseHistoryDoc } = require('../utils/mappers');
-
-const COMPETITION_ID = parseInt(process.env.PRIMARY_COMPETITION_ID || '5930', 10);
+const { resolveCompetition } = require('../utils/competition');
 
 async function getCompetitorMap() {
   const { rows } = await pool.query('SELECT id, name, data FROM competitors');
@@ -12,14 +11,14 @@ async function getCompetitorMap() {
   return map;
 }
 
-async function fetchHistoryRows() {
-  const { rows } = await pool.query('SELECT data FROM competition_history WHERE competition_id = $1', [COMPETITION_ID]);
+async function fetchHistoryRows(competitionId) {
+  const { rows } = await pool.query('SELECT data FROM competition_history WHERE competition_id = $1', [competitionId]);
   if (rows.length) {
     const teamMap = await getCompetitorMap();
     return rows.map(r => {
       const doc = {
-        id: `${COMPETITION_ID}-se${r.data.seasonNum}`,
-        competitionId: COMPETITION_ID,
+        id: `${competitionId}-se${r.data.seasonNum}`,
+        competitionId,
         seasonNum: r.data.seasonNum,
         ...r.data,
       };
@@ -29,15 +28,15 @@ async function fetchHistoryRows() {
   // Fallback: derive current season from the competition document.
   const { rows: compRows } = await pool.query(
     "SELECT data->'competitions'->0 as comp FROM competitions WHERE id = $1",
-    [COMPETITION_ID]
+    [competitionId]
   );
   const comp = compRows[0]?.comp;
   if (!comp) return [];
   const teamMap = await getCompetitorMap();
   return (comp.seasons || []).map(s => {
     const doc = {
-      id: `${COMPETITION_ID}-se${s.num}`,
-      competitionId: COMPETITION_ID,
+      id: `${competitionId}-se${s.num}`,
+      competitionId,
       seasonNum: s.num,
       seasonName: s.name,
       stages: s.stages,
@@ -49,7 +48,9 @@ async function fetchHistoryRows() {
 
 async function getHistory(req, res, next) {
   try {
-    const data = await fetchHistoryRows();
+    const resolved = await resolveCompetition(req, res);
+    if (!resolved) return;
+    const data = await fetchHistoryRows(resolved.competitionId);
     res.json(data);
   } catch (err) {
     next(err);
@@ -58,8 +59,10 @@ async function getHistory(req, res, next) {
 
 async function getHistoryStats(req, res, next) {
   try {
+    const resolved = await resolveCompetition(req, res);
+    if (!resolved) return;
     const teamMap = await getCompetitorMap();
-    const parsed = await fetchHistoryRows();
+    const parsed = await fetchHistoryRows(resolved.competitionId);
 
     const titleMap = {};
     const finalMap = {};
@@ -125,14 +128,18 @@ async function getHistoryBySeason(req, res, next) {
     const seasonNum = parseInt(req.params.seasonNum, 10);
     if (isNaN(seasonNum)) return res.status(400).json({ error: 'seasonNum inválido' });
 
+    const resolved = await resolveCompetition(req, res);
+    if (!resolved) return;
+    const competitionId = resolved.competitionId;
+
     const { rows } = await pool.query(
       'SELECT data FROM competition_history WHERE competition_id = $1 AND (data->>\'seasonNum\')::int = $2',
-      [COMPETITION_ID, seasonNum]
+      [competitionId, seasonNum]
     );
     if (rows.length) {
       const rawDoc = {
-        id: `${COMPETITION_ID}-se${rows[0].data.seasonNum}`,
-        competitionId: COMPETITION_ID,
+        id: `${competitionId}-se${rows[0].data.seasonNum}`,
+        competitionId,
         seasonNum: rows[0].data.seasonNum,
         ...rows[0].data,
       };
@@ -141,10 +148,9 @@ async function getHistoryBySeason(req, res, next) {
       return res.json(doc);
     }
 
-    // Fallback to current competition seasons
     const { rows: compRows } = await pool.query(
       "SELECT data->'competitions'->0 as comp FROM competitions WHERE id = $1",
-      [COMPETITION_ID]
+      [competitionId]
     );
     const comp = compRows[0]?.comp;
     const season = comp?.seasons?.find(s => s.num === seasonNum);
@@ -152,8 +158,8 @@ async function getHistoryBySeason(req, res, next) {
 
     const teamMap = await getCompetitorMap();
     const rawDoc = {
-      id: `${COMPETITION_ID}-se${seasonNum}`,
-      competitionId: COMPETITION_ID,
+      id: `${competitionId}-se${seasonNum}`,
+      competitionId,
       seasonNum,
       seasonName: season.name,
       stages: season.stages,
@@ -171,9 +177,13 @@ async function getHistoryMatchStats(req, res, next) {
     const seasonNum = parseInt(req.params.seasonNum, 10);
     if (isNaN(seasonNum)) return res.status(400).json({ error: 'seasonNum inválido' });
 
+    const resolved = await resolveCompetition(req, res);
+    if (!resolved) return;
+    const competitionId = resolved.competitionId;
+
     const { rows } = await pool.query(
       'SELECT data FROM competition_history WHERE competition_id = $1 AND (data->>\'seasonNum\')::int = $2',
-      [COMPETITION_ID, seasonNum]
+      [competitionId, seasonNum]
     );
     if (!rows.length) return res.json(null);
 
@@ -195,9 +205,13 @@ async function getHistoryMatchOverview(req, res, next) {
     const seasonNum = parseInt(req.params.seasonNum, 10);
     if (isNaN(seasonNum)) return res.status(400).json({ error: 'seasonNum inválido' });
 
+    const resolved = await resolveCompetition(req, res);
+    if (!resolved) return;
+    const competitionId = resolved.competitionId;
+
     const { rows } = await pool.query(
       'SELECT data FROM competition_history WHERE competition_id = $1 AND (data->>\'seasonNum\')::int = $2',
-      [COMPETITION_ID, seasonNum]
+      [competitionId, seasonNum]
     );
     if (!rows.length) return res.json(null);
 
@@ -219,9 +233,13 @@ async function getHistoryDescription(req, res, next) {
     const seasonNum = parseInt(req.params.seasonNum, 10);
     if (isNaN(seasonNum)) return res.status(400).json({ error: 'seasonNum inválido' });
 
+    const resolved = await resolveCompetition(req, res);
+    if (!resolved) return;
+    const competitionId = resolved.competitionId;
+
     const { rows } = await pool.query(
       'SELECT data FROM competition_history WHERE competition_id = $1 AND (data->>\'seasonNum\')::int = $2',
-      [COMPETITION_ID, seasonNum]
+      [competitionId, seasonNum]
     );
     if (!rows.length) return res.json([]);
 

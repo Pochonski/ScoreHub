@@ -1,8 +1,7 @@
 const { pool } = require('../../../database/connection');
 const scores365 = require('../../../services/scores365Service');
 const { enrichGame, enrichTrend, extractLineup, buildLineups, buildMatchupId, SCORE_STAT_IDS, MAJOR_STAT_IDS } = require('../utils/mappers');
-
-const COMPETITION_ID = parseInt(process.env.PRIMARY_COMPETITION_ID || '5930', 10);
+const { resolveCompetition, resolveCompetitionIds } = require('../utils/competition');
 
 /**
  * Pivotear la lista plana de statistics de 365scores a una fila por stat
@@ -16,7 +15,6 @@ const COMPETITION_ID = parseInt(process.env.PRIMARY_COMPETITION_ID || '5930', 10
  */
 function pivotStats(flat, homeId, awayId) {
   if (!Array.isArray(flat)) return [];
-  // Inferir competitorIds si no vinieron.
   let inferredHome = homeId;
   let inferredAway = awayId;
   if (inferredHome == null || inferredAway == null) {
@@ -50,7 +48,6 @@ function pivotStats(flat, homeId, awayId) {
     else if (s.competitorId === inferredAway) row.awayValue = val;
   }
   return [...byStat.values()]
-    // Mostrar TODAS las stats mapeadas que tengan al menos un valor.
     .filter(r => (r.isMajor || r.isTop || SCORE_STAT_IDS[r.statId]) && (r.homeValue != null || r.awayValue != null))
     .sort((a, b) => {
       if (a.isMajor !== b.isMajor) return a.isMajor ? -1 : 1;
@@ -68,13 +65,25 @@ function pivotStats(flat, homeId, awayId) {
 
 async function getMatches(req, res, next) {
   try {
-    const { statusGroup, stage, teamId } = req.query;
+    const { statusGroup, stage, teamId, all } = req.query;
     const page = Math.max(1, parseInt(req.query.page) || 1);
     const limit = Math.min(50, parseInt(req.query.limit) || 20);
     const offset = (page - 1) * limit;
 
-    let query = 'SELECT data FROM games WHERE competition_id = $1';
-    const params = [COMPETITION_ID];
+    // Modo "all" devuelve partidos de todas las competiciones activas
+    // (útil para la home multi-comp con tab "Todas").
+    let compIds;
+    if (all === 'true') {
+      compIds = await resolveCompetitionIds(req, res);
+      if (compIds === null) return;
+    } else {
+      const resolved = await resolveCompetition(req, res);
+      if (!resolved) return;
+      compIds = [resolved.competitionId];
+    }
+
+    let query = 'SELECT data FROM games WHERE competition_id = ANY($1::int[])';
+    const params = [compIds];
 
     if (statusGroup) {
       const groups = statusGroup.split(',').map(Number).filter(n => !isNaN(n));
@@ -114,9 +123,19 @@ async function getMatches(req, res, next) {
 
 async function getLiveMatches(req, res, next) {
   try {
+    const { all } = req.query;
+    let compIds;
+    if (all === 'true') {
+      compIds = await resolveCompetitionIds(req, res);
+      if (compIds === null) return;
+    } else {
+      const resolved = await resolveCompetition(req, res);
+      if (!resolved) return;
+      compIds = [resolved.competitionId];
+    }
     const { rows } = await pool.query(
-      'SELECT data FROM games WHERE competition_id = $1 AND status_group = 1 ORDER BY start_time DESC',
-      [COMPETITION_ID]
+      'SELECT data FROM games WHERE competition_id = ANY($1::int[]) AND status_group = 1 ORDER BY start_time DESC',
+      [compIds]
     );
     res.json(rows.map(r => enrichGame(r.data)));
   } catch (err) {
@@ -126,21 +145,25 @@ async function getLiveMatches(req, res, next) {
 
 async function getFeaturedMatch(req, res, next) {
   try {
+    const resolved = await resolveCompetition(req, res);
+    if (!resolved) return;
+    const cid = resolved.competitionId;
+
     const { rows: live } = await pool.query(
       'SELECT data FROM games WHERE competition_id = $1 AND status_group = 1 LIMIT 1',
-      [COMPETITION_ID]
+      [cid]
     );
     if (live.length) return res.json(enrichGame(live[0].data));
 
     const { rows: upcoming } = await pool.query(
       'SELECT data FROM games WHERE competition_id = $1 AND status_group = 2 AND start_time > NOW() - INTERVAL \'3 hours\' ORDER BY start_time ASC LIMIT 1',
-      [COMPETITION_ID]
+      [cid]
     );
     if (upcoming.length) return res.json(enrichGame(upcoming[0].data));
 
     const { rows: recent } = await pool.query(
       'SELECT data FROM games WHERE competition_id = $1 AND status_group = 4 ORDER BY start_time DESC LIMIT 1',
-      [COMPETITION_ID]
+      [cid]
     );
     res.json(recent.length ? enrichGame(recent[0].data) : null);
   } catch (err) {
@@ -179,13 +202,11 @@ async function getMatchStats(req, res, next) {
     const { id } = req.params;
     const gid = Number(id);
 
-    // Necesitamos los competitorIds del partido para saber cual es home/away.
     const { rows: gameRows } = await pool.query('SELECT data FROM games WHERE id = $1', [gid]);
     const gameData = gameRows[0]?.data;
     const homeId = gameData?.homeCompetitor?.id ?? gameData?.homeCompetitorId;
     const awayId = gameData?.awayCompetitor?.id ?? gameData?.awayCompetitorId;
 
-    // 1. Intentar cache en game_stats (populado por syncLiveStats).
     const { rows } = await pool.query('SELECT data FROM game_stats WHERE game_id = $1', [gid]);
     const flat = rows[0]?.data?.statistics || rows[0]?.data?.stats || [];
     if (flat.length) {
@@ -193,15 +214,11 @@ async function getMatchStats(req, res, next) {
       if (stats.length) return res.json(stats);
     }
 
-    // 2. Fallback: fetch en vivo a 365scores. El sync de stats solo corre para
-    // partidos en vivo, asi que los finalizados/historicos no estan en cache.
     try {
       const live = await scores365.getGameStats(gid);
       const liveFlat = live?.statistics || [];
       if (liveFlat.length) return res.json(pivotStats(liveFlat, homeId, awayId));
-    } catch (_) {
-      // Si la API falla, continuamos al vacio.
-    }
+    } catch (_) { /* fallthrough */ }
 
     res.json([]);
   } catch (err) {
@@ -239,28 +256,23 @@ async function getMatchLineups(req, res, next) {
     const { id } = req.params;
     const gid = Number(id);
 
-    // Necesitamos los competitorIds del partido para separar home/away.
     const { rows: gameRows } = await pool.query('SELECT data FROM games WHERE id = $1', [gid]);
     const gameData = gameRows[0]?.data;
     const homeId = gameData?.homeCompetitor?.id ?? gameData?.homeCompetitorId;
     const awayId = gameData?.awayCompetitor?.id ?? gameData?.awayCompetitorId;
 
-    // 1. Intentar tabla dedicada game_lineups (endpoint /web/athletes/games/lineups
-    //    que trae names, athleteIds, imageVersion, stats por jugador).
     const { rows } = await pool.query('SELECT data FROM game_lineups WHERE game_id = $1', [gid]);
     if (rows.length) {
       const built = buildLineups(rows[0].data, homeId, awayId);
       if (built) return res.json(built);
     }
 
-    // 2. Fallback a la API en vivo.
     try {
       const live = await scores365.getGameLineups(gid);
       const built = buildLineups(live, homeId, awayId);
       if (built) return res.json(built);
     } catch (_) { /* fallthrough */ }
 
-    // 3. Último recurso: overview (members sin nombres completos).
     const { rows: ovRows } = await pool.query('SELECT data FROM game_overviews WHERE game_id = $1', [gid]);
     const game = ovRows[0]?.data?.game;
     if (game) {
@@ -356,9 +368,6 @@ async function getMatchTrends(req, res, next) {
   }
 }
 
-// Helper: mapear predictions del formato 365scores al del frontend.
-// El HAR muestra que cada option tiene { name, vote: { count, percentage } },
-// NO { text, percentage, voteCount }. totalVotes puede faltar y calcularse.
 function mapPredictions(predictions) {
   return (predictions || [])
     .map(p => {
@@ -377,7 +386,7 @@ function mapPredictions(predictions) {
             voteCount,
           };
         })
-        .filter(o => o.text); // sin texto no aporta y rompe el render
+        .filter(o => o.text);
       const totalVotes = p.totalVotes ?? options.reduce((s, o) => s + o.voteCount, 0);
       return { title: p.title || '', totalVotes, options };
     })
@@ -389,7 +398,6 @@ async function getMatchPredictions(req, res, next) {
     const { id } = req.params;
     const gid = Number(id);
 
-    // 1. Cache en game_overviews.
     const { rows } = await pool.query('SELECT data FROM game_overviews WHERE game_id = $1', [gid]);
     const pp = rows[0]?.data?.game?.promotedPredictions;
     if (pp?.predictions?.length) {
@@ -397,7 +405,6 @@ async function getMatchPredictions(req, res, next) {
       if (mapped.length) return res.json(mapped);
     }
 
-    // 2. Fallback a la API en vivo.
     try {
       const overview = await scores365.getGameOverview(gid);
       const livePp = overview?.game?.promotedPredictions;
@@ -413,7 +420,6 @@ async function getMatchPredictions(req, res, next) {
   }
 }
 
-// Mapeo de eventType.id de 365scores a los tipos del frontend.
 const EVENT_TYPE_MAP = {
   1: 'goal',
   2: 'yellow_card',
@@ -426,12 +432,9 @@ async function getMatchTimeline(req, res, next) {
     const { id } = req.params;
     const gid = Number(id);
 
-    // Los eventos reales (goles, tarjetas, sustituciones) viven en
-    // game_overviews.game.events, NO en chartEvents (que es un shot map).
     const { rows: ovRows } = await pool.query('SELECT data FROM game_overviews WHERE game_id = $1', [gid]);
     let rawEvents = ovRows[0]?.data?.game?.events || [];
 
-    // Fallback a la API en vivo si no hay cache.
     if (!rawEvents.length) {
       try {
         const overview = await scores365.getGameOverview(gid);
@@ -441,7 +444,6 @@ async function getMatchTimeline(req, res, next) {
 
     if (!rawEvents.length) return res.json([]);
 
-    // Resolver nombres de jugadores desde la tabla athletes.
     const playerIds = [...new Set(rawEvents.flatMap(e => [e.playerId, ...(e.extraPlayers || [])]).filter(Boolean))];
     const playerNameMap = {};
     if (playerIds.length) {
@@ -456,7 +458,6 @@ async function getMatchTimeline(req, res, next) {
       .map(e => {
         const type = EVENT_TYPE_MAP[e.eventType?.id] || 'event';
         const playerName = playerNameMap[e.playerId] || '';
-        // Para sustituciones, mostrar quién entra (extraPlayers[0]).
         const subIn = e.extraPlayers?.[0];
         const subInName = subIn ? playerNameMap[subIn] : '';
         let description = '';

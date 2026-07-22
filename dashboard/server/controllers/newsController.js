@@ -1,13 +1,24 @@
 const { pool } = require('../../../database/connection');
-
-const COMPETITION_ID = parseInt(process.env.PRIMARY_COMPETITION_ID || '5930', 10);
+const { resolveCompetition } = require('../utils/competition');
 
 async function getNews(req, res, next) {
   try {
     const limit = Math.min(50, parseInt(req.query.limit) || 20);
     const page = Math.max(1, parseInt(req.query.page) || 1);
     const scope = req.query.scope || 'competition';
-    const entityId = scope === 'competition' ? COMPETITION_ID : COMPETITION_ID;
+
+    // Si el cliente pide scope=competition sin id, resolvemos la comp.
+    // Para scope=game, el caller debería usar /api/football/news/game/:id.
+    let entityId;
+    if (scope === 'competition') {
+      const resolved = await resolveCompetition(req, res);
+      if (!resolved) return;
+      entityId = resolved.competitionId;
+    } else {
+      const resolved = await resolveCompetition(req, res);
+      if (!resolved) return;
+      entityId = resolved.competitionId;
+    }
 
     const { rows } = await pool.query(
       'SELECT data FROM news WHERE scope = $1 AND entity_id = $2 ORDER BY publish_date DESC NULLS LAST',
@@ -37,8 +48,6 @@ async function getNewsByGame(req, res, next) {
   try {
     const { id } = req.params;
     const gid = Number(id);
-    // Match news tagged with this game_id directly, plus competition news
-    // for the competition this game belongs to.
     const { rows: gameRow } = await pool.query(
       'SELECT competition_id FROM games WHERE id = $1',
       [gid]

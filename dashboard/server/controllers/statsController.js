@@ -1,15 +1,13 @@
 const { pool } = require('../../../database/connection');
 const images = require('../../../services/images');
-
-const COMPETITION_ID = parseInt(process.env.PRIMARY_COMPETITION_ID || '5930', 10);
-const CURRENT_SEASON = parseInt(process.env.PRIMARY_SEASON || '25', 10);
+const { resolveCompetition } = require('../utils/competition');
 
 const STAT_TYPE_MAP = { 1: 1, 3: 2, 7: 36 };
 
-async function fetchFromCache(statCategoryId) {
+async function fetchFromCache(competitionId, seasonNum, statCategoryId) {
   const { rows } = await pool.query(
     'SELECT data FROM tournament_stats WHERE competition_id = $1 AND season_num = $2',
-    [COMPETITION_ID, CURRENT_SEASON]
+    [competitionId, seasonNum]
   );
   if (!rows.length) return [];
 
@@ -47,7 +45,9 @@ async function fetchFromCache(statCategoryId) {
 
 async function getTopScorers(req, res, next) {
   try {
-    const entries = await fetchFromCache(1);
+    const resolved = await resolveCompetition(req, res);
+    if (!resolved) return;
+    const entries = await fetchFromCache(resolved.competitionId, resolved.seasonNum, 1);
     res.json(entries);
   } catch (err) {
     next(err);
@@ -56,7 +56,9 @@ async function getTopScorers(req, res, next) {
 
 async function getTopAssists(req, res, next) {
   try {
-    const entries = await fetchFromCache(3);
+    const resolved = await resolveCompetition(req, res);
+    if (!resolved) return;
+    const entries = await fetchFromCache(resolved.competitionId, resolved.seasonNum, 3);
     res.json(entries);
   } catch (err) {
     next(err);
@@ -65,7 +67,9 @@ async function getTopAssists(req, res, next) {
 
 async function getTopRatings(req, res, next) {
   try {
-    const entries = await fetchFromCache(7);
+    const resolved = await resolveCompetition(req, res);
+    if (!resolved) return;
+    const entries = await fetchFromCache(resolved.competitionId, resolved.seasonNum, 7);
     res.json(entries);
   } catch (err) {
     next(err);
@@ -74,7 +78,11 @@ async function getTopRatings(req, res, next) {
 
 async function getTeamOfWeek(req, res, next) {
   try {
-    const { rows } = await pool.query('SELECT data FROM team_of_week WHERE competition_id = $1', [COMPETITION_ID]);
+    const resolved = await resolveCompetition(req, res);
+    if (!resolved) return;
+    const { competitionId } = resolved;
+
+    const { rows } = await pool.query('SELECT data FROM team_of_week WHERE competition_id = $1', [competitionId]);
     if (!rows.length) return res.json(null);
 
     const data = rows[0].data;
