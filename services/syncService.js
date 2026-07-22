@@ -583,8 +583,23 @@ async function syncAthletes() {
       return;
     }
 
-    // 2. Insert lightweight rows immediately so /player/:id hits don't 404
-    //    while we hydrate. data.id is the canonical id (re-keyed via 007).
+    // 2a. Clean stale roster-id rows for these canonical ids. If a previous
+    //     sync (or the pre-007 Cosmos-era bootstrap) left a row at id=roster
+    //     while canonical_id was set, the unique index idx_athletes_canonical_id
+    //     would block inserting/updating the row at id=canonical.
+    const canonicalIds = athleteIds.map((a) => a.id);
+    const { rowCount: staleDeleted } = await pool.query(
+      `DELETE FROM athletes
+        WHERE id <> canonical_id
+          AND canonical_id = ANY($1::bigint[])`,
+      [canonicalIds]
+    );
+    if (staleDeleted > 0) {
+      log(`Removed ${staleDeleted} stale roster-id rows before upsert`);
+    }
+
+    // 2b. Insert lightweight rows immediately so /player/:id hits don't 404
+    //     while we hydrate. data.id is the canonical id (re-keyed via 007).
     const rosterRows = athleteIds.map((a) => ({
       id: a.id,
       name: a.name,
