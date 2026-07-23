@@ -79,7 +79,7 @@ export function TransfersTab({ competitionId }: Props) {
 
                 {/* Expandible: detalle del equipo */}
                 {active && (
-                  <div className="border-border-card/30 border-t">
+                  <div className="bg-bg-elevated/10 border-border-card/30 border-t">
                     {/* Filtros */}
                     <div className="flex items-center gap-2 px-4 pt-3 pb-2">
                       <FilterButton
@@ -122,7 +122,7 @@ export function TransfersTab({ competitionId }: Props) {
                             return (
                               <li
                                 key={t.id}
-                                className="flex items-center justify-between gap-3 px-4 py-3"
+                                className="border-border-card/20 flex items-center justify-between gap-3 border-l-2 px-5 py-2.5"
                               >
                                 <div className="flex items-center gap-3">
                                   <span
