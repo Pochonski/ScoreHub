@@ -4,6 +4,7 @@ import type { Game } from '@/domain/entities/Game'
 import { HeroMatch } from '@/presentation/components/hero/HeroMatch'
 import { MatchTicker } from '@/presentation/components/matches/MatchTicker'
 import { MatchGrid } from '@/presentation/components/matches/MatchGrid'
+import { CompetitionInfoCard } from '@/presentation/components/competition/CompetitionInfoCard'
 import { MatchFilterBar } from '@/presentation/components/matches/MatchFilterBar'
 import { useFeaturedGame, useLiveGames, useGames } from '@/presentation/hooks/useGames'
 import { useFeaturedCompetitions } from '@/presentation/hooks/useCompetitions'
@@ -202,6 +203,13 @@ export function DashboardPage() {
         </div>
       )}
 
+      {/* Competition info card (cabecera "tournament info" de la comp activa) */}
+      {scope.kind === 'one' && scope.id && (
+        <div className="px-4">
+          <CompetitionInfoCard competitionId={scope.id} />
+        </div>
+      )}
+
       {liveError && (
         <div className="mt-2 px-4">
           <p className="text-accent-red font-mono text-[10px]">{liveError}</p>
@@ -294,6 +302,7 @@ export function DashboardPage() {
             onSelect={handleSelectGame}
             featuredId={featuredGame?.id}
             competitionName={competitionHeaderName}
+            competitionId={scope.kind === 'one' ? scope.id : undefined}
             dateOrder={gridDateOrder}
           />
         )}
