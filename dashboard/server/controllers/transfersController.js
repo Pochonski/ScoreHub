@@ -20,27 +20,29 @@ async function getCompetitionTransfers(req, res, next) {
     const teamId = req.query.teamId != null ? parseInt(req.query.teamId, 10) : null;
 
     let rows;
+    const query = `SELECT ct.*, a.name AS athlete_name, a.data->>'shortName' AS athlete_short_name
+                     FROM competition_transfers ct
+                LEFT JOIN athletes a ON a.id = ct.athlete_id`;
     if (teamId) {
       const { rows: r } = await pool.query(
-        `SELECT * FROM competition_transfers
-          WHERE competition_id = $1
-            AND (origin_id = $2 OR target_id = $2)
-          ORDER BY time DESC NULLS LAST, transfer_id DESC`,
+        `${query}
+          WHERE ct.competition_id = $1
+            AND (ct.origin_id = $2 OR ct.target_id = $2)
+          ORDER BY ct.time DESC NULLS LAST, ct.transfer_id DESC`,
         [competitionId, teamId]
       );
       rows = r;
     } else {
       const { rows: r } = await pool.query(
-        `SELECT * FROM competition_transfers
-          WHERE competition_id = $1
-          ORDER BY time DESC NULLS LAST, transfer_id DESC`,
+        `${query}
+          WHERE ct.competition_id = $1
+          ORDER BY ct.time DESC NULLS LAST, ct.transfer_id DESC`,
         [competitionId]
       );
       rows = r;
     }
 
     if (!rows.length) {
-      // Fallback: upstream en vivo.
       try {
         const data = await scores365.getTransfers(competitionId, { limit: 100 });
         const list = (data?.transfers ?? []).map(t => mapTransfer(t, competitionId));
@@ -53,6 +55,8 @@ async function getCompetitionTransfers(req, res, next) {
     res.json(rows.map(r => ({
       id: Number(r.transfer_id),
       athleteId: r.athlete_id != null ? Number(r.athlete_id) : null,
+      athleteName: r.athlete_name || null,
+      athleteShortName: r.athlete_short_name || null,
       originId: r.origin_id != null ? Number(r.origin_id) : null,
       targetId: r.target_id != null ? Number(r.target_id) : null,
       time: r.time,
@@ -176,6 +180,8 @@ function mapTransfer(t, competitionId) {
   return {
     id: Number(t.id),
     athleteId: t.athleteId != null ? Number(t.athleteId) : null,
+    athleteName: t.athleteName || null,
+    athleteShortName: t.athleteShortName || null,
     originId: t.origin != null ? Number(t.origin) : null,
     targetId: t.target != null ? Number(t.target) : null,
     time: t.time ?? null,
