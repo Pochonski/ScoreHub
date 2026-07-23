@@ -104,7 +104,23 @@ async function getMatches(req, res, next) {
       query += ' AND (status_group != 2 OR start_time > NOW() - INTERVAL \'3 hours\')';
     }
 
-    query += ' ORDER BY start_time DESC';
+    // Ordenar por fecha lógica según el filtro de estado:
+    //   - upcoming (2) o sin filtro → próximos primero (ASC)
+    //   - live (1) → en vivo primero, después por inicio (ASC)
+    //   - finished (4) o combinaciones → más recientes primero (DESC)
+    const hasUpcoming = !statusGroup || statusGroup.split(',').map(Number).includes(2);
+    const hasLive = statusGroup && statusGroup.split(',').map(Number).includes(1);
+    const hasFinished = statusGroup && statusGroup.split(',').map(Number).includes(4);
+    const onlyLive = hasLive && !hasUpcoming && !hasFinished;
+    const onlyFinished = hasFinished && !hasUpcoming && !hasLive;
+    if (onlyFinished) {
+      query += ' ORDER BY start_time DESC';
+    } else if (onlyLive) {
+      query += " ORDER BY status_group ASC, start_time ASC";
+    } else {
+      // upcoming o mixto: próximos primero
+      query += ' ORDER BY start_time ASC';
+    }
 
     const { rows } = await pool.query(query, params);
     let games = rows.map(r => r.data);

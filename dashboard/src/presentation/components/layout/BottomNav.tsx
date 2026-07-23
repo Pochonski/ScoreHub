@@ -1,4 +1,5 @@
 import { useNavigate, useLocation } from 'react-router-dom'
+import { useActiveCompetition } from '@/presentation/context/ActiveCompetitionContext'
 
 /**
  * BottomNav — barra de navegación inferior fija, visible solo en mobile (<md).
@@ -10,21 +11,28 @@ import { useNavigate, useLocation } from 'react-router-dom'
  * - h-16 (64px) + safe-area-inset-bottom para iOS.
  * - Cada ítem: ícono 24px + label text-[10px]; target total >= 48px.
  * - Active state en accent-blue.
+ * - 'Tabla' navega a la comp activa (ActiveCompetitionContext) si existe,
+ *   o a /competiciones si no hay ninguna seleccionada.
  */
-const NAV_ITEMS = [
+
+type NavItem = {
+  id: string
+  label: string
+  route: (competitionId: number | null) => string
+  icon: React.ReactNode
+}
+
+const NAV_ITEMS: readonly NavItem[] = [
   {
     id: 'live',
     label: 'En Vivo',
-    route: '/',
-    icon: (
-      <path d="M8 5v11l8.5-5.5L8 5z" fill="currentColor" stroke="none" />
-    ),
+    route: () => '/',
+    icon: <path d="M8 5v11l8.5-5.5L8 5z" fill="currentColor" stroke="none" />,
   },
   {
     id: 'matches',
     label: 'Partidos',
-    route: '/?filter=all',
-    matchRoute: '/',
+    route: () => '/?filter=all',
     icon: (
       <>
         <rect x="3" y="6" width="18" height="12" rx="2" />
@@ -36,7 +44,7 @@ const NAV_ITEMS = [
   {
     id: 'standings',
     label: 'Tabla',
-    route: '/competiciones',
+    route: cid => (cid ? `/competicion/${cid}/standings` : '/competiciones'),
     icon: (
       <>
         <line x1="4" y1="6" x2="20" y2="6" />
@@ -48,7 +56,7 @@ const NAV_ITEMS = [
   {
     id: 'stats',
     label: 'Stats',
-    route: '/analisis',
+    route: () => '/analisis',
     icon: (
       <>
         <line x1="5" y1="20" x2="5" y2="14" />
@@ -61,7 +69,7 @@ const NAV_ITEMS = [
   {
     id: 'news',
     label: 'Noticias',
-    route: '/noticias',
+    route: () => '/noticias',
     icon: (
       <>
         <rect x="3" y="5" width="18" height="14" rx="2" />
@@ -71,27 +79,28 @@ const NAV_ITEMS = [
       </>
     ),
   },
-] as const
+]
 
 export function BottomNav() {
   const navigate = useNavigate()
   const location = useLocation()
+  const { competitionId: activeCompId } = useActiveCompetition()
 
-  const isActive = (item: (typeof NAV_ITEMS)[number]) => {
-    // Caso especial: tanto 'live' como 'matches' apuntan a la home.
+  const isActive = (item: NavItem) => {
     if (item.id === 'live' || item.id === 'matches') return location.pathname === '/'
-    // 'Tabla' está activo tanto en /competiciones como en /competicion/:id/...
     if (item.id === 'standings') {
+      // Activo tanto en /competiciones como en /competicion/:id/...
       return (
         location.pathname === '/competiciones' ||
         location.pathname.startsWith('/competicion/')
       )
     }
-    return location.pathname.startsWith(item.route)
+    const route = item.route(activeCompId)
+    return location.pathname.startsWith(route)
   }
 
-  const handleNavigate = (item: (typeof NAV_ITEMS)[number]) => {
-    navigate(item.route)
+  const handleNavigate = (item: NavItem) => {
+    navigate(item.route(activeCompId))
   }
 
   return (

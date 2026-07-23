@@ -7,6 +7,7 @@ import { MatchGrid } from '@/presentation/components/matches/MatchGrid'
 import { MatchFilterBar } from '@/presentation/components/matches/MatchFilterBar'
 import { useFeaturedGame, useLiveGames, useGames } from '@/presentation/hooks/useGames'
 import { useFeaturedCompetitions } from '@/presentation/hooks/useCompetitions'
+import { useActiveCompetition } from '@/presentation/context/ActiveCompetitionContext'
 import { ErrorState } from '@/presentation/components/ui/ErrorState'
 import { HeroSkeleton, MatchCardSkeleton } from '@/presentation/components/ui/Skeleton'
 
@@ -22,7 +23,22 @@ export function DashboardPage() {
   const navigate = useNavigate()
   const [filter, setFilter] = useState<FilterValue>('all')
   const [dateOffset, setDateOffset] = useState<number | null>(null)
-  const [scope, setScope] = useState<CompetitionScope>({ kind: 'one', id: PRIMARY_COMPETITION_ID })
+  const { competitionId: activeCompIdFromCtx, setCompetitionId: setActiveCompId } = useActiveCompetition()
+  // Inicializar scope desde el context (si hay), sino Mundial como default.
+  const [scope, setScopeState] = useState<CompetitionScope>(() =>
+    activeCompIdFromCtx != null
+      ? { kind: 'one', id: activeCompIdFromCtx }
+      : { kind: 'one', id: PRIMARY_COMPETITION_ID }
+  )
+  const setScope = (next: CompetitionScope) => {
+    setScopeState(next)
+    // Sincronizar con el context global: 'all' → null, 'one' → id.
+    if (next.kind === 'all') {
+      setActiveCompId(null)
+    } else {
+      setActiveCompId(next.id)
+    }
+  }
   const { competitions: featured } = useFeaturedCompetitions()
 
   // Si el backend aún no tiene featured y el default es primary, mantenemos.

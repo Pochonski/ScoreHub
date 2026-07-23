@@ -3,6 +3,7 @@ import { Routes, Route, useLocation, Navigate } from 'react-router-dom'
 import { PageShell } from '@/presentation/components/layout/PageShell'
 import { DashboardPage } from '@/presentation/pages/DashboardPage'
 import { HeroSkeleton } from '@/presentation/components/ui/Skeleton'
+import { ActiveCompetitionProvider } from '@/presentation/context/ActiveCompetitionContext'
 
 const AnalysisPage = lazy(() =>
   import('@/presentation/pages/AnalysisPage').then((m) => ({ default: m.AnalysisPage }))
@@ -55,30 +56,32 @@ const PRIMARY_COMPETITION_ID = parseInt(
 
 export default function App() {
   return (
-    <PageShell>
-      <ScrollToTop />
-      <Suspense fallback={<PageSkeleton />}>
-        <Routes>
-          <Route path="/" element={<DashboardPage />} />
-          <Route path="/analisis" element={<AnalysisPage />} />
-          <Route path="/noticias" element={<NewsPage />} />
-          <Route path="/competiciones" element={<CompeticionesPage />} />
-          {/* /competicion (singular, legacy) → redirige a la home de la comp primary */}
-          <Route
-            path="/competicion"
-            element={<Navigate to={`/competicion/${PRIMARY_COMPETITION_ID}/standings`} replace />}
-          />
-          {/* Multi-comp: /competicion/:id/:tab? */}
-          <Route path="/competicion/:id" element={<CompetitionPage />} />
-          <Route path="/competicion/:id/:tab" element={<CompetitionPage />} />
-          <Route path="/historial/:seasonNum" element={<HistoryEditionPage />} />
-          <Route path="/player/:id" element={<PlayerProfilePage />} />
-          <Route path="/equipo/:id" element={<TeamDetailPage />} />
-          <Route path="/partido/:id" element={<MatchDetailPage />} />
-          {/* Catch-all */}
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </Suspense>
-    </PageShell>
+    <ActiveCompetitionProvider>
+      <PageShell>
+        <ScrollToTop />
+        <Suspense fallback={<PageSkeleton />}>
+          <Routes>
+            <Route path="/" element={<DashboardPage />} />
+            <Route path="/analisis" element={<AnalysisPage />} />
+            <Route path="/noticias" element={<NewsPage />} />
+            <Route path="/competiciones" element={<CompeticionesPage />} />
+            {/* /competicion (singular, legacy) → redirige a la home de la comp primary */}
+            <Route
+              path="/competicion"
+              element={<Navigate to={`/competicion/${PRIMARY_COMPETITION_ID}/standings`} replace />}
+            />
+            {/* Multi-comp: /competicion/:id/:tab? */}
+            <Route path="/competicion/:id" element={<CompetitionPage />} />
+            <Route path="/competicion/:id/:tab" element={<CompetitionPage />} />
+            <Route path="/historial/:seasonNum" element={<HistoryEditionPage />} />
+            <Route path="/player/:id" element={<PlayerProfilePage />} />
+            <Route path="/equipo/:id" element={<TeamDetailPage />} />
+            <Route path="/partido/:id" element={<MatchDetailPage />} />
+            {/* Catch-all */}
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </Suspense>
+      </PageShell>
+    </ActiveCompetitionProvider>
   )
 }

@@ -2,15 +2,16 @@ import { useState, useRef, useEffect } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { PlayerSearch } from '@/presentation/components/explorer/PlayerSearch'
 import { useCompetitions } from '@/presentation/hooks/useCompetitions'
+import { useActiveCompetition } from '@/presentation/context/ActiveCompetitionContext'
 
-type NavItem = { id: string; label: string; route: string }
+type NavItem = { id: string; label: string; route: (competitionId: number | null) => string }
 
 const NAV_ITEMS: readonly NavItem[] = [
-  { id: 'live', label: 'En Vivo', route: '/' },
-  { id: 'matches', label: 'Partidos', route: '/' },
-  { id: 'standings', label: 'Tabla', route: '/competiciones' },
-  { id: 'stats', label: 'Estadísticas', route: '/analisis' },
-  { id: 'news', label: 'Noticias', route: '/noticias' },
+  { id: 'live', label: 'En Vivo', route: () => '/' },
+  { id: 'matches', label: 'Partidos', route: () => '/' },
+  { id: 'standings', label: 'Tabla', route: cid => cid ? `/competicion/${cid}/standings` : '/competiciones' },
+  { id: 'stats', label: 'Estadísticas', route: () => '/analisis' },
+  { id: 'news', label: 'Noticias', route: () => '/noticias' },
 ]
 
 export function Navbar() {
@@ -20,17 +21,19 @@ export function Navbar() {
   const [dropdownOpen, setDropdownOpen] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
   const { competitions } = useCompetitions()
+  const { competitionId: activeCompId } = useActiveCompetition()
 
-  const activeComp = (() => {
-    const match = location.pathname.match(/^\/competicion\/(\d+)/)
-    if (!match) return null
-    const id = parseInt(match[1], 10)
-    return competitions.find(c => c.id === id) || null
-  })()
+  const activeComp = activeCompId
+    ? competitions.find(c => c.id === activeCompId) ?? null
+    : null
 
   const isActive = (item: NavItem) => {
-    if (item.route === '/') return location.pathname === '/'
-    return location.pathname.startsWith(item.route)
+    const route = item.route(activeCompId)
+    if (route === '/') return location.pathname === '/'
+    if (route.startsWith('/competicion/')) {
+      return location.pathname.startsWith(route.split('/').slice(0, 3).join('/'))
+    }
+    return location.pathname.startsWith(route)
   }
 
   // Close dropdown on outside click
@@ -135,20 +138,23 @@ export function Navbar() {
           role="navigation"
           aria-label="Secciones principales"
         >
-          {NAV_ITEMS.map((item) => (
-            <button
-              key={item.id}
-              onClick={() => navigate(item.route)}
-              className={`font-body focus-visible rounded-lg px-3 py-2 text-sm font-medium transition-all duration-200 ${
-                isActive(item)
-                  ? 'bg-accent-blue/10 text-accent-blue'
-                  : 'text-text-muted hover:bg-bg-card hover:text-text-primary'
-              }`}
-              aria-current={isActive(item) ? 'page' : undefined}
-            >
-              {item.label}
-            </button>
-          ))}
+          {NAV_ITEMS.map((item) => {
+            const route = item.route(activeCompId)
+            return (
+              <button
+                key={item.id}
+                onClick={() => navigate(route)}
+                className={`font-body focus-visible rounded-lg px-3 py-2 text-sm font-medium transition-all duration-200 ${
+                  isActive(item)
+                    ? 'bg-accent-blue/10 text-accent-blue'
+                    : 'text-text-muted hover:bg-bg-card hover:text-text-primary'
+                }`}
+                aria-current={isActive(item) ? 'page' : undefined}
+              >
+                {item.label}
+              </button>
+            )
+          })}
         </nav>
 
         {/* PlayerSearch: desktop inline, mobile via icon toggle. */}
