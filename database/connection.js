@@ -11,6 +11,7 @@ const COMMON = {
   statement_timeout: 30000, // aborta queries que excedan 30s
   query_timeout: 30000,
   application_name: 'scorehub',
+  family: 4, // fuerza IPv4 — el host de Supabase resuelve a ::1 y da EACCES
 };
 
 let poolConfig;
