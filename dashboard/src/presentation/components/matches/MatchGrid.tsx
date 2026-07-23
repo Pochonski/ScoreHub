@@ -7,9 +7,20 @@ interface MatchGridProps {
   onSelect?: (game: Game) => void
   featuredId?: number
   emptyMessage?: string
+  /** Nombre de la competición que se muestra en cada cabecera de fecha. */
+  competitionName?: string
+  /**
+   * Orden de los grupos por fecha:
+   *   - 'asc'  → más antiguos primero (default; cronológico de temporada)
+   *   - 'desc' → más recientes primero (útil para "último partido")
+   */
+  dateOrder?: 'asc' | 'desc'
 }
 
-function groupByDate(games: Game[]): { date: string; label: string; labelUpper: string; games: Game[] }[] {
+function groupByDate(
+  games: Game[],
+  dateOrder: 'asc' | 'desc'
+): { date: string; label: string; labelUpper: string; games: Game[] }[] {
   const groups = new Map<string, Game[]>()
 
   games.forEach((game) => {
@@ -22,13 +33,18 @@ function groupByDate(games: Game[]): { date: string; label: string; labelUpper: 
     .sort(([a], [b]) => {
       if (a === 'unknown') return -1
       if (b === 'unknown') return 1
-      return new Date(b).getTime() - new Date(a).getTime()
+      const diff = new Date(a).getTime() - new Date(b).getTime()
+      return dateOrder === 'desc' ? -diff : diff
     })
     .map(([dateKey, games]) => ({
       date: dateKey,
       label: formatGroupLabel(dateKey),
       labelUpper: formatGroupLabelUpper(dateKey),
-      games: games.sort((a, b) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime()),
+      // Dentro de una jornada, ordenar por hora de inicio (ASC) — el primer
+      // partido del día aparece arriba.
+      games: games.sort(
+        (a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
+      ),
     }))
 }
 
@@ -52,9 +68,14 @@ function formatGroupLabelUpper(dateKey: string): string {
   return d.toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' }).toUpperCase()
 }
 
-export function MatchGrid({ games, onSelect, featuredId, emptyMessage }: MatchGridProps) {
-  const compName = 'Copa Mundial de la FIFA 2026'
-
+export function MatchGrid({
+  games,
+  onSelect,
+  featuredId,
+  emptyMessage,
+  competitionName,
+  dateOrder = 'asc',
+}: MatchGridProps) {
   if (games.length === 0) {
     return (
       <div className="py-12 text-center">
@@ -63,7 +84,8 @@ export function MatchGrid({ games, onSelect, featuredId, emptyMessage }: MatchGr
     )
   }
 
-  const groups = groupByDate(games)
+  const groups = groupByDate(games, dateOrder)
+  const headerName = competitionName || 'Partidos'
 
   return (
     <div className="space-y-10">
@@ -78,14 +100,11 @@ export function MatchGrid({ games, onSelect, featuredId, emptyMessage }: MatchGr
               </span>
               <div className="via-border-card h-px flex-1 bg-gradient-to-r from-transparent to-transparent" />
             </div>
-            <Link to="/competicion" className="group block text-center">
-              <h2 className="font-display text-accent-gold/90 group-hover:text-accent-gold text-xl font-bold tracking-wide transition-colors sm:text-2xl">
-                {compName}
-                <span className="text-accent-gold/50 group-hover:text-accent-gold ml-2 inline-block transition-all group-hover:translate-x-0.5">
-                  →
-                </span>
+            <div className="mt-1 text-center">
+              <h2 className="font-display text-accent-gold/90 text-xl font-bold tracking-wide sm:text-2xl">
+                {headerName}
               </h2>
-            </Link>
+            </div>
             <div className="mt-2 flex items-center justify-center gap-2">
               <span className="font-body text-text-dim text-[11px]">
                 {group.games.length} partido{group.games.length !== 1 ? 's' : ''}

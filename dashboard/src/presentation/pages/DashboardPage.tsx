@@ -119,6 +119,24 @@ export function DashboardPage() {
     return gamesByDateOffset.filter((g) => g.status === filter)
   }, [gamesByDateOffset, filter])
 
+  // Cabecera de competición del grid (resuelve el bug del título "Copa
+  // Mundial" hardcoded en MatchGrid). 'Todas' usa un nombre genérico.
+  const competitionHeaderName = useMemo(() => {
+    if (scope.kind === 'all') return 'Todas las competiciones'
+    // Después de este guard, TypeScript no siempre estrecha el tipo en
+    // closures de useMemo. Usamos un cast explícito al tipo discriminado.
+    const oneScope = scope as Extract<CompetitionScope, { kind: 'one' }>
+    const targetId = oneScope.id
+    const found = featuredSorted.find(c => c.id === targetId)
+    if (found) return found.shortName || found.displayName
+    return `Competición #${targetId}`
+  }, [scope, featuredSorted])
+
+  // Siempre ASC para que las fechas vayan del más antiguo al más reciente
+  // (lectura natural de una temporada). Si hay upcoming, los próximos
+  // aparecen primero porque tienen fechas futuras.
+  const gridDateOrder: 'asc' | 'desc' = 'asc'
+
   const filterCounts = useMemo(
     () => ({
       all: allGames.length,
@@ -271,7 +289,13 @@ export function DashboardPage() {
             <ErrorState message={gamesError} onRetry={refetchGames} />
           </div>
         ) : (
-          <MatchGrid games={filteredGames} onSelect={handleSelectGame} featuredId={featuredGame?.id} />
+          <MatchGrid
+            games={filteredGames}
+            onSelect={handleSelectGame}
+            featuredId={featuredGame?.id}
+            competitionName={competitionHeaderName}
+            dateOrder={gridDateOrder}
+          />
         )}
       </div>
     </div>
