@@ -1,5 +1,6 @@
 const { pool } = require('../../../database/connection');
 const images = require('../../../services/images');
+const scores365 = require('../../../services/scores365Service');
 const { resolveCompetition } = require('../utils/competition');
 
 const STAT_TYPE_MAP = { 1: 1, 3: 2, 7: 36 };
@@ -13,10 +14,18 @@ async function fetchFromCache(competitionId, seasonNum, statCategoryId, startDat
     'SELECT data FROM tournament_stats WHERE competition_id = $1 AND season_num = $2',
     [competitionId, seasonNum]
   );
-  if (!rows.length) return [];
 
-  const tStats = rows[0].data;
-  const payload = tStats?.stats?.athletesStats;
+  let payload;
+  if (rows.length) {
+    payload = rows[0].data?.stats?.athletesStats;
+  } else {
+    // Fallback: pedir en vivo si no hay cache para esta temporada.
+    try {
+      const live = await scores365.getTournamentStats(competitionId, seasonNum);
+      payload = live?.stats?.athletesStats;
+    } catch (_) { /* fallthrough */ }
+  }
+
   if (!payload) return [];
 
   const categories = Array.isArray(payload) ? payload : Object.values(payload);
