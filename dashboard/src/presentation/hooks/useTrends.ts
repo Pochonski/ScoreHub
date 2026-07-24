@@ -1,31 +1,26 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import type { Trend } from '@/domain/entities/BettingTip'
 import { DiContainer } from '@/infrastructure/di/DiContainer'
 
+/**
+ * TanStack Query version. External shape preserved:
+ * returns { trends, loading, refetch }.
+ */
 export function useTrends(competitionId?: number | null) {
-  const [trends, setTrends] = useState<Trend[]>([])
-  const [loading, setLoading] = useState(true)
+  const qKey = ['trends', 'competition', competitionId ?? null] as const
 
-   
-  const fetch = useCallback(async (signal?: AbortSignal) => {
-    try {
-      setLoading(true)
+  const { data, isLoading, refetch } = useQuery<Trend[]>({
+    queryKey: qKey,
+    queryFn: async () => {
       const repo = DiContainer.getInstance().getBettingTipRepository()
-      const data = await repo.getCompetitionTrends(competitionId ?? undefined)
-      if (!signal?.aborted) setTrends(data)
-    } catch {
-      if (!signal?.aborted) setTrends([])
-    } finally {
-      if (!signal?.aborted) setLoading(false)
-    }
-  }, [competitionId])
-   
+      return repo.getCompetitionTrends(competitionId ?? undefined)
+    },
+    staleTime: 60 * 1000,
+  })
 
-  useEffect(() => {
-    const ctrl = new AbortController()
-    fetch(ctrl.signal)
-    return () => ctrl.abort()
-  }, [fetch])
-
-  return { trends, loading, refetch: () => fetch() }
+  return {
+    trends: data ?? [],
+    loading: isLoading,
+    refetch: () => refetch(),
+  }
 }

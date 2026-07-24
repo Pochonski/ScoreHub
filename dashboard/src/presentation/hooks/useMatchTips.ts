@@ -1,36 +1,28 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import type { BettingTip } from '@/domain/entities/BettingTip'
 import { apiClient } from '@/data/datasources/ApiClient'
 import { ENDPOINTS } from '@/infrastructure/config'
 
+/**
+ * TanStack Query version. External shape preserved:
+ * returns { tips, loading, refetch }.
+ */
 export function useMatchTips(gameId: number | null) {
-  const [tips, setTips] = useState<BettingTip | null>(null)
-  const [loading, setLoading] = useState(false)
+  const qKey = ['match-tips', gameId] as const
 
-  const fetch = useCallback(
-    async (signal?: AbortSignal) => {
-      if (gameId == null) {
-        if (!signal?.aborted) setTips(null)
-        return
-      }
-      try {
-        setLoading(true)
-        const data = await apiClient.get<BettingTip | null>(ENDPOINTS.matchTips(gameId), { signal })
-        if (!signal?.aborted) setTips(data)
-      } catch {
-        if (!signal?.aborted) setTips(null)
-      } finally {
-        if (!signal?.aborted) setLoading(false)
-      }
+  const { data, isLoading, refetch } = useQuery<BettingTip | null>({
+    queryKey: qKey,
+    queryFn: async () => {
+      if (gameId == null) return null
+      return apiClient.get<BettingTip | null>(ENDPOINTS.matchTips(gameId))
     },
-    [gameId]
-  )
+    enabled: gameId != null,
+    staleTime: 30 * 1000,
+  })
 
-  useEffect(() => {
-    const ctrl = new AbortController()
-    fetch(ctrl.signal)
-    return () => ctrl.abort()
-  }, [fetch])
-
-  return { tips, loading, refetch: () => fetch() }
+  return {
+    tips: data ?? null,
+    loading: isLoading,
+    refetch: () => refetch(),
+  }
 }

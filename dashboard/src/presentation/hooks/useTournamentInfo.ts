@@ -1,35 +1,28 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import type { TournamentInfo } from '@/domain/entities/TournamentInfo'
 import { DiContainer } from '@/infrastructure/di/DiContainer'
 
 const repo = DiContainer.getInstance().getTournamentInfoRepository()
 
+/**
+ * TanStack Query version. External shape preserved:
+ * returns { info, loading, refetch }.
+ */
 export function useTournamentInfo(competitionId?: number | null) {
-  const [info, setInfo] = useState<TournamentInfo | null>(null)
-  const [loading, setLoading] = useState(true)
+  const qKey = ['tournament-info', competitionId ?? null] as const
 
-   
-  const fetch = useCallback(
-    async (signal?: AbortSignal) => {
-      try {
-        setLoading(true)
-        const data = await repo.getTournamentInfo(competitionId ?? undefined)
-        if (!signal?.aborted) setInfo(data)
-      } catch {
-        if (!signal?.aborted) setInfo(null)
-      } finally {
-        if (!signal?.aborted) setLoading(false)
-      }
+  const { data, isLoading, refetch } = useQuery<TournamentInfo | null>({
+    queryKey: qKey,
+    queryFn: async () => {
+      const d = await repo.getTournamentInfo(competitionId ?? undefined)
+      return d ?? null
     },
-    [competitionId]
-  )
-   
+    staleTime: 60 * 60 * 1000, // 1h — tournament info changes rarely
+  })
 
-  useEffect(() => {
-    const ctrl = new AbortController()
-    fetch(ctrl.signal)
-    return () => ctrl.abort()
-  }, [fetch])
-
-  return { info, loading, refetch: () => fetch() }
+  return {
+    info: data ?? null,
+    loading: isLoading,
+    refetch: () => refetch(),
+  }
 }

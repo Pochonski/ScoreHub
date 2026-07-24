@@ -1,32 +1,31 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import type { HistoryEdition } from '@/domain/entities/HistoryEdition'
 import { DiContainer } from '@/infrastructure/di/DiContainer'
 
 const repo = DiContainer.getInstance().getHistoryRepository()
 
+/**
+ * TanStack Query version. External shape preserved:
+ * returns { history, loading, refetch }.
+ */
 export function useHistory(competitionId?: number | null) {
-  const [history, setHistory] = useState<HistoryEdition[]>([])
-  const [loading, setLoading] = useState(true)
+  const qKey = ['history', competitionId ?? null] as const
 
-   
-  const fetch = useCallback(async (signal?: AbortSignal) => {
-    try {
-      setLoading(true)
-      const data = await repo.getHistory(competitionId ?? undefined)
-      if (!signal?.aborted) setHistory(data)
-    } catch {
-      if (!signal?.aborted) setHistory([])
-    } finally {
-      if (!signal?.aborted) setLoading(false)
-    }
-  }, [competitionId])
-   
+  const { data, isLoading, refetch } = useQuery<HistoryEdition[]>({
+    queryKey: qKey,
+    queryFn: async () => {
+      try {
+        return await repo.getHistory(competitionId ?? undefined)
+      } catch {
+        return [] as HistoryEdition[]
+      }
+    },
+    staleTime: 5 * 60 * 1000,
+  })
 
-  useEffect(() => {
-    const ctrl = new AbortController()
-    fetch(ctrl.signal)
-    return () => ctrl.abort()
-  }, [fetch])
-
-  return { history, loading, refetch: () => fetch() }
+  return {
+    history: data ?? [],
+    loading: isLoading,
+    refetch: () => refetch(),
+  }
 }

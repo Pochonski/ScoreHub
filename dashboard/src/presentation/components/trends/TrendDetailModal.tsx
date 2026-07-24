@@ -23,7 +23,7 @@ export function TrendDetailModal({ trend, onClose }: Props) {
   const navigate = useNavigate()
   const dialogRef = useRef<HTMLDivElement>(null)
   useFocusTrap(dialogRef, !!trend)
-  const { details, loading } = useTrendDetails(trend?.id ?? null)
+  const { detail: details, loading } = useTrendDetails(trend?.id ?? null)
 
   useEffect(() => {
     if (!trend) return
@@ -202,14 +202,14 @@ export function TrendDetailModal({ trend, onClose }: Props) {
   )
 }
 
-function outcomeLabel(outcome: number | undefined): string {
+function outcomeLabel(outcome: number | undefined | null): string {
   if (outcome === 1) return 'Local'
   if (outcome === 2) return 'Visit.'
   if (outcome === 3) return 'Empate'
   return '—'
 }
 
-function outcomeTitle(outcome: number | undefined): string {
+function outcomeTitle(outcome: number | undefined | null): string {
   if (outcome === 1) return 'Ganó el local'
   if (outcome === 2) return 'Ganó el visitante'
   if (outcome === 3) return 'Empate'

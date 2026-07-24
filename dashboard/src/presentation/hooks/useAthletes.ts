@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import { AppError, ErrorCode } from '@/infrastructure/errors/AppError'
 import type {
   Athlete,
@@ -36,83 +36,72 @@ function classifyError(err: unknown): ProfileError {
   return { kind: 'unknown', message: err instanceof Error ? err.message : String(err) }
 }
 
+interface AthleteProfileResult {
+  athlete: Athlete | null
+  career: AthleteCareerSeason[]
+  trophies: AthleteTrophyCategory[]
+  transfers: AthleteTransfer[]
+  error: ProfileError | null
+}
+
+/**
+ * TanStack Query version. External shape preserved:
+ * returns { athlete, career, trophies, transfers, loading, error, refetch }.
+ */
 export function useAthleteProfile(id: number | null) {
-  const [athlete, setAthlete] = useState<Athlete | null>(null)
-  const [career, setCareer] = useState<AthleteCareerSeason[]>([])
-  const [trophies, setTrophies] = useState<AthleteTrophyCategory[]>([])
-  const [transfers, setTransfers] = useState<AthleteTransfer[]>([])
-  const [loading, setLoading] = useState(isValidAthleteId(id))
-  const [error, setError] = useState<ProfileError | null>(null)
+  const qKey = ['athlete-profile', id] as const
+  const valid = isValidAthleteId(id) ? (id as number) : null
 
-  const fetch = useCallback(
-    async (signal?: AbortSignal) => {
-      if (id == null) return
+  const { data, isLoading, refetch } = useQuery<AthleteProfileResult>({
+    queryKey: qKey,
+    enabled: valid != null,
+    queryFn: async () => {
       if (!isValidAthleteId(id)) {
-        setAthlete(null)
-        setCareer([])
-        setTrophies([])
-        setTransfers([])
-        setError({ kind: 'invalid_id' })
-        setLoading(false)
-        return
+        return { athlete: null, career: [], trophies: [], transfers: [], error: { kind: 'invalid_id' } }
       }
-
-      setLoading(true)
-      setError(null)
-
+      const aid = id as number
       try {
-        const a = await repo.getAthleteById(id, { signal })
-        if (signal?.aborted) return
+        const a = await repo.getAthleteById(aid)
         if (!a) {
-          setAthlete(null)
-          setCareer([])
-          setTrophies([])
-          setTransfers([])
-          setError({ kind: 'not_found' })
-          return
+          return { athlete: null, career: [], trophies: [], transfers: [], error: { kind: 'not_found' } }
         }
-        setAthlete(a)
 
-        // Supplements: any failure here is non-fatal — the core profile
-        // already loaded and we should keep showing it. Track partial errors
-        // for diagnostics but don't surface them to the user.
+        // Non-fatal supplements: failures leave the field empty but keep athlete.
         const results = await Promise.allSettled([
-          repo.getAthleteCareer(id, { signal }),
-          repo.getAthleteTrophies(id, { signal }),
-          repo.getAthleteTransfers(id, { signal }),
+          repo.getAthleteCareer(aid),
+          repo.getAthleteTrophies(aid),
+          repo.getAthleteTransfers(aid),
         ])
-        if (signal?.aborted) return
         const [careerRes, trophiesRes, transfersRes] = results
-        setCareer(careerRes.status === 'fulfilled' ? careerRes.value : [])
-        setTrophies(trophiesRes.status === 'fulfilled' ? trophiesRes.value : [])
-        setTransfers(transfersRes.status === 'fulfilled' ? transfersRes.value : [])
+        return {
+          athlete: a,
+          career: careerRes.status === 'fulfilled' ? careerRes.value : [],
+          trophies: trophiesRes.status === 'fulfilled' ? trophiesRes.value : [],
+          transfers: transfersRes.status === 'fulfilled' ? transfersRes.value : [],
+          error: null,
+        }
       } catch (err) {
-        if (signal?.aborted) return
-        setAthlete(null)
-        setCareer([])
-        setTrophies([])
-        setTransfers([])
-        setError(classifyError(err))
-      } finally {
-        if (!signal?.aborted) setLoading(false)
+        return {
+          athlete: null,
+          career: [],
+          trophies: [],
+          transfers: [],
+          error: classifyError(err),
+        }
       }
     },
-    [id]
-  )
+    staleTime: 5 * 60 * 1000,
+    retry: false,
+  })
 
-  useEffect(() => {
-    const ctrl = new AbortController()
-    fetch(ctrl.signal)
-    return () => ctrl.abort()
-  }, [fetch])
+  const fallback: AthleteProfileResult = valid == null
+    ? { athlete: null, career: [], trophies: [], transfers: [], error: null }
+    : (data ?? { athlete: null, career: [], trophies: [], transfers: [], error: null })
 
   return {
-    athlete,
-    career,
-    trophies,
-    transfers,
-    loading,
-    error,
-    refetch: () => fetch(),
+    ...fallback,
+    loading: isLoading,
+    error: fallback.error,
+    refetch: () => refetch(),
   }
 }

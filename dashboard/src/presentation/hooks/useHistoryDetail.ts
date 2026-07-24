@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import type { HistoryEdition } from '@/domain/entities/HistoryEdition'
 import type { HistoricalMatchStats, HistoricalStat } from '@/domain/entities/HistoricalMatchStats'
 import type { HistoricalMatchLineup, HistoricalLineupMember } from '@/domain/entities/HistoricalMatchLineup'
@@ -127,43 +127,41 @@ function mapLineups(raw: Record<string, unknown> | null): HistoricalMatchLineup 
 }
 
 export function useHistoryDetail(seasonNum: number | null, competitionId?: number | null) {
-  const [edition, setEdition] = useState<HistoryEdition | null>(null)
-  const [matchStats, setMatchStats] = useState<HistoricalMatchStats | null>(null)
-  const [lineups, setLineups] = useState<HistoricalMatchLineup | null>(null)
-  const [loading, setLoading] = useState(true)
+  const qKey = ['history-detail', seasonNum, competitionId ?? null] as const
 
-   
-  const fetch = useCallback(
-    async (signal?: AbortSignal) => {
-      if (!seasonNum) return
+  const { data, isLoading, refetch } = useQuery<{
+    edition: HistoryEdition | null
+    matchStats: HistoricalMatchStats | null
+    lineups: HistoricalMatchLineup | null
+  }>({
+    queryKey: qKey,
+    enabled: seasonNum != null,
+    queryFn: async () => {
+      const sn = seasonNum as number
+      const cid = competitionId ?? undefined
       try {
-        setLoading(true)
-        const cid = competitionId ?? undefined
         const [ed, rawStats, rawLineups] = await Promise.all([
-          repo.getHistoryBySeason(seasonNum, cid),
-          repo.getHistoryMatchStats(seasonNum, cid).catch(() => null),
-          repo.getHistoryMatchLineup(seasonNum, cid).catch(() => null),
+          repo.getHistoryBySeason(sn, cid),
+          repo.getHistoryMatchStats(sn, cid).catch(() => null),
+          repo.getHistoryMatchLineup(sn, cid).catch(() => null),
         ])
-        if (!signal?.aborted) {
-          setEdition(ed)
-          setMatchStats(mapStats(rawStats as Record<string, unknown> | null))
-          setLineups(mapLineups(rawLineups as Record<string, unknown> | null))
+        return {
+          edition: ed,
+          matchStats: mapStats(rawStats as Record<string, unknown> | null),
+          lineups: mapLineups(rawLineups as Record<string, unknown> | null),
         }
       } catch {
-        if (!signal?.aborted) setEdition(null)
-      } finally {
-        if (!signal?.aborted) setLoading(false)
+        return { edition: null, matchStats: null, lineups: null }
       }
     },
-    [seasonNum, competitionId]
-  )
-   
+    staleTime: 5 * 60 * 1000,
+  })
 
-  useEffect(() => {
-    const ctrl = new AbortController()
-    fetch(ctrl.signal)
-    return () => ctrl.abort()
-  }, [fetch])
-
-  return { edition, matchStats, lineups, loading, refetch: () => fetch() }
+  return {
+    edition: data?.edition ?? null,
+    matchStats: data?.matchStats ?? null,
+    lineups: data?.lineups ?? null,
+    loading: isLoading,
+    refetch: () => refetch(),
+  }
 }
