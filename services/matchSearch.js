@@ -21,7 +21,7 @@ function competitorMatches(competitor, query) {
 }
 
 async function getFilteredGames(statusGroups = [1, 2, 4]) {
-  const { rows } = await db.execAdvanced(
+  const rows = await db.execAdvanced(
     'SELECT data FROM games WHERE competition_id = $1 AND status_group = ANY($2)',
     [COMPETITION_ID, statusGroups]
   );
@@ -31,7 +31,7 @@ async function getFilteredGames(statusGroups = [1, 2, 4]) {
 async function findGameByTeams(homeQuery, awayQuery) {
   if (!homeQuery || !awayQuery) return null;
 
-  const { rows } = await db.execAdvanced(
+  const rows = await db.execAdvanced(
     'SELECT data FROM games WHERE competition_id = $1 AND status_group IN (1, 2, 4)',
     [COMPETITION_ID]
   );
@@ -86,7 +86,7 @@ async function findGameByTeams(homeQuery, awayQuery) {
 
 async function findLiveGames() {
   try {
-    const { rows } = await db.execAdvanced(
+    const rows = await db.execAdvanced(
       'SELECT data FROM games WHERE competition_id = $1 AND status_group = 1',
       [COMPETITION_ID]
     );
@@ -98,7 +98,7 @@ async function findLiveGames() {
 
 async function findUpcomingGames(limit = 10) {
   try {
-    const { rows } = await db.execAdvanced(
+    const rows = await db.execAdvanced(
       'SELECT data FROM games WHERE competition_id = $1 AND status_group = 2 ORDER BY start_time ASC LIMIT $2',
       [COMPETITION_ID, limit]
     );
@@ -112,7 +112,7 @@ async function findGamesByCompetitorName(name, { limit = 50, statusGroups = [1, 
   if (!name) return [];
   const normalized = stripDiacritics(name);
   try {
-    const { rows } = await db.execAdvanced(
+    const rows = await db.execAdvanced(
       'SELECT data FROM games WHERE competition_id = $1 AND status_group = ANY($2)',
       [COMPETITION_ID, statusGroups]
     );

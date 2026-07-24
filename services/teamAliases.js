@@ -11,7 +11,7 @@ const CACHE_TTL = 24 * 60 * 60 * 1000;
 async function loadTeamsFromDB() {
   if (dbTeams && Date.now() - lastFetch < CACHE_TTL) return dbTeams;
   try {
-    const { rows } = await db.execAdvanced(
+    const rows = await db.execAdvanced(
       'SELECT id, name, data FROM competitors WHERE competition_id = $1',
       [COMPETITION_ID]
     );

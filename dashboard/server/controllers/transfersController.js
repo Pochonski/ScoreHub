@@ -102,7 +102,7 @@ async function getCompetitionTransfersSummary(req, res, next) {
     // `competition_competitors` (Phase 5 migration 018). Reemplaza la query
     // por `games` que era ineficiente y limitada a equipos con partidos
     // programados.
-    const { rows: teams } = await db.execAdvanced(
+    const teams = await db.execAdvanced(
       `SELECT DISTINCT t.id, t.name, t.data
          FROM competitors t
          JOIN competition_competitors cc ON cc.competitor_id = t.id

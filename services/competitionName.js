@@ -12,7 +12,7 @@ const CACHE_TTL = 10 * 60 * 1000;
 async function getCompetitionName(competitionId) {
   if (cachedName && Date.now() - cacheTime < CACHE_TTL) return cachedName;
   try {
-    const { rows } = await db.execAdvanced('SELECT data FROM competitions WHERE id = $1', [competitionId]);
+    const rows = await db.execAdvanced('SELECT data FROM competitions WHERE id = $1', [competitionId]);
     if (rows.length) {
       const comps = rows[0].data?.competitions;
       const comp = Array.isArray(comps) ? comps[0] : null;
@@ -29,7 +29,7 @@ async function getCompetitionName(competitionId) {
 async function getCompetitionAliases(competitionId) {
   if (cachedAliases && Date.now() - aliasesCacheTime < CACHE_TTL) return cachedAliases;
   try {
-    const { rows } = await db.execAdvanced(
+    const rows = await db.execAdvanced(
       'SELECT alias FROM competition_aliases WHERE competition_id = $1',
       [competitionId]
     );
@@ -57,7 +57,7 @@ async function findCompetitionByAlias(alias) {
 async function getSeasonLabel(competitionId, seasonNum) {
   if (!cachedSeasons || Date.now() - seasonsCacheTime > CACHE_TTL) {
     try {
-      const { rows } = await db.execAdvanced(
+      const rows = await db.execAdvanced(
         'SELECT data FROM competition_history WHERE competition_id = $1 ORDER BY (data->>\'seasonNum\')::int ASC',
         [competitionId]
       );
