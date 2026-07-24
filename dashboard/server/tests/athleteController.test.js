@@ -70,7 +70,7 @@ describe('GET /api/football/athletes/:id (canonical lookup)', () => {
     const res = await request(app).get('/api/football/athletes/39820');
     expect(res.status).toBe(200);
     expect(res.body.name).toBe('Kylian Mbappe');
-    expect(mockScores365.getAthlete).toHaveBeenCalledWith(39820, true);
+    expect(mockScores365.getAthlete).toHaveBeenCalledWith(39820, true, expect.objectContaining({ signal: expect.any(Object) }));
   });
 
   it('returns 404 when upstream also misses', async () => {

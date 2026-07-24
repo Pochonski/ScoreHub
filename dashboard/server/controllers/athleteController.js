@@ -10,7 +10,6 @@ const COMPETITION_ID = parseInt(process.env.PRIMARY_COMPETITION_ID || '5930', 10
 // Cache-on-read settings. Lazy hydration is bounded to keep the Vercel
 // function under its 30s max duration.
 const HYDRATE_TIMEOUT_MS = parseInt(process.env.ATHLETE_HYDRATE_TIMEOUT_MS || '8000', 10);
-const HYDRATE_RETRIES = parseInt(process.env.ATHLETE_HYDRATE_RETRIES || '1', 10);
 const STALE_AFTER_MS = parseInt(process.env.ATHLETE_STALE_AFTER_MS || String(24 * 60 * 60 * 1000), 10);
 
 // In-flight de-duplication to prevent stampede when many concurrent
@@ -62,15 +61,17 @@ async function fetchRowById(id) {
 
 /**
  * Fetch the full profile from 365scores and persist it. Bounded by
- * HYDRATE_TIMEOUT_MS and HYDRATE_RETRIES. Throws on failure so the caller
- * can decide whether to fall back to the (partial) cached row.
+ * HYDRATE_TIMEOUT_MS (outer deadline). Throws on failure so the caller can
+ * decide whether to fall back to the (partial) cached row.
+ *
+ * The scores365 service internally retries 5xx/429 and has its own per-attempt
+ * timeout; here we only impose the outer deadline via AbortController.signal.
  */
 async function hydrateFromUpstream(id) {
   const ac = new AbortController();
   const timer = setTimeout(() => ac.abort(), HYDRATE_TIMEOUT_MS);
   try {
-    const res = await api.getAthlete(id, true);
-    clearTimeout(timer);
+    const res = await api.getAthlete(id, true, { signal: ac.signal });
     const a = res?.athletes?.[0];
     if (!a || !a.id) throw new Error('athlete not found upstream');
 

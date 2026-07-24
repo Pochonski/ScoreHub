@@ -33,7 +33,7 @@ async function throttle() {
   lastCall = Date.now();
 }
 
-async function get(path, extraQuery = '', baseUrl = BASE) {
+async function get(path, extraQuery = '', baseUrl = BASE, opts = {}) {
   const url = `${baseUrl}${path}?${buildQuery(extraQuery)}`;
   await throttle();
   let res;
@@ -41,6 +41,14 @@ async function get(path, extraQuery = '', baseUrl = BASE) {
     // Timeout por intento: AbortController aborta el fetch colgado.
     const ctrl = new AbortController();
     const timeout = setTimeout(() => ctrl.abort(), HTTP_TIMEOUT_MS);
+    // Allow the caller to pass their own AbortController.signal so they
+    // can impose an outer deadline that aborts ALL attempts, not just one.
+    const externalSignal = opts && opts.signal;
+    const onExternalAbort = () => ctrl.abort();
+    if (externalSignal) {
+      if (externalSignal.aborted) ctrl.abort();
+      else externalSignal.addEventListener('abort', onExternalAbort, { once: true });
+    }
     try {
       res = await fetch(url, {
         headers: {
@@ -72,6 +80,9 @@ async function get(path, extraQuery = '', baseUrl = BASE) {
       await new Promise((r) => setTimeout(r, 1000 * (attempt + 1)));
     } finally {
       clearTimeout(timeout);
+      if (externalSignal && onExternalAbort) {
+        externalSignal.removeEventListener('abort', onExternalAbort);
+      }
     }
   }
   if (!res || !res.ok) {
@@ -207,7 +218,7 @@ const api = {
   // Athlete endpoints
   // ============================================================================
 
-  getAthlete: (athleteId, fullDetails = true) => get('/web/athletes/', `athletes=${athleteId}${fullDetails ? '&fullDetails=true' : ''}`),
+  getAthlete: (athleteId, fullDetails = true, opts = {}) => get('/web/athletes/', `athletes=${athleteId}${fullDetails ? '&fullDetails=true' : ''}`, BASE, opts),
   getAthleteNextGame: (athleteId) => get('/web/athletes/nextGame', `athletes=${athleteId}&fullDetails=true`),
   getAthleteGames: (athleteId) => get('/web/athletes/games/', `athleteId=${athleteId}`),
   getAthleteChartEvents: (athleteId) => get('/web/athletes/chartEvents', `athletes=${athleteId}`),
