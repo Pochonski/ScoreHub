@@ -121,16 +121,21 @@ async function getCompetitionTransfersSummary(req, res, next) {
     }]));
 
     const { rows } = await pool.query(
-      `SELECT team_id, arrivals, departures, (arrivals + departures) AS total
-         FROM (
-           SELECT
-             COALESCE(origin_id, target_id) AS team_id,
-             SUM(CASE WHEN target_id IS NOT NULL THEN 1 ELSE 0 END)::int AS arrivals,
-             SUM(CASE WHEN origin_id  IS NOT NULL THEN 1 ELSE 0 END)::int AS departures
+      `WITH transfers_split AS (
+         SELECT origin_id AS team_id, 'departure'::text AS kind
            FROM competition_transfers
-           WHERE competition_id = $1
-           GROUP BY COALESCE(origin_id, target_id)
-         ) t
+          WHERE competition_id = $1 AND origin_id IS NOT NULL
+         UNION ALL
+         SELECT target_id AS team_id, 'arrival'::text AS kind
+           FROM competition_transfers
+          WHERE competition_id = $1 AND target_id IS NOT NULL
+       )
+       SELECT team_id,
+              COUNT(*) FILTER (WHERE kind = 'arrival')::int   AS arrivals,
+              COUNT(*) FILTER (WHERE kind = 'departure')::int AS departures,
+              COUNT(*)::int AS total
+         FROM transfers_split
+        GROUP BY team_id
         ORDER BY total DESC`,
       [competitionId]
     );
