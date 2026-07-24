@@ -1,4 +1,4 @@
-const { pool } = require('../../../database/connection');
+const db = require('../../../database/db');
 const { resolveCompetition } = require('../utils/competition');
 const { enrichTrend } = require('../utils/mappers');
 
@@ -8,11 +8,14 @@ async function getCompetitionTrends(req, res, next) {
     if (!resolved) return;
     const { competitionId } = resolved;
 
-    const { rows } = await pool.query(
-      'SELECT data FROM trends WHERE scope = $1 AND entity_id = $2',
-      ['competition', competitionId]
-    );
-    const trends = rows.map(r => r.data);
+    const { data, error } = await db.query('trends', {
+      select: 'data',
+      eq: { scope: 'competition', entity_id: competitionId },
+      limit: 200,
+    });
+    if (error) throw error;
+
+    const trends = (data || []).map(r => r.data);
     const seen = new Set();
     const unique = trends.filter(t => {
       const key = `${t.betCTA || ''}|${t.lineTypeId}`;

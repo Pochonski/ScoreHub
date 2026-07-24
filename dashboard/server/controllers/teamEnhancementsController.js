@@ -1,3 +1,4 @@
+const db = require('../../../database/db');
 const scores365 = require('../../../services/scores365Service');
 const images = require('../../../services/images');
 
@@ -41,38 +42,34 @@ async function getTeamInfo(req, res, next) {
     }
 
     // Fallback: competitors table.
-    const { pool } = require('../../../database/connection');
-    const { rows } = await pool.query(
-      'SELECT id, name, data FROM competitors WHERE id = $1',
-      [id]
-    );
-    if (!rows.length) return res.status(404).json({ error: 'Equipo no encontrado' });
-    const t = rows[0].data || {};
+    const { data: row, error } = await db.query('competitors', {
+      select: 'id, name, data',
+      eq: { id },
+      maybeSingle: true,
+    });
+    if (error) throw error;
+    if (!row) return res.status(404).json({ error: 'Equipo no encontrado' });
+    const t = row.data || {};
     res.json({
-      id: Number(rows[0].id),
-      name: rows[0].name,
+      id: Number(row.id),
+      name: row.name,
       shortName: t.shortName,
       symbolicName: t.symbolicName,
       countryId: t.countryId,
       imageVersion: t.imageVersion ?? 1,
       mainCompetitionId: t.mainCompetitionId,
-      badgeUrl: images.getTeamBadgeUrl(rows[0].id, t.imageVersion ?? 1),
+      badgeUrl: images.getTeamBadgeUrl(row.id, t.imageVersion ?? 1),
     });
   } catch (err) {
     next(err);
   }
 }
 
-/**
- * GET /teams/:id/recent-form?numOfGames=5
- * Forma reciente de un equipo (últimos N partidos con outcome W/D/L).
- * Cache: NO. Cada request va al upstream; el TTL de 365scores es ~60s.
- */
 async function getTeamRecentForm(req, res, next) {
   try {
     const id = parseInt(req.params.id, 10);
     if (!Number.isFinite(id)) return res.status(400).json({ error: 'id inválido' });
-    const numOfGames = Math.min(20, Math.max(1, parseInt(req.query.numOfGames) || 5));
+    const numOfGames = Math.min(20, Math.max(1, parseInt(req.query.numOfGames, 10) || 5));
 
     const data = await scores365.getCompetitorRecentForm(id, numOfGames);
     const games = data?.games ?? [];
@@ -82,10 +79,6 @@ async function getTeamRecentForm(req, res, next) {
   }
 }
 
-/**
- * GET /teams/:id/upcoming
- * Próximos partidos de un equipo.
- */
 async function getTeamUpcoming(req, res, next) {
   try {
     const id = parseInt(req.params.id, 10);
@@ -99,10 +92,6 @@ async function getTeamUpcoming(req, res, next) {
   }
 }
 
-/**
- * GET /teams/:id/recent-matches
- * Partidos recientes finalizados de un equipo.
- */
 async function getTeamRecentMatches(req, res, next) {
   try {
     const id = parseInt(req.params.id, 10);

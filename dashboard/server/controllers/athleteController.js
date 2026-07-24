@@ -1,4 +1,5 @@
-const { pool } = require('../../../database/connection');
+const { pool, withTransaction } = require('../../../database/connection');
+const db = require('../../../database/db');
 const { enrichAthlete, enrichTransferWithTeam } = require('../utils/mappers');
 
 // Lazy-load the upstream service so we don't pay for it on cold starts when
@@ -47,7 +48,7 @@ async function fetchRowById(id) {
   if (!Number.isFinite(num)) return null;
   // Lookup by PK first, then by canonical_id (handles legacy rows where
   // canonical was stored only inside data->>'athleteId').
-  const { rows } = await pool.query(
+  const rows = await db.execAdvanced(
     `SELECT id, name, data, updated_at, canonical_id
        FROM athletes
       WHERE id = $1
@@ -83,7 +84,7 @@ async function hydrateFromUpstream(id) {
       name: a.name ?? null,
     };
 
-    await pool.query(
+    await db.execAdvanced(
       `INSERT INTO athletes (id, name, data, updated_at)
        VALUES ($1, $2, $3::jsonb, now())
        ON CONFLICT (id) DO UPDATE
@@ -147,9 +148,13 @@ async function loadAthlete(id) {
 }
 
 async function getCompetitorMap() {
-  const { rows } = await pool.query('SELECT id, name, data FROM competitors');
+  const { data: rows, error } = await db.query('competitors', {
+    select: 'id, name, data',
+    limit: 2000,
+  });
+  if (error) throw error;
   const map = {};
-  for (const r of rows) {
+  for (const r of rows || []) {
     map[String(r.id)] = { name: r.name || r.data?.name, imageVersion: r.data?.imageVersion };
   }
   return map;
@@ -200,30 +205,28 @@ function shapeCareer(raw) {
 async function searchAthletes(req, res, next) {
   try {
     const { search, teamId } = req.query;
-    const page = Math.max(1, parseInt(req.query.page) || 1);
-    const limit = Math.min(50, parseInt(req.query.limit) || 20);
+    const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+    const limit = Math.min(50, parseInt(req.query.limit, 10) || 20);
     const offset = (page - 1) * limit;
 
     const params = [];
-    const where = [];
+    const conds = [];
 
     if (search && String(search).trim()) {
       params.push(`%${String(search).toLowerCase()}%`);
-      where.push(`lower(name) LIKE $${params.length}`);
+      conds.push(`lower(name) LIKE $${params.length}`);
     }
 
-    if (teamId) {
-      const tid = Number(teamId);
-      if (Number.isFinite(tid)) {
-        params.push(tid);
-        where.push(`(data->>'competitorId')::bigint = $${params.length}`);
-      }
+    const tid = teamId ? Number(teamId) : null;
+    if (Number.isFinite(tid)) {
+      params.push(tid);
+      conds.push(`(data->>'competitorId')::bigint = $${params.length}`);
     }
 
-    const whereSql = where.length ? `WHERE ${where.join(' AND ')}` : '';
+    const whereSql = conds.length ? `WHERE ${conds.join(' AND ')}` : '';
     params.push(limit, offset);
 
-    const { rows } = await pool.query(
+    const rows = await db.execAdvanced(
       `SELECT id, name, data
          FROM athletes
          ${whereSql}
@@ -232,7 +235,7 @@ async function searchAthletes(req, res, next) {
       params
     );
 
-    res.json(rows.map((r) => enrichAthlete({ ...r.data, id: r.id, name: r.name })));
+    res.json(rows.map(r => enrichAthlete({ ...r.data, id: r.id, name: r.name })));
   } catch (err) {
     next(err);
   }

@@ -1,4 +1,5 @@
 const { pool } = require('../../../database/connection');
+const db = require('../../../database/db');
 const scores365 = require('../../../services/scores365Service');
 const { enrichGame, enrichTrend, extractLineup, buildLineups, buildMatchupId, SCORE_STAT_IDS, MAJOR_STAT_IDS } = require('../utils/mappers');
 const { resolveCompetition, resolveCompetitionIds } = require('../utils/competition');

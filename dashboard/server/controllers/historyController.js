@@ -1,32 +1,45 @@
-const { pool } = require('../../../database/connection');
+const db = require('../../../database/db');
 const { parseHistoryDoc } = require('../utils/mappers');
 const { resolveCompetition } = require('../utils/competition');
 
 async function getCompetitorMap() {
-  const { rows } = await pool.query('SELECT id, name, data FROM competitors');
+  const { data, error } = await db.query('competitors', {
+    select: 'id, name, data',
+    limit: 2000,
+  });
+  if (error) throw error;
   const map = {};
-  for (const r of rows) {
+  for (const r of data || []) {
     map[String(r.id)] = { name: r.name || r.data?.name, imageVersion: r.data?.imageVersion };
   }
   return map;
 }
 
 async function fetchHistoryRows(competitionId) {
-  const { rows } = await pool.query('SELECT data FROM competition_history WHERE competition_id = $1', [competitionId]);
+  // Queries on competition_history.filter data->>'seasonNum' expressions:
+  // not PostgREST-friendly, so use execAdvanced.
+  const rows = await db.execAdvanced(
+    `SELECT season_num, data FROM competition_history
+      WHERE competition_id = $1
+      ORDER BY season_num DESC`,
+    [competitionId]
+  );
   if (rows.length) {
     const teamMap = await getCompetitorMap();
     return rows.map(r => {
+      const d = r.data || {};
+      const seasonNum = r.season_num ?? d.seasonNum;
       const doc = {
-        id: `${competitionId}-se${r.data.seasonNum}`,
+        id: `${competitionId}-se${seasonNum}`,
         competitionId,
-        seasonNum: r.data.seasonNum,
-        ...r.data,
+        seasonNum,
+        ...d,
       };
       return parseHistoryDoc(doc, teamMap);
     });
   }
   // Fallback: derive current season from the competition document.
-  const { rows: compRows } = await pool.query(
+  const compRows = await db.execAdvanced(
     "SELECT data->'competitions'->0 as comp FROM competitions WHERE id = $1",
     [competitionId]
   );
@@ -132,23 +145,26 @@ async function getHistoryBySeason(req, res, next) {
     if (!resolved) return;
     const competitionId = resolved.competitionId;
 
-    const { rows } = await pool.query(
-      'SELECT data FROM competition_history WHERE competition_id = $1 AND (data->>\'seasonNum\')::int = $2',
-      [competitionId, seasonNum]
-    );
-    if (rows.length) {
+    const { data: historyRow, error: histErr } = await db.query('competition_history', {
+      select: 'data, season_num',
+      eq: { competition_id: competitionId, season_num: seasonNum },
+      maybeSingle: true,
+    });
+    if (histErr) throw histErr;
+    if (historyRow) {
+      const d = historyRow.data || {};
+      const rowSeasonNum = historyRow.season_num ?? d.seasonNum;
       const rawDoc = {
-        id: `${competitionId}-se${rows[0].data.seasonNum}`,
+        id: `${competitionId}-se${rowSeasonNum}`,
         competitionId,
-        seasonNum: rows[0].data.seasonNum,
-        ...rows[0].data,
+        seasonNum: rowSeasonNum,
+        ...d,
       };
       const teamMap = await getCompetitorMap();
-      const doc = parseHistoryDoc(rawDoc, teamMap);
-      return res.json(doc);
+      return res.json(parseHistoryDoc(rawDoc, teamMap));
     }
 
-    const { rows: compRows } = await pool.query(
+    const compRows = await db.execAdvanced(
       "SELECT data->'competitions'->0 as comp FROM competitions WHERE id = $1",
       [competitionId]
     );
@@ -165,8 +181,7 @@ async function getHistoryBySeason(req, res, next) {
       stages: season.stages,
       host: comp.name?.includes('Canada') ? 'Canada/Mexico/USA' : null,
     };
-    const doc = parseHistoryDoc(rawDoc, teamMap);
-    res.json(doc);
+    res.json(parseHistoryDoc(rawDoc, teamMap));
   } catch (err) {
     next(err);
   }
@@ -181,20 +196,27 @@ async function getHistoryMatchStats(req, res, next) {
     if (!resolved) return;
     const competitionId = resolved.competitionId;
 
-    const { rows } = await pool.query(
-      'SELECT data FROM competition_history WHERE competition_id = $1 AND (data->>\'seasonNum\')::int = $2',
-      [competitionId, seasonNum]
-    );
-    if (!rows.length) return res.json(null);
+    const { data: row, error } = await db.query('competition_history', {
+      select: 'data',
+      eq: { competition_id: competitionId, season_num: seasonNum },
+      maybeSingle: true,
+    });
+    if (error) throw error;
+    if (!row) return res.json(null);
 
-    const game = rows[0].data?.group?.games?.[0];
+    const game = row.data?.group?.games?.[0];
     const gameData = game?.game || game;
     const gameId = gameData?.id || game?.gameId;
     if (!gameId) return res.json(null);
 
-    const { rows: statsRows } = await pool.query('SELECT data FROM game_stats WHERE game_id = $1', [gameId]);
-    if (!statsRows.length) return res.json(null);
-    res.json(statsRows[0].data);
+    const { data: statsRow, error: statsErr } = await db.query('game_stats', {
+      select: 'data',
+      eq: { game_id: gameId },
+      maybeSingle: true,
+    });
+    if (statsErr) throw statsErr;
+    if (!statsRow) return res.json(null);
+    res.json(statsRow.data);
   } catch (err) {
     next(err);
   }
@@ -209,20 +231,27 @@ async function getHistoryMatchOverview(req, res, next) {
     if (!resolved) return;
     const competitionId = resolved.competitionId;
 
-    const { rows } = await pool.query(
-      'SELECT data FROM competition_history WHERE competition_id = $1 AND (data->>\'seasonNum\')::int = $2',
-      [competitionId, seasonNum]
-    );
-    if (!rows.length) return res.json(null);
+    const { data: row, error } = await db.query('competition_history', {
+      select: 'data',
+      eq: { competition_id: competitionId, season_num: seasonNum },
+      maybeSingle: true,
+    });
+    if (error) throw error;
+    if (!row) return res.json(null);
 
-    const game = rows[0].data?.group?.games?.[0];
+    const game = row.data?.group?.games?.[0];
     const gameData = game?.game || game;
     const gameId = gameData?.id || game?.gameId;
     if (!gameId) return res.json(null);
 
-    const { rows: overviewRows } = await pool.query('SELECT data FROM game_overviews WHERE game_id = $1', [gameId]);
-    if (!overviewRows.length) return res.json(null);
-    res.json(overviewRows[0].data);
+    const { data: ovRow, error: ovErr } = await db.query('game_overviews', {
+      select: 'data',
+      eq: { game_id: gameId },
+      maybeSingle: true,
+    });
+    if (ovErr) throw ovErr;
+    if (!ovRow) return res.json(null);
+    res.json(ovRow.data);
   } catch (err) {
     next(err);
   }
@@ -237,13 +266,15 @@ async function getHistoryDescription(req, res, next) {
     if (!resolved) return;
     const competitionId = resolved.competitionId;
 
-    const { rows } = await pool.query(
-      'SELECT data FROM competition_history WHERE competition_id = $1 AND (data->>\'seasonNum\')::int = $2',
-      [competitionId, seasonNum]
-    );
-    if (!rows.length) return res.json([]);
+    const { data: row, error } = await db.query('competition_history', {
+      select: 'data',
+      eq: { competition_id: competitionId, season_num: seasonNum },
+      maybeSingle: true,
+    });
+    if (error) throw error;
+    if (!row) return res.json([]);
 
-    const doc = rows[0].data;
+    const doc = row.data;
     const sections = doc?.sections || [];
     const descriptions = sections
       .filter(s => s.type === 'ENTITY_DESCRIPTION')

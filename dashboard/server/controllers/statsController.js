@@ -1,4 +1,4 @@
-const { pool } = require('../../../database/connection');
+const db = require('../../../database/db');
 const images = require('../../../services/images');
 const scores365 = require('../../../services/scores365Service');
 const { resolveCompetition } = require('../utils/competition');
@@ -6,20 +6,19 @@ const { resolveCompetition } = require('../utils/competition');
 const STAT_TYPE_MAP = { 1: 1, 3: 2, 7: 36 };
 
 async function fetchFromCache(competitionId, seasonNum, statCategoryId, startDate, compSeasonNum) {
-  // Solo filtrar si es la temporada activa (compSeasonNum) y no ha empezado.
-  // Si el usuario pide una temporada histórica, los datos son válidos.
   if (seasonNum === compSeasonNum && startDate && new Date(startDate) > new Date()) return [];
 
-  const { rows } = await pool.query(
-    'SELECT data FROM tournament_stats WHERE competition_id = $1 AND season_num = $2',
-    [competitionId, seasonNum]
-  );
+  const { data, error } = await db.query('tournament_stats', {
+    select: 'data',
+    eq: { competition_id: competitionId, season_num: seasonNum },
+    maybeSingle: true,
+  });
+  if (error) throw error;
 
   let payload;
-  if (rows.length) {
-    payload = rows[0].data?.stats?.athletesStats;
+  if (data) {
+    payload = data.data?.stats?.athletesStats;
   } else {
-    // Fallback: pedir en vivo si no hay cache para esta temporada.
     try {
       const live = await scores365.getTournamentStats(competitionId, seasonNum);
       payload = live?.stats?.athletesStats;
@@ -34,9 +33,15 @@ async function fetchFromCache(competitionId, seasonNum, statCategoryId, startDat
   const rawRows = cat?.rows || [];
   const primaryTypeId = STAT_TYPE_MAP[statCategoryId];
 
-  const { rows: compRows } = await pool.query('SELECT id, name, data FROM competitors');
+  // Pull a slim competitor index (id + name) over HTTP instead of
+  // hauling every competitor's full JSONB over the wire.
+  const { data: compRows, error: compErr } = await db.query('competitors', {
+    select: 'id, name, data',
+    limit: 1000,
+  });
+  if (compErr) throw compErr;
   const teamMap = {};
-  for (const r of compRows) {
+  for (const r of compRows || []) {
     teamMap[String(r.id)] = { name: r.data?.name || r.name || '' };
   }
 
@@ -104,11 +109,16 @@ async function getTeamOfWeek(req, res, next) {
     if (!resolved) return;
     const { competitionId } = resolved;
 
-    const { rows } = await pool.query('SELECT data FROM team_of_week WHERE competition_id = $1', [competitionId]);
-    if (!rows.length) return res.json(null);
+    const { data, error } = await db.query('team_of_week', {
+      select: 'data',
+      eq: { competition_id: competitionId },
+      maybeSingle: true,
+    });
+    if (error) throw error;
+    if (!data) return res.json(null);
 
-    const data = rows[0].data;
-    const lineup = data?.teamOfTheWeek?.lineup || data?.teamOfWeek?.lineup || null;
+    const raw = data.data;
+    const lineup = raw?.teamOfTheWeek?.lineup || raw?.teamOfWeek?.lineup || null;
     if (!lineup?.members?.length) return res.json(null);
 
     const members = lineup.members.map(m => ({
