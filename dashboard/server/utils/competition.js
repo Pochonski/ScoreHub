@@ -15,7 +15,7 @@
  *   if (!competitionId) return; // 404 ya enviado
  */
 
-const { pool } = require('../../../database/connection');
+const db = require('../../../database/db');
 
 const DEFAULT_COMP_ID = parseInt(process.env.PRIMARY_COMPETITION_ID || '5930', 10);
 const DEFAULT_SEASON = parseInt(process.env.PRIMARY_SEASON || '25', 10);
@@ -28,7 +28,7 @@ async function loadActiveCompetitions(force = false) {
   if (!force && cache.list.length && now - cache.at < CACHE_TTL_MS) {
     return cache;
   }
-  const { rows } = await pool.query(`
+  const rows = await db.execAdvanced(`
     SELECT id, display_name, short_name, country_id, country_name,
            season_num, season_label, start_date, end_date,
            is_active, is_featured, display_order,

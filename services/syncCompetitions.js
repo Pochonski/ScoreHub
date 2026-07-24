@@ -8,7 +8,7 @@
  * el resto.
  */
 
-const { pool } = require('../database/connection');
+const db = require('../database/db');
 
 const CACHE_TTL_MS = 5 * 60 * 1000;
 let cache = { at: 0, list: [] };
@@ -18,7 +18,7 @@ async function getActiveCompetitions({ force = false } = {}) {
   if (!force && cache.list.length && now - cache.at < CACHE_TTL_MS) {
     return cache.list;
   }
-  const { rows } = await pool.query(`
+  const rows = await db.execAdvanced(`
     SELECT id, display_name, season_num, season_label,
            start_date, end_date,
            has_brackets, has_groups, has_history
