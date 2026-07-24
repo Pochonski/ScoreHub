@@ -1,4 +1,4 @@
-const { pool } = require('../../../database/connection');
+const db = require('../../../database/db');
 const scores365 = require('../../../services/scores365Service');
 const images = require('../../../services/images');
 const { resolveCompetition } = require('../utils/competition');
@@ -8,6 +8,11 @@ const { resolveCompetition } = require('../utils/competition');
  * Devuelve los fichajes de una competición, opcionalmente filtrados por equipo.
  * Cache: tabla `competition_transfers` (sync cada 30 min).
  * Fallback: upstream en vivo si la cache está vacía.
+ *
+ * Implementación Fase 4: el join de 3 tablas (competition_transfers +
+ * athletes + competitors × 2) no se puede expresar con PostgREST simple,
+ * así que la query principal usa execAdvanced (pg). Otros lookups sí
+ * pasan por HTTP.
  */
 async function getCompetitionTransfers(req, res, next) {
   try {
@@ -19,35 +24,33 @@ async function getCompetitionTransfers(req, res, next) {
 
     const teamId = req.query.teamId != null ? parseInt(req.query.teamId, 10) : null;
 
+    const baseSql = `SELECT ct.*,
+                            a.name AS athlete_name,
+                            a.data->>'shortName' AS athlete_short_name,
+                            o.name AS origin_name,
+                            o.data->>'shortName' AS origin_short_name,
+                            t.name AS target_name,
+                            t.data->>'shortName' AS target_short_name
+                       FROM competition_transfers ct
+                  LEFT JOIN athletes a ON a.id = ct.athlete_id
+                  LEFT JOIN competitors o ON o.id = ct.origin_id
+                  LEFT JOIN competitors t ON t.id = ct.target_id`;
     let rows;
-    const query = `SELECT ct.*,
-                          a.name AS athlete_name,
-                          a.data->>'shortName' AS athlete_short_name,
-                          o.name AS origin_name,
-                          o.data->>'shortName' AS origin_short_name,
-                          t.name AS target_name,
-                          t.data->>'shortName' AS target_short_name
-                     FROM competition_transfers ct
-                LEFT JOIN athletes a ON a.id = ct.athlete_id
-                LEFT JOIN competitors o ON o.id = ct.origin_id
-                LEFT JOIN competitors t ON t.id = ct.target_id`;
     if (teamId) {
-      const { rows: r } = await pool.query(
-        `${query}
+      rows = await db.execAdvanced(
+        `${baseSql}
           WHERE ct.competition_id = $1
             AND (ct.origin_id = $2 OR ct.target_id = $2)
           ORDER BY ct.time DESC NULLS LAST, ct.transfer_id DESC`,
         [competitionId, teamId]
       );
-      rows = r;
     } else {
-      const { rows: r } = await pool.query(
-        `${query}
+      rows = await db.execAdvanced(
+        `${baseSql}
           WHERE ct.competition_id = $1
           ORDER BY ct.time DESC NULLS LAST, ct.transfer_id DESC`,
         [competitionId]
       );
-      rows = r;
     }
 
     if (!rows.length) {
@@ -95,9 +98,9 @@ async function getCompetitionTransfersSummary(req, res, next) {
     if (!resolved) return;
     const competitionId = resolved.competitionId;
 
-    // Equipos que juegan en esta competición (basado en games, no en competitors.competition_id
-    // que la sync de transfers puede pisar accidentalmente).
-    const { rows: teams } = await pool.query(
+    // Equipos que juegan en esta competición — basado en games, no en
+    // competitors.competition_id (que la sync de transfers puede pisar).
+    const { rows: teams } = await db.execAdvanced(
       `SELECT DISTINCT t.id, t.name, t.data
          FROM competitors t
         WHERE t.id IN (
@@ -120,7 +123,7 @@ async function getCompetitionTransfersSummary(req, res, next) {
       badgeUrl: images.getTeamBadgeUrl(t.id, t.data?.imageVersion ?? 1),
     }]));
 
-    const { rows } = await pool.query(
+    const rows = await db.execAdvanced(
       `WITH transfers_split AS (
          SELECT origin_id AS team_id, 'departure'::text AS kind
            FROM competition_transfers
@@ -171,24 +174,26 @@ async function getGameSuggestions(req, res, next) {
     if (!resolved) return;
     const { competitionId } = resolved;
 
-    const { rows } = await pool.query(
-      `SELECT game_id, rank, data FROM game_suggestions
-        WHERE competition_id = $1
-        ORDER BY rank NULLS LAST, game_id ASC`,
-      [competitionId]
-    );
+    const { data, error } = await db.query('game_suggestions', {
+      select: 'data',
+      eq: { competition_id: competitionId },
+      order: [
+        { column: 'rank', asc: true },
+        { column: 'game_id', asc: true },
+      ],
+    });
+    if (error) throw error;
 
-    if (!rows.length) {
-      // Fallback upstream en vivo.
+    if (!data || !data.length) {
       try {
-        const data = await scores365.getGameSuggestions(competitionId);
-        return res.json((data?.suggestedGames ?? []).map(g => g));
+        const fallback = await scores365.getGameSuggestions(competitionId);
+        return res.json((fallback?.suggestedGames ?? []).map(g => g));
       } catch (_) {
         return res.json([]);
       }
     }
 
-    res.json(rows.map(r => r.data));
+    res.json(data.map(r => r.data));
   } catch (err) {
     next(err);
   }

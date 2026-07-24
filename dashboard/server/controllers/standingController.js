@@ -1,4 +1,4 @@
-const { pool } = require('../../../database/connection');
+const db = require('../../../database/db');
 const scores365 = require('../../../services/scores365Service');
 const images = require('../../../services/images');
 const { GROUP_NAMES, transformStandingRow, enrichTeam } = require('../utils/mappers');
@@ -10,19 +10,24 @@ async function getStandings(req, res, next) {
     if (!resolved) return;
     const { competitionId, seasonNum } = resolved;
 
-    // Cliente puede pedir otra etapa (Apertura, Annual, etc.) y temporada.
     const stageNum = req.query.stageNum != null ? parseInt(req.query.stageNum, 10) : 1;
     const requestedSeason = req.query.seasonNum != null ? parseInt(req.query.seasonNum, 10) : seasonNum;
 
-    const { rows } = await pool.query(
-      `SELECT data FROM standings
-        WHERE competition_id = $1 AND stage_num = $2 AND season_num = $3`,
-      [competitionId, stageNum, requestedSeason]
-    );
+    // The standings table has a UNIQUE (competition_id, stage_num, season_num) index
+    // so this composite eq filter is a single-row lookup. Single-row returns via .maybeSingle().
+    const { data, error } = await db.query('standings', {
+      select: 'data',
+      eq: {
+        competition_id: competitionId,
+        stage_num: stageNum,
+        season_num: requestedSeason,
+      },
+      maybeSingle: true,
+    });
+    if (error) throw error;
 
-    if (rows.length) {
-      const apiData = rows[0].data;
-      const stagesArr = apiData?.standings ?? [];
+    if (data) {
+      const stagesArr = data.data?.standings ?? [];
       if (stagesArr.length) {
         const standings = stagesArr[0].rows || [];
         const groupsMap = new Map();
@@ -48,7 +53,6 @@ async function getStandings(req, res, next) {
       }
     }
 
-    // Si no hay cache, intenta en vivo.
     try {
       const live = await scores365.getStandings(competitionId, stageNum, requestedSeason);
       const stagesArr = live?.standings ?? [];
@@ -80,31 +84,26 @@ async function getStandings(req, res, next) {
   }
 }
 
-/**
- * GET /standings/seasons?competitionId=X
- * Devuelve la lista de temporadas disponibles (para el selector).
- * Cache: tabla standings (seasonsFilter viene junto a /standings cuando
- * se llama con withSeasonsFilter=true).
- */
 async function getStandingsSeasons(req, res, next) {
   try {
     const resolved = await resolveCompetition(req, res);
     if (!resolved) return;
     const { competitionId, seasonNum } = resolved;
 
-    // Reusar la cache: trae la última standings con withSeasonsFilter.
-    const { rows } = await pool.query(
-      `SELECT data FROM standings
-        WHERE competition_id = $1
-        ORDER BY season_num DESC LIMIT 1`,
-      [competitionId]
-    );
-    if (rows.length) {
-      const sf = rows[0].data?.seasonsFilter;
+    const { data, error } = await db.query('standings', {
+      select: 'data',
+      eq: { competition_id: competitionId },
+      order: { column: 'season_num', asc: false },
+      limit: 1,
+      maybeSingle: true,
+    });
+    if (error) throw error;
+
+    if (data) {
+      const sf = data.data?.seasonsFilter;
       if (Array.isArray(sf)) return res.json(sf);
     }
 
-    // Fallback: pedir al upstream en vivo.
     try {
       const live = await scores365.getStandings(competitionId, 1, seasonNum, { withSeasonsFilter: true });
       const sf = live?.seasonsFilter;
@@ -163,13 +162,18 @@ async function getBrackets(req, res, next) {
     const { competitionId } = resolved;
 
     if (!resolved.comp.hasBrackets) {
-      // Devolver empty array en lugar de 404 — la UI ya muestra empty state.
       return res.json([]);
     }
 
-    const { rows } = await pool.query('SELECT data FROM brackets WHERE competition_id = $1', [competitionId]);
-    if (rows.length) {
-      const stages = mapBrackets(rows[0].data);
+    const { data, error } = await db.query('brackets', {
+      select: 'data',
+      eq: { competition_id: competitionId },
+      maybeSingle: true,
+    });
+    if (error) throw error;
+
+    if (data) {
+      const stages = mapBrackets(data.data);
       if (stages.length) return res.json(stages);
     }
 
