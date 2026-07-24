@@ -281,7 +281,32 @@ async function handleAdminRoute(req, res, url) {
 }
 
 /**
- * Hace una solicitud a la API de Telegram
+ * Errores que la API de Telegram puede devolver cuando parse_mode=Markdown
+ * es rechazado. Ver:
+ *  - 400 Bad Request: can't parse entities
+ *  - descripciones que mencionan "Markdown", "entity", "parse"
+ */
+const MARKDOWN_HINTS = [
+  "can't parse",
+  "parse entities",
+  'parse_mode',
+  'unsupported start symbol',
+  'no start symbol',
+];
+
+function looksLikeMarkdownIssue(parsed) {
+  const text = `${parsed?.description || ''}`;
+  return text && MARKDOWN_HINTS.some((h) => text.toLowerCase().includes(h));
+}
+
+/**
+ * Hace una solicitud a la API de Telegram.
+ *
+ * Antes: cualquier `ok:false` (excepto 429) se resolvía con `parsed`,
+ *        dejando al caller creer que el mensaje se había enviado. Ahora:
+ *        se rechaza con un Error anotado con flags para que sendMessage /
+ *        sendPhoto puedan decidir fallback (Markdown → plain text) y que
+ *        el caller de alto nivel vea el fallo.
  */
 async function telegramRequest(method, params = {}, timeoutMs = 60000) {
   const url = new URL(`${API_URL}/${method}`);
@@ -300,19 +325,25 @@ async function telegramRequest(method, params = {}, timeoutMs = 60000) {
       res.on('end', () => {
         try {
           const parsed = JSON.parse(data);
-          if (!parsed.ok) {
-            // Telegram 429 Too Many Requests: exponer retry_after para backoff
-            if (parsed.error_code === 429 && parsed.parameters?.retry_after) {
-              const retryErr = new Error(`Telegram 429: retry_after ${parsed.parameters.retry_after}s`);
-              retryErr.isRateLimited = true;
-              retryErr.retryAfter = parsed.parameters.retry_after;
-              retryErr.response = parsed;
-              reject(retryErr);
-              return;
-            }
-            console.error(`[Telegram API] ${method} falló:`, parsed.description);
+          if (parsed.ok) return resolve(parsed);
+          const markdownIssue = looksLikeMarkdownIssue(parsed);
+          const err = new Error(
+            `Telegram API ${method} ${parsed.error_code || ''}: ${parsed.description || 'unknown error'}`
+          );
+          err.telegramError = true;
+          err.response = parsed;
+          err.markdownIssue = markdownIssue;
+          err.description = parsed.description;
+          err.errorCode = parsed.error_code;
+          if (parsed.error_code === 429 && parsed.parameters?.retry_after) {
+            err.isRateLimited = true;
+            err.retryAfter = parsed.parameters.retry_after;
           }
-          resolve(parsed);
+          console.error(
+            `[Telegram API] ${method} falló [${parsed.error_code}]: ${parsed.description}` +
+              (markdownIssue ? ' (markdownIssue=true)' : '')
+          );
+          reject(err);
         } catch (e) {
           reject(new Error(`Telegram API (${method}): respuesta no-JSON: ${data.substring(0, 200)}`));
         }
@@ -326,25 +357,51 @@ async function telegramRequest(method, params = {}, timeoutMs = 60000) {
 }
 
 /**
- * Envía un mensaje (con backoff ante 429)
+ * Envía un mensaje (con backoff ante 429).
+ *
+ * Si el primer intento falla por un error relacionado con Markdown,
+ * reintenta sin `parse_mode` (texto plano). Solo se hace UN fallback,
+ * no un loop infinito.
  */
 async function sendMessage(chatId, text, options = {}) {
-  return telegramRequestWithRetry('sendMessage', {
+  const params = {
     chat_id: chatId,
     text,
     parse_mode: 'Markdown',
-    ...options
-  });
+    ...options,
+  };
+  try {
+    return await telegramRequestWithRetry('sendMessage', params);
+  } catch (err) {
+    if (err.markdownIssue && params.parse_mode) {
+      const retryParams = { ...params };
+      delete retryParams.parse_mode;
+      console.warn(`[Telegram] sendMessage markdown inválido, reintentando sin parse_mode`);
+      return telegramRequestWithRetry('sendMessage', retryParams);
+    }
+    throw err;
+  }
 }
 
 async function sendPhoto(chatId, photoUrl, caption = '', options = {}) {
-  return telegramRequestWithRetry('sendPhoto', {
+  const params = {
     chat_id: chatId,
     photo: photoUrl,
     caption,
     parse_mode: 'Markdown',
-    ...options
-  });
+    ...options,
+  };
+  try {
+    return await telegramRequestWithRetry('sendPhoto', params);
+  } catch (err) {
+    if (err.markdownIssue && params.parse_mode) {
+      const retryParams = { ...params };
+      delete retryParams.parse_mode;
+      console.warn(`[Telegram] sendPhoto markdown inválido en caption, reintentando sin parse_mode`);
+      return telegramRequestWithRetry('sendPhoto', retryParams);
+    }
+    throw err;
+  }
 }
 
 async function sendMediaGroup(chatId, media, options = {}) {
