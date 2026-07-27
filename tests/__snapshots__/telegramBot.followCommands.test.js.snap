@@ -1,5 +1,61 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
+exports[`handleCommand — Follow/Equipos (golden-master) /analizar brasil vs argentina (delega + teclado h2h/odds) 1`] = `
+[
+  {
+    "method": "sendMessage",
+    "params": {
+      "chat_id": 12345,
+      "parse_mode": "Markdown",
+      "text": "📊 Análisis: Brasil favorito.",
+    },
+  },
+  {
+    "method": "sendMessage",
+    "params": {
+      "chat_id": 12345,
+      "parse_mode": "Markdown",
+      "reply_markup": {
+        "inline_keyboard": [
+          [
+            {
+              "callback_data": "h2h_888",
+              "text": "🤝 H2H",
+            },
+            {
+              "callback_data": "odds_888",
+              "text": "🎲 Odds",
+            },
+          ],
+        ],
+      },
+      "text": "📊 Acciones:",
+    },
+  },
+]
+`;
+
+exports[`handleCommand — Follow/Equipos (golden-master) /analizar sin argumento (usage) 1`] = `
+[
+  {
+    "method": "sendMessage",
+    "params": {
+      "chat_id": 12345,
+      "parse_mode": "Markdown",
+      "text": "📊 *Analizar partido*
+
+Uso: \`/analizar [equipo1] vs [equipo2]\`
+
+Ejemplos:
+• /analizar Brasil vs Francia
+• /analizar Argentina vs Alemania
+
+Genero estadísticas, forma reciente y pronóstico.",
+    },
+  },
+]
+`;
+
 exports[`handleCommand — Follow/Equipos (golden-master) /dejarseguir brasil (delega body "dejar de seguir brasil") 1`] = `
 [
   {
@@ -74,6 +130,40 @@ Por ahora te muestro dónde se juega (estadio) el próximo partido.",
 ]
 `;
 
+exports[`handleCommand — Follow/Equipos (golden-master) /goles brasil (delega body "goles de brasil") 1`] = `
+[
+  {
+    "method": "sendMessage",
+    "params": {
+      "chat_id": 12345,
+      "parse_mode": "Markdown",
+      "text": "⚽ Brasil: 12 goles en 5 partidos.",
+    },
+  },
+]
+`;
+
+exports[`handleCommand — Follow/Equipos (golden-master) /goles sin argumento (usage — stat alias) 1`] = `
+[
+  {
+    "method": "sendMessage",
+    "params": {
+      "chat_id": 12345,
+      "parse_mode": "Markdown",
+      "text": "📊 *GOLES [equipo]*
+
+Uso: \`/goles [equipo]\`
+
+Ejemplos:
+• /goles Brasil
+• /goles Argentina
+
+Te muestro goles de los últimos partidos.",
+    },
+  },
+]
+`;
+
 exports[`handleCommand — Follow/Equipos (golden-master) /grupo A (delega body "tabla grupo A", sin media group) 1`] = `
 [
   {
@@ -131,6 +221,141 @@ exports[`handleCommand — Follow/Equipos (golden-master) /misfavoritos (delega 
       "chat_id": 12345,
       "parse_mode": "Markdown",
       "text": "⭐ Tus equipos: Brasil, Argentina",
+    },
+  },
+]
+`;
+
+exports[`handleCommand — Follow/Equipos (golden-master) /proximos brasil — equipo no encontrado 1`] = `
+[
+  {
+    "method": "sendMessage",
+    "params": {
+      "chat_id": 12345,
+      "parse_mode": "Markdown",
+      "text": "⚠️ No encontré al equipo "brasil".",
+    },
+  },
+]
+`;
+
+exports[`handleCommand — Follow/Equipos (golden-master) /proximos sin argumento (usage) 1`] = `
+[
+  {
+    "method": "sendMessage",
+    "params": {
+      "chat_id": 12345,
+      "parse_mode": "Markdown",
+      "text": "📅 *PRÓXIMOS [equipo]*
+
+Uso: \`/proximos [equipo]\`
+
+• /proximos Brasil — Próximos 5 partidos
+• /siguiente Argentina — Solo el siguiente partido",
+    },
+  },
+]
+`;
+
+exports[`handleCommand — Follow/Equipos (golden-master) /racha brasil (delega body "cual es la racha de brasil" + sendPhoto) 1`] = `
+[
+  {
+    "method": "sendPhoto",
+    "params": {
+      "caption": "🔥 Brasil: W W W D L",
+      "chat_id": 12345,
+      "parse_mode": "Markdown",
+      "photo": "https://img.test/badge.png",
+    },
+  },
+]
+`;
+
+exports[`handleCommand — Follow/Equipos (golden-master) /racha sin argumento (usage) 1`] = `
+[
+  {
+    "method": "sendMessage",
+    "params": {
+      "chat_id": 12345,
+      "parse_mode": "Markdown",
+      "text": "🔥 *RACHA [equipo]*
+
+Uso: \`/racha [equipo]\`
+
+Ejemplos:
+• /racha Brasil
+• /racha Argentina
+
+Te muestro la racha actual (W = victorias, L = derrotas).",
+    },
+  },
+]
+`;
+
+exports[`handleCommand — Follow/Equipos (golden-master) /resultado brasil (un equipo → sendPhoto) 1`] = `
+[
+  {
+    "method": "sendPhoto",
+    "params": {
+      "caption": "🇧🇷 Brasil 2 - 0 Serbia.",
+      "chat_id": 12345,
+      "parse_mode": "Markdown",
+      "photo": "https://img.test/badge.png",
+    },
+  },
+]
+`;
+
+exports[`handleCommand — Follow/Equipos (golden-master) /resultado brasil vs argentina (dos badges → mediaGroup + teclado) 1`] = `
+[
+  {
+    "method": "sendMediaGroup",
+    "params": {
+      "chat_id": 12345,
+      "media": [
+        {
+          "media": "https://img.test/badge.png",
+          "type": "photo",
+        },
+        {
+          "media": "https://img.test/badge.png",
+          "type": "photo",
+        },
+      ],
+    },
+  },
+  {
+    "method": "sendMessage",
+    "params": {
+      "chat_id": 12345,
+      "parse_mode": "Markdown",
+      "text": "🏆 Brasil 1 - 1 Argentina.",
+    },
+  },
+  {
+    "method": "sendMessage",
+    "params": {
+      "chat_id": 12345,
+      "parse_mode": "Markdown",
+      "reply_markup": {
+        "inline_keyboard": [
+          [
+            {
+              "callback_data": "tip_777",
+              "text": "🎯 Tip",
+            },
+            {
+              "callback_data": "trends_777",
+              "text": "📊 Trends",
+            },
+            {
+              "callback_data": "odds_777",
+              "text": "🎲 Odds",
+            },
+          ],
+        ],
+      },
+      "text": "📊 Acciones:",
     },
   },
 ]

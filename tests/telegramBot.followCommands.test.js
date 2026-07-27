@@ -23,7 +23,7 @@ jest.mock('../database/connection', () => ({
   pool: { query: jest.fn().mockResolvedValue({ rows: [] }) },
   testConnection: jest.fn().mockResolvedValue(false),
 }));
-jest.mock('../services/matchSearch', () => ({}));
+jest.mock('../services/matchSearch', () => ({ findGameByTeams: jest.fn() }));
 jest.mock('../services/scores365Service', () => ({}));
 jest.mock('../handlers/followHandler', () => ({}));
 jest.mock('../handlers/conversationalHandler', () => ({}));
@@ -49,6 +49,7 @@ jest.mock('../services/mundialCache', () => ({
 
 const messageHandler = require('../handlers/messageHandler');
 const cache = require('../services/mundialCache');
+const matchSearch = require('../services/matchSearch');
 const bot = require('../telegramBot');
 
 const CHAT = 12345;
@@ -64,6 +65,7 @@ beforeEach(() => {
   cache.getTeamByName.mockReset();
   cache.getRecentWorldCupMatchesByTeam.mockReset();
   cache.getWorldCupStandings.mockReset();
+  matchSearch.findGameByTeams.mockReset();
   messageHandler.mockReset();
 });
 
@@ -141,6 +143,84 @@ describe('handleCommand — Follow/Equipos (golden-master)', () => {
     cache.getTeamByName.mockResolvedValue({ id: 4, name: 'Brasil' });
     cache.getRecentWorldCupMatchesByTeam.mockResolvedValue([]);
     const result = await bot.handleCommand(CHAT, '/dondever brasil', 'Tester', USER);
+    expect(result).toBe(true);
+    expect(getSent()).toMatchSnapshot();
+  });
+
+  test('/resultado brasil (un equipo → sendPhoto)', async () => {
+    replyWith('🇧🇷 Brasil 2 - 0 Serbia.');
+    cache.getTeamByName.mockResolvedValue({ id: 4, name: 'Brasil', imageVersion: 2 });
+    const result = await bot.handleCommand(CHAT, '/resultado brasil', 'Tester', USER);
+    expect(result).toBe(true);
+    expect(messageHandler.mock.calls[0][1].body).toBe('como quedo brasil');
+    expect(getSent()).toMatchSnapshot();
+  });
+
+  test('/resultado brasil vs argentina (dos badges → mediaGroup + teclado)', async () => {
+    replyWith('🏆 Brasil 1 - 1 Argentina.');
+    cache.getTeamByName
+      .mockResolvedValueOnce({ id: 4, name: 'Brasil', imageVersion: 2 })
+      .mockResolvedValueOnce({ id: 7, name: 'Argentina', imageVersion: 3 });
+    matchSearch.findGameByTeams.mockResolvedValue({ id: 777 });
+    const result = await bot.handleCommand(CHAT, '/resultado brasil vs argentina', 'Tester', USER);
+    expect(result).toBe(true);
+    expect(messageHandler.mock.calls[0][1].body).toBe('como quedo brasil vs argentina');
+    expect(getSent()).toMatchSnapshot();
+  });
+
+  test('/analizar sin argumento (usage)', async () => {
+    const result = await bot.handleCommand(CHAT, '/analizar', 'Tester', USER);
+    expect(result).toBe(true);
+    expect(getSent()).toMatchSnapshot();
+  });
+
+  test('/analizar brasil vs argentina (delega + teclado h2h/odds)', async () => {
+    replyWith('📊 Análisis: Brasil favorito.');
+    matchSearch.findGameByTeams.mockResolvedValue({ id: 888 });
+    const result = await bot.handleCommand(CHAT, '/analizar brasil vs argentina', 'Tester', USER);
+    expect(result).toBe(true);
+    expect(messageHandler.mock.calls[0][1].body).toBe('analiza brasil vs argentina');
+    expect(getSent()).toMatchSnapshot();
+  });
+
+  test('/racha sin argumento (usage)', async () => {
+    const result = await bot.handleCommand(CHAT, '/racha', 'Tester', USER);
+    expect(result).toBe(true);
+    expect(getSent()).toMatchSnapshot();
+  });
+
+  test('/racha brasil (delega body "cual es la racha de brasil" + sendPhoto)', async () => {
+    replyWith('🔥 Brasil: W W W D L');
+    cache.getTeamByName.mockResolvedValue({ id: 4, name: 'Brasil', imageVersion: 2 });
+    const result = await bot.handleCommand(CHAT, '/racha brasil', 'Tester', USER);
+    expect(result).toBe(true);
+    expect(messageHandler.mock.calls[0][1].body).toBe('cual es la racha de brasil');
+    expect(getSent()).toMatchSnapshot();
+  });
+
+  test('/goles sin argumento (usage — stat alias)', async () => {
+    const result = await bot.handleCommand(CHAT, '/goles', 'Tester', USER);
+    expect(result).toBe(true);
+    expect(getSent()).toMatchSnapshot();
+  });
+
+  test('/goles brasil (delega body "goles de brasil")', async () => {
+    replyWith('⚽ Brasil: 12 goles en 5 partidos.');
+    const result = await bot.handleCommand(CHAT, '/goles brasil', 'Tester', USER);
+    expect(result).toBe(true);
+    expect(messageHandler.mock.calls[0][1].body).toBe('goles de brasil');
+    expect(getSent()).toMatchSnapshot();
+  });
+
+  test('/proximos sin argumento (usage)', async () => {
+    const result = await bot.handleCommand(CHAT, '/proximos', 'Tester', USER);
+    expect(result).toBe(true);
+    expect(getSent()).toMatchSnapshot();
+  });
+
+  test('/proximos brasil — equipo no encontrado', async () => {
+    cache.getTeamByName.mockResolvedValue(null);
+    const result = await bot.handleCommand(CHAT, '/proximos brasil', 'Tester', USER);
     expect(result).toBe(true);
     expect(getSent()).toMatchSnapshot();
   });
