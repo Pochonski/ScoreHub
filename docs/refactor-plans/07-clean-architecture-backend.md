@@ -17,8 +17,8 @@
 | Fase | Estado | Detalle |
 |---|---|---|
 | 0 · Red de seguridad | ✅ | Jest en root, andamiaje en `telegramBot.js`, esqueleto de capas, **59 golden-master tests** (55 comandos del bot + 4 de sync), todos verde. |
-| 1 · Transporte/lifecycle | ⏳ | siguiente |
-| 2 · Router + comandos | ⏳ | |
+| 1 · Transporte/lifecycle | ✅ | Transporte (`client.js`), HTTP server (`http/server.js`) y lifecycle (`lifecycle.js`) aislados en `src/interface/` + composition root. `telegramBot.js`: 1957 → 1419 líneas. **77 tests** (59 golden + 8 http + 10 lifecycle). |
+| 2 · Router + comandos | ⏳ | siguiente |
 | 3 · Migrar comandos | ⏳ | |
 | 4 · Sync | ⏳ | |
 | 5 · Infra/cross-cutting | ⏳ | |
@@ -164,13 +164,14 @@ Estos principios son **innegociables** y aplican a cada fase:
 - Crear `infrastructure/container.js` vacío (contrato de wiring).
 - **Aceptación**: `npm test` (root) verde; el bot y el sync arrancan e imprimen idéntico a antes; `git diff` no toca `telegramBot.js`/`syncService.js` salvo `require` de test si hiciera falta exponer funciones (preferible exponer vía export condicionado a `NODE_ENV==='test'`).
 
-### Fase 1 — Aislar transporte y lifecycle de Telegram · Riesgo: **Bajo** · Esfuerzo: 4–6 h
+### Fase 1 — Aislar transporte y lifecycle de Telegram · Riesgo: **Bajo** · Esfuerzo: 4–6 h · ✅ COMPLETA
 Extracción mecánica pura desde `telegramBot.js`:
-- `interface/telegram/client.js` ← `telegramRequest`, `telegramRequestWithRetry`, `sendMessage`, `sendPhoto`, `sendMediaGroup`, `looksLikeMarkdownIssue`.
-- `interface/telegram/lifecycle.js` ← `pollingLoop`, `fetchOnce`, `processUpdates`, `handleWebhookUpdate`, `init`, `sleep`.
-- `interface/http/adminServer.js` ← `handleAdminRoute`, `checkRateLimit`.
-- `telegramBot.js` queda como composition root delgado que importa y cablea estos módulos.
-- **Aceptación**: golden-master de Fase 0 verde sin cambios; `telegramBot.js` baja de ~1.925 a unas ~1.200 líneas (casi todo lo que queda es `handleCommand`).
+- `src/interface/telegram/client.js` ← `telegramRequest`, `telegramRequestWithRetry`, `sendMessage`, `sendPhoto`, `sendMediaGroup`, `looksLikeMarkdownIssue`. ✅
+- `src/interface/telegram/lifecycle.js` ← `pollingLoop`, `fetchOnce`, `processUpdates`, `handleWebhookUpdate`, `init`, `sleep` — como factory `createLifecycle(deps)`. ✅
+- `src/interface/http/server.js` ← `handleAdminRoute`, `checkRateLimit`, request handler — como factory `createHttpServer(deps)`. ✅
+- `telegramBot.js` queda con un **composition root** explícito al final que cablea lifecycle + HTTP server con los handlers de dominio. ✅
+- Redes de tests nuevas: `tests/http.server.test.js` (8), `tests/lifecycle.test.js` (10) además de los 59 golden-master.
+- **Resultado**: `telegramBot.js` 1957 → **1419 líneas**; 77/77 tests verde; wiring de producción verificado. Los golden-master siguen byte-idénticos → comportamiento preservado.
 
 ### Fase 2 — Router + registry + primeros 3 comandos (arranca strangler) · Riesgo: **Medio** · Esfuerzo: 6–8 h
 - `interface/telegram/router.js`: registry `Map<comando, handler>` con soporte de alias y `@botmundialistabot`.
