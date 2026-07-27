@@ -6,10 +6,11 @@ Roadmap en 4 fases para enderezar la deuda técnica que DeepSeek introdujo al ex
 
 | Fase | Plan | Estado | Esfuerzo | Riesgo |
 |---|---|---|---|---|
-| 1 | [Estabilizar lo existente](./01-stabilize-current-state.md) | Pendiente | 2-3 h | Bajo |
-| 2 | [Integridad de datos en sync](./02-sync-data-integrity.md) | Pendiente | 6-8 h | Medio |
-| 3 | [Modelo de datos (migraciones)](./03-data-model.md) | Pendiente | 8-12 h | Alto (migraciones) |
-| 4 | [Migración a Supabase JS (HTTP)](./04-supabase-js-migration.md) | Pendiente | 12-16 h | Medio |
+| 1 | [Estabilizar lo existente](./01-stabilize-current-state.md) | ✅ Cerrado | 2-3 h | Bajo |
+| 2 | [Integridad de datos en sync](./02-sync-data-integrity.md) | ✅ Cerrado | 6-8 h | Medio |
+| 3 | [Modelo de datos (migraciones)](./03-data-model.md) | ✅ Cerrado | 8-12 h | Alto (migraciones) |
+| 4 | [Migración a Supabase JS (HTTP)](./04-supabase-js-migration.md) | ✅ code / ⏳ activación | 12-16 h | Medio |
+| 7 | [Clean Architecture en el backend/root](./07-clean-architecture-backend.md) | Pendiente | 55-75 h | Medio (incremental) |
 
 ## Checklist de seguimiento
 
