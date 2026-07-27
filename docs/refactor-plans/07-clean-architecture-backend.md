@@ -10,7 +10,28 @@
 > - Lenguaje: **CommonJS/JS** por ahora. La migración a TypeScript es una fase futura aparte.
 > - Estrategia de seguridad: **golden-master tests primero → strangler fig comando por comando**.
 >
-> **Estado**: Pendiente. Esta fase NO se empieza hasta cerrar/validar este plan con el usuario.
+> **Estado**: **Fase 0 completa** ✅ (rama `refactor/clean-arch-phase7`, [PR #2](https://github.com/Pochonski/ScoreHub/pull/2)). Fases 1-6 pendientes.
+
+## Progreso
+
+| Fase | Estado | Detalle |
+|---|---|---|
+| 0 · Red de seguridad | ✅ | Jest en root, andamiaje en `telegramBot.js`, esqueleto de capas, **59 golden-master tests** (55 comandos del bot + 4 de sync), todos verde. |
+| 1 · Transporte/lifecycle | ⏳ | siguiente |
+| 2 · Router + comandos | ⏳ | |
+| 3 · Migrar comandos | ⏳ | |
+| 4 · Sync | ⏳ | |
+| 5 · Infra/cross-cutting | ⏳ | |
+| 6 · Legacy + docs | ⏳ | |
+
+**Cobertura golden-master de Fase 0** (`npm test` en el root):
+- `tests/telegramBot.commands.test.js` — texto/usage prompts
+- `tests/telegramBot.dataCommands.test.js` — fixture/live/tips/trends/stats
+- `tests/telegramBot.followCommands.test.js` — seguir/dejarseguir/info/grupo/resultado/analizar/racha/proximos
+- `tests/telegramBot.historyCommands.test.js` — noticias/bracket/historial/goleadores/jugador/h2h/previa
+- `tests/telegramBot.processMessage.test.js` — router de entrada (follow/conversational/fallback)
+- `tests/sync.golden.test.js` — escrituras de standings/games/news
+- Helpers: `tests/helpers/httpsCapture.js` (transporte Telegram), `tests/helpers/dbCapture.js` (escrituras DB)
 
 ---
 
@@ -134,7 +155,7 @@ Estos principios son **innegociables** y aplican a cada fase:
 
 ## 4. Fases
 
-### Fase 0 — Red de seguridad y andamiaje · Riesgo: **Bajo** · Esfuerzo: 6–8 h
+### Fase 0 — Red de seguridad y andamiaje · Riesgo: **Bajo** · Esfuerzo: 6–8 h · ✅ COMPLETA
 **Nada se mueve todavía.** Sólo se crea con qué verificar.
 - Configurar Jest en el root (`package.json` `test` script + config), reusando el patrón de `dashboard/server`.
 - **Golden-master del bot**: tests que llaman a `handleCommand`/`processMessage` con `scores365`, `db`, `gemini`, `images` y el cliente Telegram mockeados; snapshot de cada `sendMessage`/`sendPhoto` para los ~15 comandos más usados (`/live`, `/fixture`, `/tabla`, `/tip`, `/odds`, `/previa`, `/h2h`, `/jugador`, `/goleadores`, `/seguir`, `/misfavoritos`, `/noticias`, `/historial`, `/bracket`, `/proximos`).
