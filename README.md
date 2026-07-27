@@ -90,7 +90,7 @@ cd dashboard/server && npm install  # API
 cp .env.example .env       # y completa los valores reales (Telegram, Gemini, Supabase)
 
 # 3. Base de datos
-# Las migraciones están en database/migrations/ (002-005). Aplicarlas en Supabase.
+# Las migraciones están en database/migrations/ (002-019). Aplicarlas en orden en Supabase.
 
 # 4. Arrancar (en terminales separadas)
 npm run start:telegram     # bot de Telegram (long-polling)
@@ -138,7 +138,6 @@ Cosas que no se pueden automatizar desde código y requieren acción externa:
 
 - **Renombrar el proyecto en Supabase**: el proyecto Supabase se llama "BotFutbolista" (un tercer nombre, distinto de `BotMundialista`/carpeta y `ScoreHub`/app). Para alinearlo, ir a la consola de Supabase → Project Settings → General → Name. No afecta a código ni connection strings.
 - **Renombrar la carpeta del repo** `BotMundialista` → `scorehub`: requiere rename en GitHub + actualizar clones locales y el deploy de Vercel.
-- **Instalar dependencias del root**: `cors`, `express-rate-limit`, `helmet`, `pino`, `pino-http`, `pino-pretty` están en `package.json` pero no en `node_modules`. El `utils/logger.js` tiene fallback a `console`, pero para usar pino correctamente correr `npm install` en la raíz.
 
 ## Activar Supabase JS (HTTP) en Vercel
 

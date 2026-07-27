@@ -224,17 +224,49 @@ async function execAdvancedFull(sql, params = []) {
 // Fallbacks (when Supabase not configured)
 // ============================================================================
 
+// El path HTTP (PostgREST) valida identificadores por su cuenta, pero el
+// fallback pg interpola nombres de tabla/columna directamente en el SQL. Hoy
+// todos los callers pasan literales, pero estos guards impiden que un futuro
+// caller reenvíe input de usuario a una posición de identificador.
+const IDENT_RE = /^[a-zA-Z_][a-zA-Z0-9_]*(\.[a-zA-Z_][a-zA-Z0-9_]*)?$/;
+
+function assertIdent(name, kind = 'identifier') {
+  if (typeof name !== 'string' || !IDENT_RE.test(name)) {
+    throw new Error(`Unsafe SQL ${kind}: ${JSON.stringify(name)}`);
+  }
+  return name;
+}
+
+// `select` puede ser '*' o una lista de columnas separadas por coma. Se validan
+// los identificadores individuales; se rechaza cualquier token que rompa el
+// contexto de lista de columnas (subqueries, comentarios, terminadores).
+function assertSelectList(select) {
+  if (select == null) return '*';
+  if (typeof select !== 'string') {
+    throw new Error(`Unsafe SQL select list: ${JSON.stringify(select)}`);
+  }
+  const trimmed = select.trim();
+  if (trimmed === '*') return trimmed;
+  for (const col of trimmed.split(',')) {
+    const c = col.trim();
+    if (c !== '*') assertIdent(c, 'select column');
+  }
+  return trimmed;
+}
+
 function buildWhereFromFilters(filters = {}) {
   const conds = [];
   const params = [];
   if (filters.eq) {
     for (const [col, val] of Object.entries(filters.eq)) {
+      assertIdent(col, 'filter column');
       params.push(val);
       conds.push(`${col} = $${params.length}`);
     }
   }
   if (filters.in) {
     for (const [col, vals] of Object.entries(filters.in)) {
+      assertIdent(col, 'filter column');
       params.push(vals);
       conds.push(`${col} = ANY($${params.length}::int[])`);
     }
@@ -245,12 +277,15 @@ function buildWhereFromFilters(filters = {}) {
 async function queryViaPg(table, options) {
   recordPgCall();
   try {
+    assertIdent(table, 'table');
     const { conds, params } = buildWhereFromFilters({ eq: options.eq, in: options.in });
-    let sql = `SELECT ${options.select || '*'} FROM ${table}`;
+    let sql = `SELECT ${assertSelectList(options.select)} FROM ${table}`;
     if (conds.length) sql += ' WHERE ' + conds.join(' AND ');
     if (options.order) {
       const orders = Array.isArray(options.order) ? options.order : [options.order];
-      sql += ' ORDER BY ' + orders.map((o) => `${o.column} ${o.asc ? 'ASC' : 'DESC'}`).join(', ');
+      sql += ' ORDER BY ' + orders
+        .map((o) => `${assertIdent(o.column, 'order column')} ${o.asc ? 'ASC' : 'DESC'}`)
+        .join(', ');
     }
     if (options.limit) {
       sql += ` LIMIT ${parseInt(options.limit, 10)}`;
@@ -282,16 +317,21 @@ async function insertViaPg(table, rows, { onConflict, select }) {
   try {
     const arr = Array.isArray(rows) ? rows : [rows];
     if (!arr.length) return { data: [], error: null };
+    assertIdent(table, 'table');
     const keys = Object.keys(arr[0]);
+    keys.forEach((k) => assertIdent(k, 'column'));
+    const conflictCols = onConflict
+      ? (Array.isArray(onConflict) ? onConflict : [onConflict]).map((c) => assertIdent(c, 'conflict column'))
+      : null;
     const values = arr.flatMap((r) => keys.map((k) => r[k]));
     const placeholders = arr.map((_, ri) =>
       '(' + keys.map((_, ci) => `$${ri * keys.length + ci + 1}`).join(', ') + ')'
     ).join(', ');
     let sql = `INSERT INTO ${table} (${keys.join(', ')}) VALUES ${placeholders}`;
-    if (onConflict) {
-      sql += ` ON CONFLICT (${Array.isArray(onConflict) ? onConflict.join(', ') : onConflict}) DO NOTHING`;
+    if (conflictCols) {
+      sql += ` ON CONFLICT (${conflictCols.join(', ')}) DO NOTHING`;
     }
-    if (select) sql += ` RETURNING ${select}`;
+    if (select) sql += ` RETURNING ${assertSelectList(select)}`;
     const result = await pool.query(sql, values);
     return { data: result.rows, error: null };
   } catch (err) {
@@ -305,19 +345,23 @@ async function upsertViaPg(table, rows, onConflict, { select } = {}) {
   try {
     const arr = Array.isArray(rows) ? rows : [rows];
     if (!arr.length) return { data: [], error: null };
+    assertIdent(table, 'table');
     const keys = Object.keys(arr[0]);
+    keys.forEach((k) => assertIdent(k, 'column'));
+    const conflictCols = (Array.isArray(onConflict) ? onConflict : [onConflict])
+      .map((c) => assertIdent(c, 'conflict column'));
     const values = arr.flatMap((r) => keys.map((k) => r[k]));
     const placeholders = arr.map((_, ri) =>
       '(' + keys.map((_, ci) => `$${ri * keys.length + ci + 1}`).join(', ') + ')'
     ).join(', ');
-    const conflictClause = Array.isArray(onConflict) ? onConflict.join(', ') : onConflict;
+    const conflictClause = conflictCols.join(', ');
     const updates = keys
-      .filter((k) => !conflictClause.includes(k))
+      .filter((k) => !conflictCols.includes(k))
       .map((k) => `${k} = EXCLUDED.${k}`)
       .join(', ');
     let sql = `INSERT INTO ${table} (${keys.join(', ')}) VALUES ${placeholders}
                ON CONFLICT (${conflictClause}) DO UPDATE SET ${updates}`;
-    if (select) sql += ` RETURNING ${select}`;
+    if (select) sql += ` RETURNING ${assertSelectList(select)}`;
     const result = await pool.query(sql, values);
     return { data: result.rows, error: null };
   } catch (err) {
@@ -329,7 +373,9 @@ async function upsertViaPg(table, rows, onConflict, { select } = {}) {
 async function updateViaPg(table, updates, filter) {
   recordPgCall();
   try {
+    assertIdent(table, 'table');
     const keys = Object.keys(updates);
+    keys.forEach((k) => assertIdent(k, 'column'));
     const setClause = keys.map((k, i) => `${k} = $${i + 1}`).join(', ');
     const params = keys.map((k) => updates[k]);
     const whereFromFilters = buildWhereFromFilters(filter);
@@ -351,6 +397,7 @@ async function updateViaPg(table, updates, filter) {
 async function removeViaPg(table, filter) {
   recordPgCall();
   try {
+    assertIdent(table, 'table');
     const whereFromFilters = buildWhereFromFilters(filter);
     let sql = `DELETE FROM ${table}`;
     if (whereFromFilters.conds.length) {
