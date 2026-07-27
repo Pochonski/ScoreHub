@@ -210,6 +210,27 @@ Usa este checklist para tildar items a medida que avanzas. Cada sección corresp
 
 ---
 
+## 📌 Fase 7 — Clean Architecture en el backend/root 🚧
+
+> Plan: [07-clean-architecture-backend.md](./07-clean-architecture-backend.md) · Rama `refactor/clean-arch-phase7` · [PR #2](https://github.com/Pochonski/ScoreHub/pull/2)
+
+### Fase 0 — Red de seguridad + andamiaje ✅
+- [x] Jest en el root (`jest.config.js`, script `test`)
+- [x] Andamiaje `telegramBot.js`: `init()`/`server.listen`/señales bajo `require.main === module && NODE_ENV !== 'test'`; `module.exports` de `handleCommand`/`processMessage`
+- [x] Harness golden-master: `tests/helpers/httpsCapture.js` (transporte Telegram) + `tests/helpers/dbCapture.js` (escrituras DB)
+- [x] **59 golden-master tests** (55 comandos del bot + 4 de sync), todos verde
+- [x] Esqueleto de capas `src/{domain,application,infrastructure,interface}` + README por capa + `container.js`
+
+### Fases 1-6 — pendientes
+- [ ] Fase 1 — aislar transporte/lifecycle de Telegram a `interface/telegram/`
+- [ ] Fase 2 — router + registry + primeros 3 comandos (arranca strangler)
+- [ ] Fase 3 — dominio + application; migrar el resto de comandos por lotes
+- [ ] Fase 4 — sync como use-cases + scheduler
+- [ ] Fase 5 — consolidar infraestructura y cross-cutting
+- [ ] Fase 6 — limpieza legacy (WhatsApp) + docs de arquitectura
+
+---
+
 ## 📌 Pendientes futuros (opcionales)
 
 1. **Activar Supabase JS HTTP en Vercel** — solo requiere agregar env vars (procedimiento documentado)

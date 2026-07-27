@@ -1,0 +1,217 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`handleCommand — comandos con datos (golden-master) /fixture con partidos futuros (teclado inline) 1`] = `
+[
+  {
+    "method": "sendMessage",
+    "params": {
+      "chat_id": 12345,
+      "parse_mode": "Markdown",
+      "reply_markup": {
+        "inline_keyboard": [
+          [
+            {
+              "callback_data": "odds_111",
+              "text": "🎲 Odds BRA-ARG",
+            },
+          ],
+        ],
+      },
+      "text": "📅 *FIXTURE DEL MUNDIAL*
+
+Brasil vs Argentina",
+    },
+  },
+]
+`;
+
+exports[`handleCommand — comandos con datos (golden-master) /live con partidos en vivo (teclado stats+odds) 1`] = `
+[
+  {
+    "method": "sendMessage",
+    "params": {
+      "chat_id": 12345,
+      "parse_mode": "Markdown",
+      "reply_markup": {
+        "inline_keyboard": [
+          [
+            {
+              "callback_data": "stats_222",
+              "text": "📈 Stats Vivo BRA-CHI",
+            },
+            {
+              "callback_data": "odds_222",
+              "text": "🎲 Odds BRA-CHI",
+            },
+          ],
+        ],
+      },
+      "text": "📡 *EN VIVO*
+
+Brasil 1 - 0 Chile",
+    },
+  },
+]
+`;
+
+exports[`handleCommand — comandos con datos (golden-master) /live sin partidos en vivo (texto plano) 1`] = `
+[
+  {
+    "method": "sendMessage",
+    "params": {
+      "chat_id": 12345,
+      "parse_mode": "Markdown",
+      "text": "📡 No hay partidos en vivo en este momento.",
+    },
+  },
+]
+`;
+
+exports[`handleCommand — comandos con datos (golden-master) /odds <gameId> (texto) 1`] = `
+[
+  {
+    "method": "sendMessage",
+    "params": {
+      "chat_id": 12345,
+      "parse_mode": "Markdown",
+      "text": "🎲 *CUOTAS*
+
+1X2: 1.80 / 3.40 / 4.20",
+    },
+  },
+]
+`;
+
+exports[`handleCommand — comandos con datos (golden-master) /outrights (texto) 1`] = `
+[
+  {
+    "method": "sendMessage",
+    "params": {
+      "chat_id": 12345,
+      "parse_mode": "Markdown",
+      "text": "🎲 *CUOTAS OUTRIGHT*
+
+Campeón: Brasil 4.50",
+    },
+  },
+]
+`;
+
+exports[`handleCommand — comandos con datos (golden-master) /predicciones <gameId> (texto + teclado odds) 1`] = `
+[
+  {
+    "method": "sendMessage",
+    "params": {
+      "chat_id": 12345,
+      "parse_mode": "Markdown",
+      "text": "🗳️ *PREDICCIONES*
+
+Brasil 55% / Empate 25% / Argentina 20%",
+    },
+  },
+  {
+    "method": "sendMessage",
+    "params": {
+      "chat_id": 12345,
+      "parse_mode": "Markdown",
+      "reply_markup": {
+        "inline_keyboard": [
+          [
+            {
+              "callback_data": "odds_4749268",
+              "text": "🎲 Odds",
+            },
+          ],
+        ],
+      },
+      "text": "💡 Más opciones:",
+    },
+  },
+]
+`;
+
+exports[`handleCommand — comandos con datos (golden-master) /stats-vivo <gameId> (texto + teclado odds) 1`] = `
+[
+  {
+    "method": "sendMessage",
+    "params": {
+      "chat_id": 12345,
+      "parse_mode": "Markdown",
+      "text": "📊 *STATS EN VIVO*
+
+Posesión 60/40 — Tiros 8/3",
+    },
+  },
+  {
+    "method": "sendMessage",
+    "params": {
+      "chat_id": 12345,
+      "parse_mode": "Markdown",
+      "reply_markup": {
+        "inline_keyboard": [
+          [
+            {
+              "callback_data": "odds_4749268",
+              "text": "🎲 Odds",
+            },
+          ],
+        ],
+      },
+      "text": "💡 Más opciones:",
+    },
+  },
+]
+`;
+
+exports[`handleCommand — comandos con datos (golden-master) /tendencias (top competición + outrights concatenados) 1`] = `
+[
+  {
+    "method": "sendMessage",
+    "params": {
+      "chat_id": 12345,
+      "parse_mode": "Markdown",
+      "text": "📊 *TENDENCIAS*
+
+1. Over 2.5 — 78%
+
+━━━━━━━━━━━━━━━━
+🎲 Campeón: Brasil 4.50",
+    },
+  },
+]
+`;
+
+exports[`handleCommand — comandos con datos (golden-master) /tendencias brasil vs argentina (por equipos + teclado si resuelve partido) 1`] = `
+[
+  {
+    "method": "sendMessage",
+    "params": {
+      "chat_id": 12345,
+      "parse_mode": "Markdown",
+      "text": "📊 Brasil vs Argentina — Over 2.5 72%",
+    },
+  },
+  {
+    "method": "sendMessage",
+    "params": {
+      "chat_id": 12345,
+      "parse_mode": "Markdown",
+      "reply_markup": {
+        "inline_keyboard": [
+          [
+            {
+              "callback_data": "tip_333",
+              "text": "🎯 Tip",
+            },
+            {
+              "callback_data": "odds_333",
+              "text": "🎲 Odds",
+            },
+          ],
+        ],
+      },
+      "text": "💡 Más opciones:",
+    },
+  },
+]
+`;

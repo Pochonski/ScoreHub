@@ -1,0 +1,301 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`handleCommand — Historial/Jugadores (golden-master) /bracket (eliminatorias) 1`] = `
+[
+  {
+    "method": "sendMessage",
+    "params": {
+      "chat_id": 12345,
+      "parse_mode": "Markdown",
+      "text": "🏆 *LLAVES*
+
+Octavos: ...",
+    },
+  },
+]
+`;
+
+exports[`handleCommand — Historial/Jugadores (golden-master) /bracket grupos 1`] = `
+[
+  {
+    "method": "sendMessage",
+    "params": {
+      "chat_id": 12345,
+      "parse_mode": "Markdown",
+      "text": "🏆 *FASE DE GRUPOS*
+
+Grupo A: ...",
+    },
+  },
+]
+`;
+
+exports[`handleCommand — Historial/Jugadores (golden-master) /equipoideal 1`] = `
+[
+  {
+    "method": "sendMessage",
+    "params": {
+      "chat_id": 12345,
+      "parse_mode": "Markdown",
+      "text": "⭐ *EQUIPO IDEAL*
+
+GK: ...",
+    },
+  },
+]
+`;
+
+exports[`handleCommand — Historial/Jugadores (golden-master) /goleadores con foto + outrights 1`] = `
+[
+  {
+    "method": "sendPhoto",
+    "params": {
+      "caption": "👟 *GOLEADORES*
+
+1. Mbappé — 8",
+      "chat_id": 12345,
+      "parse_mode": "Markdown",
+      "photo": "https://img.test/scorer.png",
+    },
+  },
+  {
+    "method": "sendMessage",
+    "params": {
+      "chat_id": 12345,
+      "parse_mode": "Markdown",
+      "text": "🎲 Bota de oro: Mbappé 3.5",
+    },
+  },
+]
+`;
+
+exports[`handleCommand — Historial/Jugadores (golden-master) /goleadores sin foto (texto plano) 1`] = `
+[
+  {
+    "method": "sendMessage",
+    "params": {
+      "chat_id": 12345,
+      "parse_mode": "Markdown",
+      "text": "👟 *GOLEADORES*
+
+1. Mbappé — 8",
+    },
+  },
+  {
+    "method": "sendMessage",
+    "params": {
+      "chat_id": 12345,
+      "parse_mode": "Markdown",
+      "text": "🎲 Bota de oro: Mbappé 3.5",
+    },
+  },
+]
+`;
+
+exports[`handleCommand — Historial/Jugadores (golden-master) /h2h <gameId> (texto + teclado previa/odds) 1`] = `
+[
+  {
+    "method": "sendMessage",
+    "params": {
+      "chat_id": 12345,
+      "parse_mode": "Markdown",
+      "text": "🤝 *H2H*
+
+Brasil 3 - 1 Serbia (histórico)",
+    },
+  },
+  {
+    "method": "sendMessage",
+    "params": {
+      "chat_id": 12345,
+      "parse_mode": "Markdown",
+      "reply_markup": {
+        "inline_keyboard": [
+          [
+            {
+              "callback_data": "previa_4749268",
+              "text": "📊 Previa",
+            },
+            {
+              "callback_data": "odds_4749268",
+              "text": "🎲 Odds",
+            },
+          ],
+        ],
+      },
+      "text": "💡 Más opciones:",
+    },
+  },
+]
+`;
+
+exports[`handleCommand — Historial/Jugadores (golden-master) /h2h sin argumento (usage) 1`] = `
+[
+  {
+    "method": "sendMessage",
+    "params": {
+      "chat_id": 12345,
+      "parse_mode": "Markdown",
+      "text": "🤝 *HISTORIAL ENTRE EQUIPOS (H2H)*
+
+Uso: \`/h2h <gameId>\`
+
+Ejemplo: \`/h2h 4749268\`",
+    },
+  },
+]
+`;
+
+exports[`handleCommand — Historial/Jugadores (golden-master) /historial (todos los campeones) 1`] = `
+[
+  {
+    "method": "sendMessage",
+    "params": {
+      "chat_id": 12345,
+      "parse_mode": "Markdown",
+      "text": "📜 *CAMPEONES*
+
+2022 Argentina...",
+    },
+  },
+]
+`;
+
+exports[`handleCommand — Historial/Jugadores (golden-master) /historial 2022 (por año) 1`] = `
+[
+  {
+    "method": "sendMessage",
+    "params": {
+      "chat_id": 12345,
+      "parse_mode": "Markdown",
+      "text": "📜 *FINAL 2022*
+
+Argentina 3-3 Francia (pen)",
+    },
+  },
+]
+`;
+
+exports[`handleCommand — Historial/Jugadores (golden-master) /jugador mbappe (foto + eventos) 1`] = `
+[
+  {
+    "method": "sendPhoto",
+    "params": {
+      "caption": "⚽ *Kylian Mbappé*
+📌 Delantero, 26 años
+🆔 ID: 12994
+📈 *Últimos eventos:* ⚽ 🟨 ⚽",
+      "chat_id": 12345,
+      "parse_mode": "Markdown",
+      "photo": "https://img.test/athlete.png",
+    },
+  },
+]
+`;
+
+exports[`handleCommand — Historial/Jugadores (golden-master) /jugador sin argumento (usage) 1`] = `
+[
+  {
+    "method": "sendPhoto",
+    "params": {
+      "caption": "⚽ *Kylian Mbappé*
+📌 Delantero, 26 años
+🆔 ID: 12994
+📈 *Últimos eventos:* ⚽ 🟨 ⚽",
+      "chat_id": 12345,
+      "parse_mode": "Markdown",
+      "photo": "https://img.test/athlete.png",
+    },
+  },
+]
+`;
+
+exports[`handleCommand — Historial/Jugadores (golden-master) /noticias (top, equipo null) 1`] = `
+[
+  {
+    "method": "sendMessage",
+    "params": {
+      "chat_id": 12345,
+      "parse_mode": "Markdown",
+      "text": "📰 *NOTICIAS*
+
+1. Título de prueba",
+    },
+  },
+]
+`;
+
+exports[`handleCommand — Historial/Jugadores (golden-master) /noticias brasil (equipo="brasil") 1`] = `
+[
+  {
+    "method": "sendMessage",
+    "params": {
+      "chat_id": 12345,
+      "parse_mode": "Markdown",
+      "text": "📰 *NOTICIAS - BRASIL*
+
+1. Título",
+    },
+  },
+]
+`;
+
+exports[`handleCommand — Historial/Jugadores (golden-master) /previa <gameId> (texto + teclado lineup/h2h/odds) 1`] = `
+[
+  {
+    "method": "sendMessage",
+    "params": {
+      "chat_id": 12345,
+      "parse_mode": "Markdown",
+      "text": "🔮 *PREVIA*
+
+Brasil llega con 4 victorias.",
+    },
+  },
+  {
+    "method": "sendMessage",
+    "params": {
+      "chat_id": 12345,
+      "parse_mode": "Markdown",
+      "reply_markup": {
+        "inline_keyboard": [
+          [
+            {
+              "callback_data": "lineup_4749268",
+              "text": "📋 Alineación",
+            },
+            {
+              "callback_data": "h2h_4749268",
+              "text": "🤝 H2H",
+            },
+            {
+              "callback_data": "odds_4749268",
+              "text": "🎲 Odds",
+            },
+          ],
+        ],
+      },
+      "text": "💡 Más opciones:",
+    },
+  },
+]
+`;
+
+exports[`handleCommand — Historial/Jugadores (golden-master) /previa sin argumento (usage) 1`] = `
+[
+  {
+    "method": "sendMessage",
+    "params": {
+      "chat_id": 12345,
+      "parse_mode": "Markdown",
+      "text": "🔮 *PREVIA DE PARTIDO*
+
+Uso: \`/previa <gameId>\`
+
+Ejemplo: \`/previa 4749268\`
+
+💡 Las previas se generan para partidos programados (statusGroup=2).",
+    },
+  },
+]
+`;
