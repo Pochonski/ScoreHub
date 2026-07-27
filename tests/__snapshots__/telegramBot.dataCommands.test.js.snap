@@ -1,0 +1,83 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`handleCommand — comandos con datos (golden-master) /fixture con partidos futuros (teclado inline) 1`] = `
+[
+  {
+    "method": "sendMessage",
+    "params": {
+      "chat_id": 12345,
+      "parse_mode": "Markdown",
+      "reply_markup": {
+        "inline_keyboard": [
+          [
+            {
+              "callback_data": "odds_111",
+              "text": "🎲 Odds BRA-ARG",
+            },
+          ],
+        ],
+      },
+      "text": "📅 *FIXTURE DEL MUNDIAL*
+
+Brasil vs Argentina",
+    },
+  },
+]
+`;
+
+exports[`handleCommand — comandos con datos (golden-master) /live con partidos en vivo (teclado stats+odds) 1`] = `
+[
+  {
+    "method": "sendMessage",
+    "params": {
+      "chat_id": 12345,
+      "parse_mode": "Markdown",
+      "reply_markup": {
+        "inline_keyboard": [
+          [
+            {
+              "callback_data": "stats_222",
+              "text": "📈 Stats Vivo BRA-CHI",
+            },
+            {
+              "callback_data": "odds_222",
+              "text": "🎲 Odds BRA-CHI",
+            },
+          ],
+        ],
+      },
+      "text": "📡 *EN VIVO*
+
+Brasil 1 - 0 Chile",
+    },
+  },
+]
+`;
+
+exports[`handleCommand — comandos con datos (golden-master) /live sin partidos en vivo (texto plano) 1`] = `
+[
+  {
+    "method": "sendMessage",
+    "params": {
+      "chat_id": 12345,
+      "parse_mode": "Markdown",
+      "text": "📡 No hay partidos en vivo en este momento.",
+    },
+  },
+]
+`;
+
+exports[`handleCommand — comandos con datos (golden-master) /outrights (texto) 1`] = `
+[
+  {
+    "method": "sendMessage",
+    "params": {
+      "chat_id": 12345,
+      "parse_mode": "Markdown",
+      "text": "🎲 *CUOTAS OUTRIGHT*
+
+Campeón: Brasil 4.50",
+    },
+  },
+]
+`;
