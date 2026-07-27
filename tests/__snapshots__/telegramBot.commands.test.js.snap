@@ -1,5 +1,26 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
+exports[`handleCommand — comandos de solo-texto (golden-master) /alineacion sin argumento (usage prompt) 1`] = `
+[
+  {
+    "method": "sendMessage",
+    "params": {
+      "chat_id": 12345,
+      "parse_mode": "Markdown",
+      "text": "👥 *ALINEACIONES*
+
+Uso: \`/alineacion <gameId>\` o \`/alineacion <eq1> vs <eq2>\`
+
+Ejemplos:
+• /alineacion 4749268
+• /alineacion brasil vs argentina
+
+💡 Las alineaciones se publican cerca del kickoff.",
+    },
+  },
+]
+`;
+
 exports[`handleCommand — comandos de solo-texto (golden-master) /help 1`] = `
 [
   {
@@ -54,6 +75,44 @@ exports[`handleCommand — comandos de solo-texto (golden-master) /help 1`] = `
   /goleadores - Ranking de goleadores
 
 💡 _También entendés: "Cómo le fue a X", "Brasil vs Francia", "Estadísticas de X", "Tabla de la Premier"…_",
+    },
+  },
+]
+`;
+
+exports[`handleCommand — comandos de solo-texto (golden-master) /odds sin argumento (usage prompt) 1`] = `
+[
+  {
+    "method": "sendMessage",
+    "params": {
+      "chat_id": 12345,
+      "parse_mode": "Markdown",
+      "text": "🎲 *CUOTAS DE PARTIDO*
+
+Uso: \`/odds <gameId>\`
+
+Ejemplo: \`/odds 4749268\`
+
+💡 Para encontrar el gameId, usá \`/partidos\`, \`/fixture\` o \`/live\`.",
+    },
+  },
+]
+`;
+
+exports[`handleCommand — comandos de solo-texto (golden-master) /predicciones sin argumento (usage prompt) 1`] = `
+[
+  {
+    "method": "sendMessage",
+    "params": {
+      "chat_id": 12345,
+      "parse_mode": "Markdown",
+      "text": "🗳️ *PREDICCIONES DE LA COMUNIDAD*
+
+Uso: \`/predicciones <gameId>\`
+
+Ejemplo: \`/predicciones 4749268\`
+
+💡 Para buscar el gameId, usá \`/tip brasil vs argentina\` o \`/live\`.",
     },
   },
 ]
@@ -114,6 +173,48 @@ exports[`handleCommand — comandos de solo-texto (golden-master) /start 1`] = `
   "¿Cómo quedó Brasil?"
   "Tabla del grupo C"
   "Dame info de Alemania"",
+    },
+  },
+]
+`;
+
+exports[`handleCommand — comandos de solo-texto (golden-master) /stats-vivo sin argumento (usage prompt) 1`] = `
+[
+  {
+    "method": "sendMessage",
+    "params": {
+      "chat_id": 12345,
+      "parse_mode": "Markdown",
+      "text": "📊 *STATS EN VIVO*
+
+Uso: \`/stats-vivo <gameId>\`
+
+Ejemplo: \`/stats-vivo 4749268\`
+
+💡 Para encontrar el gameId:
+• \`/live\` para partidos en vivo
+• \`/tip brasil vs argentina\` para un partido próximo",
+    },
+  },
+]
+`;
+
+exports[`handleCommand — comandos de solo-texto (golden-master) /tip sin argumento (usage prompt) 1`] = `
+[
+  {
+    "method": "sendMessage",
+    "params": {
+      "chat_id": 12345,
+      "parse_mode": "Markdown",
+      "text": "🎯 *TIP DE PARTIDO*
+
+Uso: \`/tip [equipo1] vs [equipo2]\`
+
+Ejemplos:
+• /tip brasil vs argentina
+• /tip francia vs alemania
+
+💡 El tip se calcula con base en las tendencias de los partidos (365scores). Para más detalles: \`/tendencias brasil vs argentina\` o \`/stats-vivo <gameId>\` (si lo conocés).",
     },
   },
 ]

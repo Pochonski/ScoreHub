@@ -39,12 +39,17 @@ jest.mock('../utils/userStorage', () => ({ getAlias: () => null, setAlias: jest.
 
 // Colaboradores de datos: programables por test.
 jest.mock('../services/scores365Service', () => ({ getFixtures: jest.fn() }));
-jest.mock('../services/matchSearch', () => ({ findLiveGames: jest.fn() }));
+jest.mock('../services/matchSearch', () => ({ findLiveGames: jest.fn(), findGameByTeams: jest.fn() }));
 jest.mock('../handlers/mundialista365Handler', () => ({
   COMPETITION_ID: 5930,
   getFixture: jest.fn(),
   getLiveGames: jest.fn(),
   getOutrights: jest.fn(),
+  getTendencias: jest.fn(),
+  getTendenciasByTeams: jest.fn(),
+  getPredicciones: jest.fn(),
+  getStatsVivo: jest.fn(),
+  getOdds: jest.fn(),
 }));
 
 const scores365 = require('../services/scores365Service');
@@ -91,6 +96,43 @@ describe('handleCommand — comandos con datos (golden-master)', () => {
   test('/outrights (texto)', async () => {
     m365.getOutrights.mockResolvedValue('🎲 *CUOTAS OUTRIGHT*\n\nCampeón: Brasil 4.50');
     const result = await bot.handleCommand(CHAT, '/outrights', 'Tester', USER);
+    expect(result).toBe(true);
+    expect(getSent()).toMatchSnapshot();
+  });
+
+  test('/tendencias (top competición + outrights concatenados)', async () => {
+    m365.getTendencias.mockResolvedValue('📊 *TENDENCIAS*\n\n1. Over 2.5 — 78%');
+    m365.getOutrights.mockResolvedValue('🎲 Campeón: Brasil 4.50');
+    const result = await bot.handleCommand(CHAT, '/tendencias', 'Tester', USER);
+    expect(result).toBe(true);
+    expect(getSent()).toMatchSnapshot();
+  });
+
+  test('/tendencias brasil vs argentina (por equipos + teclado si resuelve partido)', async () => {
+    m365.getTendenciasByTeams.mockResolvedValue('📊 Brasil vs Argentina — Over 2.5 72%');
+    matchSearch.findGameByTeams.mockResolvedValue({ id: 333 });
+    const result = await bot.handleCommand(CHAT, '/tendencias brasil vs argentina', 'Tester', USER);
+    expect(result).toBe(true);
+    expect(getSent()).toMatchSnapshot();
+  });
+
+  test('/predicciones <gameId> (texto + teclado odds)', async () => {
+    m365.getPredicciones.mockResolvedValue('🗳️ *PREDICCIONES*\n\nBrasil 55% / Empate 25% / Argentina 20%');
+    const result = await bot.handleCommand(CHAT, '/predicciones 4749268', 'Tester', USER);
+    expect(result).toBe(true);
+    expect(getSent()).toMatchSnapshot();
+  });
+
+  test('/stats-vivo <gameId> (texto + teclado odds)', async () => {
+    m365.getStatsVivo.mockResolvedValue('📊 *STATS EN VIVO*\n\nPosesión 60/40 — Tiros 8/3');
+    const result = await bot.handleCommand(CHAT, '/stats-vivo 4749268', 'Tester', USER);
+    expect(result).toBe(true);
+    expect(getSent()).toMatchSnapshot();
+  });
+
+  test('/odds <gameId> (texto)', async () => {
+    m365.getOdds.mockResolvedValue('🎲 *CUOTAS*\n\n1X2: 1.80 / 3.40 / 4.20');
+    const result = await bot.handleCommand(CHAT, '/odds 4749268', 'Tester', USER);
     expect(result).toBe(true);
     expect(getSent()).toMatchSnapshot();
   });

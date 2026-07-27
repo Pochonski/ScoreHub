@@ -65,4 +65,17 @@ describe('handleCommand — comandos de solo-texto (golden-master)', () => {
     expect(result).toBe(true);
     expect(getSent()).toMatchSnapshot();
   });
+
+  // Usage prompts (sin argumento): texto puro, sin dependencias de datos.
+  test.each([
+    ['/tip'],
+    ['/odds'],
+    ['/stats-vivo'],
+    ['/predicciones'],
+    ['/alineacion'],
+  ])('%s sin argumento (usage prompt)', async (command) => {
+    const result = await bot.handleCommand(CHAT, command, 'Tester', USER);
+    expect(result).toBe(true);
+    expect(getSent()).toMatchSnapshot();
+  });
 });
