@@ -20,6 +20,7 @@ const conversationContext = require('./services/conversationContext');
 // Capa interface extraída (Fase 7): transporte Telegram + HTTP server.
 const { telegramRequest, sendMessage, sendPhoto, sendMediaGroup } = require('./src/interface/telegram/client');
 const { createHttpServer } = require('./src/interface/http/server');
+const { createLifecycle } = require('./src/interface/telegram/lifecycle');
 
 if (process.env.ENABLE_LIVE_NOTIFIER === 'true') {
   try {
@@ -30,23 +31,11 @@ if (process.env.ENABLE_LIVE_NOTIFIER === 'true') {
   }
 }
 
-// Flag para saber si la DB está disponible
+// Estado de la DB: lo publica el lifecycle (init) y lo lee el HTTP server.
+// El wiring (lifecycle + HTTP server + arranque) vive en el composition root
+// al final del archivo (Fase 7).
 let dbAvailable = false;
-
-// Mini servidor HTTP (health/webhook/admin) — extraído a la capa interface
-// (Fase 7). El composition root le inyecta el estado (dbAvailable) y el handler
-// de webhook. Solo bindea el puerto cuando el bot corre como entry point; bajo
-// `require()` (tests) no se abre socket.
 const PORT = process.env.PORT || 8080;
-const { server: httpServer } = createHttpServer({
-  getDbAvailable: () => dbAvailable,
-  handleWebhookUpdate,
-});
-if (require.main === module && process.env.NODE_ENV !== 'test') {
-  httpServer.listen(PORT, () => {
-    console.log(`🌐 Health server listening on port ${PORT}`);
-  });
-}
 
 
 // El transporte de Telegram (telegramRequest, sendMessage, sendPhoto,
@@ -1388,150 +1377,40 @@ async function handlePartidosCallback(chatId, callbackData) {
   }
 }
 
-/**
- * Maneja un update individual del webhook de Telegram
- */
-async function handleWebhookUpdate(update) {
-  // Callback queries (inline keyboard clicks)
-  if (update.callback_query) {
-    const cb = update.callback_query;
-    const chatId = cb.message.chat.id;
-    const cbData = cb.data || '';
-    const cbId = cb.id;
-    await telegramRequest('answerCallbackQuery', { callback_query_id: cbId }).catch(() => {});
-    const actionPrefix = cbData.split('_')[0];
-    const knownActions = ['tip', 'trends', 'odds', 'h2h', 'previa', 'lineup', 'stats'];
-    if (knownActions.includes(actionPrefix)) {
-      await handlePartidosCallback(chatId, cbData);
-    }
-    return;
-  }
+// ---- Composition root (Fase 7) ----
+// Cablea las capas interface (lifecycle de Telegram + HTTP server) con los
+// handlers de dominio que aún viven en este archivo (processMessage,
+// handlePartidosCallback). Solo arranca el proceso cuando se ejecuta como entry
+// point; bajo `require()` (tests) no se inicia polling, socket ni señales.
+const lifecycle = createLifecycle({
+  telegramRequest,
+  processMessage,
+  handlePartidosCallback,
+  logger,
+  testConnection,
+  setDbAvailable: (v) => { dbAvailable = v; },
+});
+const { server: httpServer } = createHttpServer({
+  getDbAvailable: () => dbAvailable,
+  handleWebhookUpdate: lifecycle.handleWebhookUpdate,
+});
 
-  // Mensajes regulares
-  const message = update?.message;
-  if (!message || !message.text) return;
-  if (message.chat.type !== 'private') return;
-
-  const chatId = message.chat.id;
-  const userId = message.from.id;
-  const text = message.text.trim();
-  const user = message.from.username || message.from.first_name;
-
-  await processMessage(chatId, userId, text, user);
-}
-
-/**
- * Procesa updates en batch (usado en init para updates pendientes)
- */
-async function processUpdates(updates) {
-  if (!updates.ok || !updates.result) return;
-  for (const update of updates.result) {
-    await handleWebhookUpdate(update);
-  }
-}
-
-// ---- Long-polling loop ----
-let polling = false;
-let pollOffset = 0;
-let shouldStop = false;
-
-const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-
-/**
- * Un ciclo de getUpdates con long-polling (timeout 30s).
- */
-async function fetchOnce() {
-  const params = { timeout: 30, allowed_updates: ['message', 'callback_query'] };
-  if (pollOffset) params.offset = pollOffset;
-  try {
-    const updates = await telegramRequest('getUpdates', params, 35000);
-    if (updates.ok && Array.isArray(updates.result) && updates.result.length > 0) {
-      for (const update of updates.result) {
-        try {
-          await handleWebhookUpdate(update);
-        } catch (e) {
-          console.error('[polling] handler error:', e.message);
-        }
-      }
-      // Confirmar procesado: offset = lastUpdateId + 1
-      pollOffset = updates.result[updates.result.length - 1].update_id + 1;
-    }
-    return true;
-  } catch (e) {
-    if (e.isRateLimited) {
-      const wait = (e.retryAfter || 1) * 1000;
-      console.warn(`[polling] 429, esperando ${e.retryAfter}s...`);
-      await sleep(wait);
-    } else {
-      console.error('[polling] getUpdates error:', e.message);
-      await sleep(3000); // backoff fijo ante errores de red
-    }
-    return false;
-  }
-}
-
-/**
- * Loop de long-polling continuo. Termina solo si shouldStop=true.
- */
-async function pollingLoop() {
-  while (!shouldStop) {
-    await fetchOnce();
-  }
-  console.log('[polling] loop detenido.');
-}
-
-/**
- * Inicializar bot
- */
-async function init() {
-  logger.info('Starting ScoreHub Telegram bot...');
-
-  testConnection().then(ok => {
-    dbAvailable = ok;
-    if (!dbAvailable) {
-      logger.warn('Demo mode active (no database)');
-    }
-  }).catch(() => {
-    logger.warn('Demo mode active (no database)');
-  });
-
-  try {
-    const wb = await telegramRequest('deleteWebhook', { drop_pending_updates: false });
-    logger.info({ ok: wb.ok, description: wb.description }, 'deleteWebhook');
-  } catch (e) {
-    logger.error({ err: e.message }, 'deleteWebhook failed');
-  }
-
-  polling = true;
-  pollingLoop().catch((e) => {
-    logger.error({ err: e.message }, 'Polling loop crashed');
-  });
-
-  logger.info('ScoreHub Telegram ready (long-polling)');
-}
-
-// Arranque: solo cuando se ejecuta directamente (`node telegramBot.js`).
-// Bajo `require()` (tests golden-master de la Fase 7) NO se inicia el polling
-// ni se registran handlers de señal — el comportamiento en producción es idéntico.
 if (require.main === module && process.env.NODE_ENV !== 'test') {
-  init();
-
-  // Graceful shutdown
-  process.on('SIGINT', () => {
-    logger.info('Shutting down Telegram bot (SIGINT)...');
-    shouldStop = true;
-    setTimeout(() => process.exit(0), 3000).unref();
+  httpServer.listen(PORT, () => {
+    console.log(`🌐 Health server listening on port ${PORT}`);
   });
+  lifecycle.init();
 
-  process.on('SIGTERM', () => {
-    logger.info('Shutting down Telegram bot (SIGTERM)...');
-    shouldStop = true;
+  const shutdown = (signal) => {
+    logger.info(`Shutting down Telegram bot (${signal})...`);
+    lifecycle.stop();
     setTimeout(() => process.exit(0), 3000).unref();
-  });
+  };
+  process.on('SIGINT', () => shutdown('SIGINT'));
+  process.on('SIGTERM', () => shutdown('SIGTERM'));
 }
 
-// Superficie exportada para los golden-master tests (Fase 7). No se usa en
-// producción; el entry point sigue siendo el arranque de arriba.
+// Superficie exportada para los golden-master tests (Fase 7).
 module.exports = {
   handleCommand,
   processMessage,
