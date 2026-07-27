@@ -1,0 +1,174 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`handleCommand — Follow/Equipos (golden-master) /dejarseguir brasil (delega body "dejar de seguir brasil") 1`] = `
+[
+  {
+    "method": "sendMessage",
+    "params": {
+      "chat_id": 12345,
+      "parse_mode": "Markdown",
+      "text": "🚫 Dejaste de seguir a Brasil.",
+    },
+  },
+]
+`;
+
+exports[`handleCommand — Follow/Equipos (golden-master) /dejarseguir sin argumento (usage) 1`] = `
+[
+  {
+    "method": "sendMessage",
+    "params": {
+      "chat_id": 12345,
+      "parse_mode": "Markdown",
+      "text": "🚫 *DEJAR DE SEGUIR [equipo]*
+
+Uso: \`/dejarseguir [equipo]\`
+
+• /dejarseguir Brasil
+• /dejarseguir Argentina",
+    },
+  },
+]
+`;
+
+exports[`handleCommand — Follow/Equipos (golden-master) /dondever brasil — equipo no encontrado 1`] = `
+[
+  {
+    "method": "sendMessage",
+    "params": {
+      "chat_id": 12345,
+      "parse_mode": "Markdown",
+      "text": "⚠️ No encontré al equipo "brasil".",
+    },
+  },
+]
+`;
+
+exports[`handleCommand — Follow/Equipos (golden-master) /dondever brasil — sin próximos partidos 1`] = `
+[
+  {
+    "method": "sendMessage",
+    "params": {
+      "chat_id": 12345,
+      "parse_mode": "Markdown",
+      "text": "📺 No hay partidos próximos de *Brasil* para mostrar sede.",
+    },
+  },
+]
+`;
+
+exports[`handleCommand — Follow/Equipos (golden-master) /dondever sin argumento (usage) 1`] = `
+[
+  {
+    "method": "sendMessage",
+    "params": {
+      "chat_id": 12345,
+      "parse_mode": "Markdown",
+      "text": "📺 *DÓNDE VER [equipo]*
+
+Uso: \`/dondever [equipo]\`
+
+Por ahora te muestro dónde se juega (estadio) el próximo partido.",
+    },
+  },
+]
+`;
+
+exports[`handleCommand — Follow/Equipos (golden-master) /grupo A (delega body "tabla grupo A", sin media group) 1`] = `
+[
+  {
+    "method": "sendMessage",
+    "params": {
+      "chat_id": 12345,
+      "parse_mode": "Markdown",
+      "text": "🏆 *GRUPO A*
+
+1. Brasil 9 pts",
+    },
+  },
+]
+`;
+
+exports[`handleCommand — Follow/Equipos (golden-master) /info brasil (delega + sendPhoto + teclado próximo partido) 1`] = `
+[
+  {
+    "method": "sendPhoto",
+    "params": {
+      "caption": "🇧🇷 *BRASIL*
+
+5 veces campeón del mundo.",
+      "chat_id": 12345,
+      "parse_mode": "Markdown",
+      "photo": "https://img.test/badge.png",
+    },
+  },
+  {
+    "method": "sendMessage",
+    "params": {
+      "chat_id": 12345,
+      "parse_mode": "Markdown",
+      "reply_markup": {
+        "inline_keyboard": [
+          [
+            {
+              "callback_data": "odds_555",
+              "text": "🎲 Odds",
+            },
+          ],
+        ],
+      },
+      "text": "🎲 Cuotas del próximo partido:",
+    },
+  },
+]
+`;
+
+exports[`handleCommand — Follow/Equipos (golden-master) /misfavoritos (delega body "mis equipos") 1`] = `
+[
+  {
+    "method": "sendMessage",
+    "params": {
+      "chat_id": 12345,
+      "parse_mode": "Markdown",
+      "text": "⭐ Tus equipos: Brasil, Argentina",
+    },
+  },
+]
+`;
+
+exports[`handleCommand — Follow/Equipos (golden-master) /seguir brasil (delega body "seguir brasil" + teclado próximos) 1`] = `
+[
+  {
+    "method": "sendMessage",
+    "params": {
+      "chat_id": 12345,
+      "parse_mode": "Markdown",
+      "text": "✅ Ahora seguís a *Brasil*.",
+    },
+  },
+  {
+    "method": "sendMessage",
+    "params": {
+      "chat_id": 12345,
+      "parse_mode": "Markdown",
+      "reply_markup": {
+        "inline_keyboard": [
+          [
+            {
+              "callback_data": "odds_601",
+              "text": "🎲 Odds BRA-SER",
+            },
+          ],
+          [
+            {
+              "callback_data": "odds_602",
+              "text": "🎲 Odds BRA-SUI",
+            },
+          ],
+        ],
+      },
+      "text": "🎲 Próximos partidos:",
+    },
+  },
+]
+`;
