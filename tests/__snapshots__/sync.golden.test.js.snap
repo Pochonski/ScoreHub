@@ -1,0 +1,141 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`syncService — golden-master de escrituras syncGames escribe games (+ junction desde games) 1`] = `
+[
+  {
+    "params": [
+      4749268,
+      5930,
+      2,
+      "Scheduled",
+      "2026-06-10T18:00:00.000Z",
+      100,
+      101,
+      -1,
+      -1,
+      "Group A",
+      25,
+      "{"id":4749268,"competitionId":5930,"statusGroup":2,"statusText":"Scheduled","startTime":"2026-06-10T18:00:00Z","seasonNum":25,"stage":"Group A","homeCompetitor":{"id":100,"score":-1},"awayCompetitor":{"id":101,"score":-1}}",
+      "2026-07-27T12:00:00.000Z",
+    ],
+    "sql": "INSERT INTO games (id, competition_id, status_group, status_text, start_time, home_competitor_id, away_competitor_id, home_score, away_score, stage, season_num, data, updated_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) ON CONFLICT (id) DO UPDATE SET competition_id = EXCLUDED.competition_id, status_group = EXCLUDED.status_group, status_text = EXCLUDED.status_text, start_time = EXCLUDED.start_time, home_competitor_id = EXCLUDED.home_competitor_id, away_competitor_id = EXCLUDED.away_competitor_id, home_score = EXCLUDED.home_score, away_score = EXCLUDED.away_score, stage = EXCLUDED.stage, season_num = EXCLUDED.season_num, data = EXCLUDED.data, updated_at = EXCLUDED.updated_at",
+    "via": "pool",
+  },
+  {
+    "params": [
+      [
+        5930,
+        5930,
+      ],
+      [
+        100,
+        101,
+      ],
+      [
+        25,
+        25,
+      ],
+      [
+        null,
+        null,
+      ],
+      [
+        0,
+        0,
+      ],
+      [
+        "games",
+        "games",
+      ],
+      [
+        "2026-07-27T12:00:00.000Z",
+        "2026-07-27T12:00:00.000Z",
+      ],
+      [
+        "2026-07-27T12:00:00.000Z",
+        "2026-07-27T12:00:00.000Z",
+      ],
+    ],
+    "sql": "INSERT INTO competition_competitors (competition_id, competitor_id, season_num, stage_num, group_id, source, joined_at, last_seen_at) SELECT * FROM UNNEST($1::int[], $2::int[], $3::int[], $4::int[], $5::int[], $6::text[], $7::timestamptz[], $8::timestamptz[]) ON CONFLICT (competition_id, competitor_id, season_num) DO UPDATE SET last_seen_at = EXCLUDED.last_seen_at, stage_num = COALESCE(EXCLUDED.stage_num, competition_competitors.stage_num), group_id = COALESCE(EXCLUDED.group_id, competition_competitors.group_id)",
+    "via": "pool",
+  },
+]
+`;
+
+exports[`syncService — golden-master de escrituras syncNews escribe news 1`] = `
+[
+  {
+    "params": [
+      "n1",
+      "competition",
+      5930,
+      4749268,
+      "2026-06-09T10:00:00.000Z",
+      "{"id":"n1","gameId":4749268,"publishDate":"2026-06-09T10:00:00Z","title":"Noticia 1"}",
+      "2026-07-27T12:00:00.000Z",
+      "n2",
+      "competition",
+      5930,
+      null,
+      "2026-06-09T12:00:00.000Z",
+      "{"id":"n2","gameId":null,"publishDate":"2026-06-09T12:00:00Z","title":"Noticia 2"}",
+      "2026-07-27T12:00:00.000Z",
+    ],
+    "sql": "INSERT INTO news (id, scope, entity_id, game_id, publish_date, data, updated_at) VALUES ($1, $2, $3, $4, $5, $6, $7), ($8, $9, $10, $11, $12, $13, $14) ON CONFLICT (id) DO UPDATE SET scope = EXCLUDED.scope, entity_id = EXCLUDED.entity_id, game_id = EXCLUDED.game_id, publish_date = EXCLUDED.publish_date, data = EXCLUDED.data, updated_at = EXCLUDED.updated_at",
+    "via": "pool",
+  },
+]
+`;
+
+exports[`syncService — golden-master de escrituras syncStandings escribe standings + junction competition_competitors 1`] = `
+[
+  {
+    "params": [
+      5930,
+      1,
+      25,
+      "{"standings":[{"num":1,"rows":[{"competitor":{"id":100}},{"competitor":{"id":101}}]}]}",
+      "2026-07-27T12:00:00.000Z",
+    ],
+    "sql": "INSERT INTO standings (competition_id, stage_num, season_num, data, updated_at) VALUES ($1, $2, $3, $4, $5) ON CONFLICT (competition_id, stage_num, season_num) DO UPDATE SET data = EXCLUDED.data, updated_at = EXCLUDED.updated_at",
+    "via": "pool",
+  },
+  {
+    "params": [
+      [
+        5930,
+        5930,
+      ],
+      [
+        100,
+        101,
+      ],
+      [
+        25,
+        25,
+      ],
+      [
+        "standings",
+        "standings",
+      ],
+      [
+        "2026-07-27T12:00:00.000Z",
+        "2026-07-27T12:00:00.000Z",
+      ],
+    ],
+    "sql": "INSERT INTO competition_competitors (competition_id, competitor_id, season_num, source, last_seen_at) SELECT * FROM UNNEST($1::int[], $2::int[], $3::int[], $4::text[], $5::timestamptz[]) ON CONFLICT (competition_id, competitor_id, season_num) DO UPDATE SET last_seen_at = EXCLUDED.last_seen_at",
+    "via": "pool",
+  },
+  {
+    "params": [
+      5930,
+      1,
+      25,
+      "{"seasonsFilter":{"seasons":[{"num":25}]},"standings":[]}",
+      "2026-07-27T12:00:00.000Z",
+    ],
+    "sql": "INSERT INTO standings (competition_id, stage_num, season_num, data, updated_at) VALUES ($1, $2, $3, $4, $5) ON CONFLICT (competition_id, stage_num, season_num) DO UPDATE SET data = EXCLUDED.data, updated_at = EXCLUDED.updated_at",
+    "via": "pool",
+  },
+]
+`;
