@@ -1,6 +1,7 @@
 // Gemini AI Service para entender consultas de fútbol
 require('dotenv').config();
 const { GoogleGenerativeAI } = require('@google/generative-ai');
+const logger = require('../utils/logger');
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 const model = genAI.getGenerativeModel({ model: process.env.GEMINI_MODEL || 'gemini-2.5-flash' });
@@ -170,7 +171,7 @@ async function analyzeMessageRaw(prompt) {
 
     return { success: false, intent: 'UNKNOWN' };
   } catch (error) {
-    console.error('Error Gemini analyzeMessageRaw:', error.message);
+    logger.error({ err: error.message }, 'Gemini analyzeMessageRaw error');
     return null;
   }
 }
@@ -214,7 +215,7 @@ async function generateNaturalResponse(intent, entities) {
     const result = await model.generateContent(prompt);
     return result.response.text().trim();
   } catch (error) {
-    console.error('Error Gemini generateResponse:', error.message);
+    logger.error({ err: error.message }, 'Gemini generateResponse error');
     return null;
   }
 }

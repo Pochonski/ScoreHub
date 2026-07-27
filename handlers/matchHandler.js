@@ -1,9 +1,10 @@
 // Handler de partidos y resultados
 const cache = require('../services/mundialCache');
 const { getCompetitionName } = require('../services/competitionName');
-const COMPETITION_ID = parseInt(process.env.PRIMARY_COMPETITION_ID || '5930', 10);
 const mundialista365 = require('./mundialista365Handler');
 const { formatMatchLine, detectElimination } = require('../utils/formatters');
+const logger = require('../utils/logger');
+const { PRIMARY_COMPETITION_ID: COMPETITION_ID } = require('../services/config');
 
 function dateStr(d = new Date()) {
   return d.toLocaleDateString('en-CA', { timeZone: 'America/Costa_Rica' }).replace(/-/g, '');
@@ -20,7 +21,7 @@ function formatTime(isoStr) {
   try {
     const d = new Date(isoStr);
     if (!isNaN(d)) return d.toLocaleTimeString('es-CR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Costa_Rica', hour12: false });
-  } catch (_) {}
+  } catch (_) { /* Date.parse can throw on invalid input */ }
   return isoStr;
 }
 
@@ -128,7 +129,7 @@ async function getPartidosFecha(tipoFecha) {
       if (!isNaN(d)) {
         fecha = d.toISOString().slice(0, 10).replace(/-/g, '');
       }
-    } catch (_) {}
+    } catch (e) { logger.warn({ err: e.message, input: tipoFecha }, 'parseFecha: date parse failed'); }
   }
   if (!/^\d{8}$/.test(fecha)) {
     return `⚠️ No pude interpretar la fecha "${tipoFecha}". Usa formato YYYYMMDD o "5 de julio".`;

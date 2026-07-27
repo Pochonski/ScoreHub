@@ -1,9 +1,7 @@
 require('dotenv').config();
 const { pool } = require('../database/connection');
 const db = require('../database/db');
-const state = require('../database/bootstrapState');
-
-const COMPETITION_ID = parseInt(process.env.PRIMARY_COMPETITION_ID || '5930', 10);
+const { PRIMARY_COMPETITION_ID: COMPETITION_ID } = require('./config');
 
 const STATES = {
   PENDING: 'pending',

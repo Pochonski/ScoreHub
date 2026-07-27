@@ -50,18 +50,6 @@ function formatEstado(status) {
 }
 
 /**
- * Formatea un resultado de partido
- */
-function formatResultado(partido) {
-  const estado = formatEstado(partido.status);
-  return `⚽ *RESULTADO*\n\n` +
-    `🏆 ${partido.league}\n` +
-    `${partido.homeTeam} ${partido.score || 'vs'} ${partido.awayTeam}\n` +
-    `📅 ${partido.date}\n` +
-    `[${estado}]`;
-}
-
-/**
  * Formatea estadísticas de un partido
  */
 function formatEstadisticas(stats) {
@@ -75,20 +63,6 @@ function formatEstadisticas(stats) {
   msg += `🟨 Tarjetas amarillas: ${stats.homeYellowCards || 0} - ${stats.awayYellowCards || 0}\n`;
   msg += `🟥 Tarjetas rojas: ${stats.homeRedCards || 0} - ${stats.awayRedCards || 0}\n`;
   msg += `⏱️ Posesión: ${stats.homePossession || 0}% - ${stats.awayPossession || 0}%\n`;
-
-  return msg;
-}
-
-/**
- * Formatea información de un equipo
- */
-function formatEquipo(info) {
-  let msg = `👥 *${info.name}*\n\n`;
-  msg += `🏆 ${info.league || 'Sin liga activa'}\n`;
-  msg += `📍 Posición: ${info.position || '-'}\n`;
-  msg += `📊 Puntos: ${info.points || 0}\n`;
-  msg += `🎯 PJ: ${info.played || 0} | PG: ${info.win || 0} | PE: ${info.draw || 0} | PP: ${info.lose || 0}\n`;
-  msg += `⚽ GF: ${info.goalsFor || 0} | GC: ${info.goalsAgainst || 0}\n`;
 
   return msg;
 }
@@ -353,9 +327,7 @@ function detectElimination(matches, teamId) {
 module.exports = {
   formatPartidosHoy,
   formatEstado,
-  formatResultado,
   formatEstadisticas,
-  formatEquipo,
   formatTabla,
   formatAnalisis,
   formatResumen,

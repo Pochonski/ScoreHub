@@ -1,5 +1,7 @@
 const { pool } = require('../database/connection');
 const db = require('../database/db');
+const logger = require('../utils/logger');
+const { PRIMARY_COMPETITION_ID: COMPETITION_ID } = require('./config');
 
 let cachedName = null;
 let cacheTime = 0;
@@ -22,7 +24,7 @@ async function getCompetitionName(competitionId) {
         return cachedName;
       }
     }
-  } catch (_) {}
+  } catch (e) { logger.warn({ err: e.message, competitionId }, 'getCompetitionName DB failed'); }
   return 'TORNEO';
 }
 
@@ -49,7 +51,7 @@ async function getCompetitionAliases(competitionId) {
 
 async function findCompetitionByAlias(alias) {
   const key = alias.toLowerCase().trim();
-  const map = await getCompetitionAliases(parseInt(process.env.PRIMARY_COMPETITION_ID || '5930', 10));
+  const map = await getCompetitionAliases(COMPETITION_ID);
   if (map[key]) return map[key];
   return null;
 }

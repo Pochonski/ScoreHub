@@ -1,6 +1,6 @@
 require('dotenv').config();
 const api = require('./scores365Service');
-const { pool, withTransaction } = require('../database/connection');
+const { pool } = require('../database/connection');
 const db = require('../database/db');
 const { getActiveCompetitions, forEachActive } = require('./syncCompetitions');
 const logger = require('../utils/logger');

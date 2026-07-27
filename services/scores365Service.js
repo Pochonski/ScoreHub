@@ -127,7 +127,6 @@ const api = {
   getGamesResults: (competitionId) => get('/web/games/results/', `competitions=${competitionId}&showOdds=true&includeTopBettingOpportunity=1`),
   getGameOverview: (gameId, matchupId) => get('/web/game/', `gameId=${gameId}${matchupId ? `&matchupId=${matchupId}` : ''}`),
   getGameH2H: (gameId, matchupId, addMainOdds = true) => get('/web/games/h2h/', `gameId=${gameId}${matchupId ? `&matchupId=${matchupId}` : ''}${addMainOdds ? '&addMainOdds=true' : ''}`),
-  getGameSuggestions: (gameId, matchupId) => get('/web/games/suggestions/', `games=${gameId}&feedBy=1${matchupId ? `&matchupId=${matchupId}` : ''}`),
   getGameStats: (gameId, lastUpdateId, filterId) => get('/web/game/stats/', `games=${gameId}${lastUpdateId ? `&lastUpdateId=${lastUpdateId}` : ''}${filterId ? `&filterId=${filterId}` : ''}`),
   getGamePreStats: (gameId) => get('/web/stats/preGame', `game=${gameId}&onlyMajor=true`),
   // Endpoint dedicado de alineaciones: trae members con name, athleteId,

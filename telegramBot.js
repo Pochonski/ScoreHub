@@ -19,6 +19,7 @@ const matchHandler = require('./handlers/matchHandler');
 const { getAthletePhotoUrl, getAthleteThumbUrl, getCountryFlagUrl, getTeamBadgeUrl } = require('./services/images');
 const { pool, testConnection } = require('./database/connection');
 const userStorage = require('./utils/userStorage');
+const logger = require('./utils/logger');
 const telegramNotifier = require('./services/telegramNotifier');
 const conversationContext = require('./services/conversationContext');
 
@@ -42,9 +43,29 @@ let dbAvailable = false;
 const PORT = process.env.PORT || 8080;
 const WEBHOOK_PATH = '/webhook';
 const WEBHOOK_URL = '';
+const rateLimit = new Map();
+function checkRateLimit(ip) {
+  const now = Date.now();
+  const entry = rateLimit.get(ip) || { count: 0, resetAt: now + 60000 };
+  if (now > entry.resetAt) { entry.count = 0; entry.resetAt = now + 60000; }
+  entry.count++;
+  rateLimit.set(ip, entry);
+  if (rateLimit.size > 1000) {
+    const oldest = rateLimit.keys().next().value;
+    rateLimit.delete(oldest);
+  }
+  return entry.count <= 30;
+}
+
 const server = http.createServer((req, res) => {
   const url = req.url || '/';
   if (url === '/health' || url === '/') {
+    const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress || 'unknown';
+    if (!checkRateLimit(ip)) {
+      res.writeHead(429, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'too many requests' }));
+      return;
+    }
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({
       status: 'ok',
@@ -519,7 +540,7 @@ async function handleCommand(chatId, text, userName, userId) {
     case '/cambiarnombre@botmundialistabot':
     case '/cambiarusuario':
     case '/cambiarusuario@botmundialistabot':
-      const argNombre = command.replace(/^\/(cambiarnombre|cambiarusuario)(@\w+)?/i, '').trim();
+      const argNombre = text.replace(/^\/(cambiarnombre|cambiarusuario)(@\w+)?/i, '').trim();
       if (!argNombre) {
         await sendMessage(chatId,
           `✏️ *Cambiar nombre*\n\n` +
@@ -1459,7 +1480,7 @@ async function handleCommand(chatId, text, userName, userId) {
             const d = g.startTime ? new Date(g.startTime).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' }) : '';
             msg += `\n📅 *Próximo:* ${h} vs ${a} ${d ? '(' + d + ')' : ''}`;
           }
-        } catch (_) {}
+        } catch (e) { console.warn('[athlete] nextData fetch failed:', e.message); }
 
         // Chart events (form)
         try {
@@ -1476,7 +1497,7 @@ async function handleCommand(chatId, text, userName, userId) {
             }).join(' ');
             msg += `\n📈 *Últimos eventos:* ${icons}`;
           }
-        } catch (_) {}
+        } catch (e) { console.warn('[athlete] chart events failed:', e.message); }
 
         const photoUrl = getAthletePhotoUrl(athlete.id);
         if (photoUrl) {
@@ -1861,34 +1882,30 @@ async function pollingLoop() {
  * Inicializar bot
  */
 async function init() {
-  console.log('🚀 ScoreHub Telegram iniciando...');
+  logger.info('Starting ScoreHub Telegram bot...');
 
-  // No esperar DB connection (no bloqueante)
   testConnection().then(ok => {
     dbAvailable = ok;
     if (!dbAvailable) {
-      console.log('⚠️ Modo demo activo (sin base de datos)');
+      logger.warn('Demo mode active (no database)');
     }
   }).catch(() => {
-    console.log('⚠️ Modo demo activo (sin base de datos)');
+    logger.warn('Demo mode active (no database)');
   });
 
-  // Asegurar modo long-polling: eliminar webhook si existe (Telegram no permite ambos)
   try {
     const wb = await telegramRequest('deleteWebhook', { drop_pending_updates: false });
-    console.log(`[init] deleteWebhook ok=${wb.ok} (${wb.description || 'sin descripción'})`);
+    logger.info({ ok: wb.ok, description: wb.description }, 'deleteWebhook');
   } catch (e) {
-    console.error('[init] deleteWebhook falló:', e.message);
+    logger.error({ err: e.message }, 'deleteWebhook failed');
   }
 
-  // Iniciar loop de long-polling
   polling = true;
   pollingLoop().catch((e) => {
-    console.error('[init] polling loop crashed:', e.message);
+    logger.error({ err: e.message }, 'Polling loop crashed');
   });
 
-  console.log(`✅ ScoreHub Telegram listo! (long-polling activo)`);
-  console.log(`📱 Token: ${TELEGRAM_TOKEN?.substring(0, 10)}...`);
+  logger.info('ScoreHub Telegram ready (long-polling)');
 }
 
 // Iniciar
@@ -1896,13 +1913,13 @@ init();
 
 // Graceful shutdown
 process.on('SIGINT', () => {
-  console.log('\n👋 Apagando bot de Telegram...');
+  logger.info('Shutting down Telegram bot (SIGINT)...');
   shouldStop = true;
-  process.exit(0);
+  setTimeout(() => process.exit(0), 3000).unref();
 });
 
 process.on('SIGTERM', () => {
-  console.log('\n👋 Apagando bot de Telegram (SIGTERM)...');
+  logger.info('Shutting down Telegram bot (SIGTERM)...');
   shouldStop = true;
-  process.exit(0);
+  setTimeout(() => process.exit(0), 3000).unref();
 });

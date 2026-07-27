@@ -10,6 +10,7 @@ const { pool } = require('../database/connection');
 const db = require('../database/db');
 const cache = require('./mundialCache');
 const notificationService = require('./notificationService');
+const logger = require('../utils/logger');
 
 let trackingJob = null;
 let isRunning = false;
@@ -20,7 +21,7 @@ let isRunning = false;
  */
 function iniciar(intervalSeconds = 60) {
   if (trackingJob) {
-    console.log('[BetTracking] Motor ya está corriendo');
+    logger.info('[BetTracking] Motor ya está corriendo');
     return;
   }
 
@@ -34,7 +35,7 @@ function iniciar(intervalSeconds = 60) {
 
   trackingJob = cron.schedule(cronExpr, async () => {
     if (isRunning) {
-      console.log('[BetTracking] Saltando ciclo - anterior aún en proceso');
+      logger.info('[BetTracking] Saltando ciclo - anterior aún en proceso');
       return;
     }
     await cicloEvaluacion();
@@ -50,7 +51,7 @@ function detener() {
   if (trackingJob) {
     trackingJob.stop();
     trackingJob = null;
-    console.log('[BetTracking] Motor detenido');
+    logger.info('[BetTracking] Motor detenido');
   }
 }
 
@@ -75,7 +76,7 @@ async function cicloEvaluacion() {
       try {
         await evaluarApuesta(apuesta);
       } catch (error) {
-        console.error(`[BetTracking] Error evaluando apuesta ${apuesta.id}:`, error.message);
+        logger.error({ err: error.message, apuestaId: apuesta.id }, 'BetTracking error evaluating bet');
       }
     }
 

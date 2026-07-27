@@ -2,8 +2,7 @@ require('dotenv').config();
 const { pool } = require('../database/connection');
 const db = require('../database/db');
 const mundialCache = require('./mundialCache');
-
-const COMPETITION_ID = parseInt(process.env.PRIMARY_COMPETITION_ID || '5930', 10);
+const { PRIMARY_COMPETITION_ID: COMPETITION_ID } = require('./config');
 
 function stripDiacritics(s) {
   return (s || '').toString().normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();

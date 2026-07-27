@@ -4,8 +4,7 @@ const db = require('../database/db');
 const matchSearch = require('../services/matchSearch');
 const { getCompetitionName, getSeasonLabel } = require('../services/competitionName');
 const { getAthletePhotoUrl } = require('../services/images');
-
-const COMPETITION_ID = parseInt(process.env.PRIMARY_COMPETITION_ID || '5930', 10);
+const { PRIMARY_COMPETITION_ID: COMPETITION_ID } = require('../services/config');
 
 function fmtDate(iso) {
   if (!iso) return '';

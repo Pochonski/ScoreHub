@@ -1,4 +1,11 @@
 require('dotenv').config();
+
+if (!process.env.ENABLE_WHATSAPP || process.env.ENABLE_WHATSAPP !== 'true') {
+  console.log('WhatsApp bot disabled (set ENABLE_WHATSAPP=true to enable)');
+  module.exports = {};
+  return;
+}
+
 const { Client, LocalAuth } = require('whatsapp-web.js');
 const qrcode = require('qrcode-terminal');
 const messageHandler = require('./handlers/messageHandler');

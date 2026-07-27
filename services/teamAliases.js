@@ -1,8 +1,7 @@
 const { pool } = require('../database/connection');
 const db = require('../database/db');
 const hardcoded = require('../utils/constants').EQUIPOS_MUNDIAL;
-
-const COMPETITION_ID = parseInt(process.env.PRIMARY_COMPETITION_ID || '5930', 10);
+const { PRIMARY_COMPETITION_ID: COMPETITION_ID } = require('./config');
 
 let dbTeams = null;
 let lastFetch = 0;

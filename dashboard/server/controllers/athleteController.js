@@ -5,8 +5,7 @@ const { enrichAthlete, enrichTransferWithTeam } = require('../utils/mappers');
 // Lazy-load the upstream service so we don't pay for it on cold starts when
 // cache hits dominate. Loading is cheap (top-level only fetches dotenv).
 const api = require('../../../services/scores365Service');
-
-const COMPETITION_ID = parseInt(process.env.PRIMARY_COMPETITION_ID || '5930', 10);
+const { PRIMARY_COMPETITION_ID: COMPETITION_ID } = require('../../../services/config');
 
 // Cache-on-read settings. Lazy hydration is bounded to keep the Vercel
 // function under its 30s max duration.

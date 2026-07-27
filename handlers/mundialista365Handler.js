@@ -4,8 +4,8 @@ const mundialCache = require('../services/mundialCache');
 const { getCompetitionName } = require('../services/competitionName');
 const { pool } = require('../database/connection');
 const db = require('../database/db');
-
-const COMPETITION_ID = parseInt(process.env.PRIMARY_COMPETITION_ID || '5930', 10);
+const logger = require('../utils/logger');
+const { PRIMARY_COMPETITION_ID: COMPETITION_ID } = require('../services/config');
 
 const STAT_LABELS = {
   1: 'Goles',
@@ -92,7 +92,7 @@ async function formatTipForGame(game) {
         generatedAt: new Date().toISOString(),
       };
     }
-  } catch (_) {}
+  } catch (e) { logger.warn({ err: e.message, gameId }, 'getTip: trends DB query failed'); }
 
   let msg = `🎯 *TIP — ${fmtGameTitle(game).toUpperCase()}*\n\n`;
   msg += `🆔 Game ID: \`${gameId}\`\n`;
@@ -279,7 +279,7 @@ async function getStatsVivo(gameId) {
     if (r[0]?.last_snapshot) {
       snapshot = r[0].last_snapshot;
     }
-  } catch (_) {}
+  } catch (e) { logger.warn({ err: e.message, gid }, 'snapshot DB query failed'); }
 
   if (!snapshot || !Array.isArray(snapshot.statistics) || snapshot.statistics.length === 0) {
     const rows = await db.execAdvanced('SELECT data FROM game_stats WHERE game_id = $1', [gid]);
@@ -350,7 +350,7 @@ async function getAlineacion(gameId) {
   try {
     const rows = await db.execAdvanced('SELECT data FROM game_overviews WHERE game_id = $1', [gid]);
     if (rows.length) overview = rows[0].data;
-  } catch (_) {}
+  } catch (e) { logger.warn({ err: e.message, gid }, 'lineups: overview DB query failed'); }
 
   let g = overview?.game || null;
   if (g) {
@@ -363,7 +363,7 @@ async function getAlineacion(gameId) {
         if (fresh.length && fresh[0].data?.game?.homeCompetitor?.lineups?.members?.length) {
           g = fresh[0].data.game;
         }
-      } catch (_) {}
+      } catch (e) { logger.warn({ err: e.message, gid }, 'lineups: refresh overview failed'); }
     }
   }
 
@@ -443,7 +443,7 @@ async function getPrevia(gameId) {
   try {
     const rows = await db.execAdvanced('SELECT data FROM game_pre_stats WHERE game_id = $1', [gid]);
     if (rows.length) pre = rows[0].data;
-  } catch (_) {}
+  } catch (e) { logger.warn({ err: e.message, gid }, 'prestats DB query failed'); }
 
   const stats = pre?.statistics || [];
   if (!Array.isArray(stats) || stats.length === 0) {
@@ -496,7 +496,7 @@ async function getH2H(gameId) {
   try {
     const rows = await db.execAdvanced('SELECT data FROM game_h2h WHERE game_id = $1', [gid]);
     if (rows.length) h2h = rows[0].data;
-  } catch (_) {}
+  } catch (e) { logger.warn({ err: e.message, gid }, 'h2h DB query failed'); }
 
   if (!h2h || !h2h.game) {
     return `ℹ️ No tengo historial H2H para *${fmtGameTitle(game)}*.`;
@@ -571,7 +571,7 @@ async function getPredicciones(gameId) {
   try {
     const rows = await db.execAdvanced('SELECT data FROM predictions WHERE game_id = $1', [gid]);
     if (rows.length) pred = rows[0].data;
-  } catch (_) {}
+  } catch (e) { logger.warn({ err: e.message, gid }, 'predictions DB query failed'); }
 
   if (!pred || !pred.promotedPredictions?.predictions) {
     return `ℹ️ No hay predicciones de la comunidad para *${fmtGameTitle(game)}*.`;
@@ -686,7 +686,7 @@ async function getOdds(gameId) {
   try {
     const rows = await db.execAdvanced('SELECT data FROM odds_lines WHERE game_id = $1', [gid]);
     if (rows.length) doc = rows[0].data;
-  } catch (_) {}
+  } catch (e) { logger.warn({ err: e.message, gid }, 'odds lines DB query failed'); }
 
   if (!doc || !doc.lines?.length) {
     return `ℹ️ No hay cuotas para *${fmtGameTitle(game)}* todavía.`;

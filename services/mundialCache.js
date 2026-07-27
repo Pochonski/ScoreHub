@@ -1,18 +1,28 @@
 const db = require('../database/db');
-
-const COMPETITION_ID = parseInt(process.env.PRIMARY_COMPETITION_ID || '5930', 10);
+const logger = require('../utils/logger');
+const { PRIMARY_COMPETITION_ID: COMPETITION_ID } = require('./config');
 const CACHE = new Map();
+const MAX_ENTRIES = 500;
 
 function ttl(ms) { return ms; }
+
+function evictIfNeeded() {
+  if (CACHE.size >= MAX_ENTRIES) {
+    const oldest = CACHE.keys().next().value;
+    if (oldest) CACHE.delete(oldest);
+  }
+}
 
 async function cached(key, ttlMs, fetcher) {
   const hit = CACHE.get(key);
   if (hit && Date.now() - hit.ts < ttlMs) return hit.value;
   try {
     const value = await fetcher();
+    evictIfNeeded();
     CACHE.set(key, { ts: Date.now(), value });
     return value;
   } catch (e) {
+    logger.warn({ err: e.message, cacheKey: key }, 'mundialCache fetch failed, serving stale');
     return hit ? hit.value : null;
   }
 }

@@ -9,6 +9,7 @@
  */
 
 const db = require('../database/db');
+const logger = require('../utils/logger');
 
 const CACHE_TTL_MS = 5 * 60 * 1000;
 let cache = { at: 0, list: [] };
@@ -64,7 +65,7 @@ async function forEachActive(fn, opts = {}) {
   const { parallel = false, logPrefix = '[Sync]' } = opts;
   const comps = await getActiveCompetitions();
   if (!comps.length) {
-    console.log(logPrefix, 'No hay competiciones activas; nada que sincronizar.');
+    logger.info({ logPrefix }, 'No active competitions to sync');
     return { total: 0, ok: 0, failed: 0, errors: [] };
   }
 
@@ -83,7 +84,7 @@ async function forEachActive(fn, opts = {}) {
         failed++;
         const msg = r.reason?.message || String(r.reason);
         errors.push({ competitionId: c.id, error: msg });
-        console.error(`${logPrefix}[comp=${c.id}] FAILED:`, msg);
+        logger.error({ competitionId: c.id, error: msg, logPrefix }, 'Competition sync failed');
       }
     }
   } else {
@@ -95,7 +96,7 @@ async function forEachActive(fn, opts = {}) {
         failed++;
         const msg = e?.message || String(e);
         errors.push({ competitionId: c.id, error: msg });
-        console.error(`${logPrefix}[comp=${c.id}] FAILED:`, msg);
+        logger.error({ competitionId: c.id, error: msg, logPrefix }, 'Competition sync failed');
       }
     }
   }

@@ -42,7 +42,7 @@ function scheduleSave() {
     if (!dirty) return;
     try {
       fs.writeFileSync(TMP_FILE, JSON.stringify(store, null, 2));
-      try { fs.unlinkSync(STORE_FILE); } catch (_) {}
+      try { fs.unlinkSync(STORE_FILE); } catch (e) { /* temp file may not exist */ }
       fs.renameSync(TMP_FILE, STORE_FILE);
       dirty = false;
     } catch (e) {
@@ -140,7 +140,7 @@ function flushSync() {
     try {
       fs.writeFileSync(STORE_FILE, JSON.stringify(store, null, 2));
       dirty = false;
-    } catch (_) {}
+    } catch (e) { console.error('[conversationContext] flush failed:', e.message); }
   }
 }
 

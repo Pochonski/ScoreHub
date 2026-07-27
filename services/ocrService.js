@@ -1,5 +1,6 @@
 // Servicio de OCR usando Tesseract.js
 const Tesseract = require('tesseract.js');
+const logger = require('../utils/logger');
 
 /**
  * Extrae texto de una imagen usando Tesseract.js
@@ -29,7 +30,7 @@ async function extractTextFromImage(imageData, options = {}) {
       paragraphs: result.data.paragraphs
     };
   } catch (error) {
-    console.error('Error en OCR:', error);
+    logger.error({ err: error.message }, 'OCR error');
     throw error;
   } finally {
     // Garantizar liberación del worker nativo aunque recognize() lance.
@@ -62,12 +63,12 @@ async function extractTextSimple(imageData) {
  * @returns {Promise<object>}
  */
 async function procesarImagen(imageBuffer) {
-  console.log('[OCR] Procesando imagen...');
+  logger.info('Processing image via OCR');
 
   const ocrResult = await extractTextFromImage(imageBuffer, { logger: true });
 
-  console.log(`[OCR] Texto extraído (confianza: ${(ocrResult.confidence * 100).toFixed(1)}%)`);
-  console.log('[OCR] Preview:', ocrResult.text.substring(0, 200).replace(/\n/g, ' '));
+  logger.info({ confidence: (ocrResult.confidence * 100).toFixed(1) }, 'OCR text extracted');
+  logger.debug({ preview: ocrResult.text.substring(0, 200).replace(/\n/g, ' ') }, 'OCR preview');
 
   return ocrResult;
 }

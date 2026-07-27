@@ -17,6 +17,15 @@ function log(msg, extra) {
 }
 
 const previousStats = new Map();
+const MAX_STATS_ENTRIES = 200;
+
+function setPreviousStats(key, value) {
+  if (previousStats.size >= MAX_STATS_ENTRIES) {
+    const oldest = previousStats.keys().next().value;
+    if (oldest != null) previousStats.delete(oldest);
+  }
+  previousStats.set(key, value);
+}
 
 async function getLastUpdateId(gameId) {
   const client = await pool.connect().catch(() => null);
@@ -175,7 +184,7 @@ async function pollGame(gameId) {
   const competitionId = data.competitionId ?? prevEntry.competitionId ?? null;
 
   if (newId === prevId && prevId > 0) {
-    previousStats.set(gameNumericId, { ...prevEntry, stats: newStats, homeScore, awayScore });
+    setPreviousStats(gameNumericId, { ...prevEntry, stats: newStats, homeScore, awayScore });
     return { gameId: gameNumericId, status: 'no-change', lastUpdateId: prevId };
   }
 
@@ -187,7 +196,7 @@ async function pollGame(gameId) {
   };
 
   const detected = detectEvents(gameStub, prevStats, newStats, prevScores, newScores);
-  previousStats.set(gameNumericId, {
+  setPreviousStats(gameNumericId, {
     stats: newStats,
     homeScore,
     awayScore,

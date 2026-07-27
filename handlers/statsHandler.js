@@ -1,7 +1,7 @@
 // Handler de estadísticas
 const cache = require('../services/mundialCache');
 const { getCompetitionName } = require('../services/competitionName');
-const COMPETITION_ID = parseInt(process.env.PRIMARY_COMPETITION_ID || '5930', 10);
+const { PRIMARY_COMPETITION_ID: COMPETITION_ID } = require('../services/config');
 const { getRecentForm } = require('../utils/teamContext');
 const { formatMatchLine } = require('../utils/formatters');
 

@@ -242,7 +242,7 @@ function buildMatchupId(game) {
   const homeId = game.homeCompetitor?.id || game.homeTeam?.id;
   const awayId = game.awayCompetitor?.id || game.awayTeam?.id;
   if (!homeId || !awayId) return '';
-  const COMPETITION_ID = parseInt(process.env.PRIMARY_COMPETITION_ID || '5930', 10);
+  const COMPETITION_ID = require('../../../services/config').PRIMARY_COMPETITION_ID;
   return `${homeId}-${awayId}-${game.competitionId || COMPETITION_ID}`;
 }
 

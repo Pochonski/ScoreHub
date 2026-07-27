@@ -16,8 +16,7 @@
  */
 
 const db = require('../../../database/db');
-
-const DEFAULT_COMP_ID = parseInt(process.env.PRIMARY_COMPETITION_ID || '5930', 10);
+const { PRIMARY_COMPETITION_ID: DEFAULT_COMP_ID } = require('../../../services/config');
 const DEFAULT_SEASON = parseInt(process.env.PRIMARY_SEASON || '25', 10);
 
 const CACHE_TTL_MS = 5 * 60 * 1000;
