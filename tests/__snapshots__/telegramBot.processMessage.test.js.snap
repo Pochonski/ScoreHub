@@ -1,0 +1,66 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`processMessage — router de entrada (golden-master) /follow <ticket> → followHandler.handleFollowCommand 1`] = `
+[
+  {
+    "method": "sendMessage",
+    "params": {
+      "chat_id": 12345,
+      "parse_mode": "Markdown",
+      "text": "✅ Siguiendo el ticket 12345.",
+    },
+  },
+]
+`;
+
+exports[`processMessage — router de entrada (golden-master) /misapuestas → followHandler.handleListCommand 1`] = `
+[
+  {
+    "method": "sendMessage",
+    "params": {
+      "chat_id": 12345,
+      "parse_mode": "Markdown",
+      "text": "📋 No seguís ningún ticket.",
+    },
+  },
+]
+`;
+
+exports[`processMessage — router de entrada (golden-master) comando desconocido con resto → messageHandler con texto sin comando 1`] = `
+[
+  {
+    "method": "sendMessage",
+    "params": {
+      "chat_id": 12345,
+      "parse_mode": "Markdown",
+      "text": "🤖 ok",
+    },
+  },
+]
+`;
+
+exports[`processMessage — router de entrada (golden-master) texto libre NO resuelto por conversational → fallback a messageHandler 1`] = `
+[
+  {
+    "method": "sendMessage",
+    "params": {
+      "chat_id": 12345,
+      "parse_mode": "Markdown",
+      "text": "🤖 Respuesta del messageHandler.",
+    },
+  },
+]
+`;
+
+exports[`processMessage — router de entrada (golden-master) texto libre resuelto por conversationalHandler 1`] = `
+[
+  {
+    "method": "sendMessage",
+    "params": {
+      "chat_id": 12345,
+      "parse_mode": "Markdown",
+      "text": "🇧🇷 Brasil ganó 2-0.",
+    },
+  },
+]
+`;
