@@ -95,9 +95,13 @@ const server = http.createServer((req, res) => {
   }
 });
 
-server.listen(PORT, () => {
-  console.log(`🌐 Health server listening on port ${PORT}`);
-});
+// El health/webhook server solo bindea el puerto cuando el bot corre como
+// entry point. Bajo `require()` (tests golden-master Fase 7) no se abre socket.
+if (require.main === module && process.env.NODE_ENV !== 'test') {
+  server.listen(PORT, () => {
+    console.log(`🌐 Health server listening on port ${PORT}`);
+  });
+}
 
 /**
  * Maneja las rutas del panel de administración (/admin)
@@ -1908,18 +1912,31 @@ async function init() {
   logger.info('ScoreHub Telegram ready (long-polling)');
 }
 
-// Iniciar
-init();
+// Arranque: solo cuando se ejecuta directamente (`node telegramBot.js`).
+// Bajo `require()` (tests golden-master de la Fase 7) NO se inicia el polling
+// ni se registran handlers de señal — el comportamiento en producción es idéntico.
+if (require.main === module && process.env.NODE_ENV !== 'test') {
+  init();
 
-// Graceful shutdown
-process.on('SIGINT', () => {
-  logger.info('Shutting down Telegram bot (SIGINT)...');
-  shouldStop = true;
-  setTimeout(() => process.exit(0), 3000).unref();
-});
+  // Graceful shutdown
+  process.on('SIGINT', () => {
+    logger.info('Shutting down Telegram bot (SIGINT)...');
+    shouldStop = true;
+    setTimeout(() => process.exit(0), 3000).unref();
+  });
 
-process.on('SIGTERM', () => {
-  logger.info('Shutting down Telegram bot (SIGTERM)...');
-  shouldStop = true;
-  setTimeout(() => process.exit(0), 3000).unref();
-});
+  process.on('SIGTERM', () => {
+    logger.info('Shutting down Telegram bot (SIGTERM)...');
+    shouldStop = true;
+    setTimeout(() => process.exit(0), 3000).unref();
+  });
+}
+
+// Superficie exportada para los golden-master tests (Fase 7). No se usa en
+// producción; el entry point sigue siendo el arranque de arriba.
+module.exports = {
+  handleCommand,
+  processMessage,
+  buildGameKeyboard,
+  buildSingleGameKeyboard,
+};

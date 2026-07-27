@@ -1,0 +1,120 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`handleCommand — comandos de solo-texto (golden-master) /help 1`] = `
+[
+  {
+    "method": "sendMessage",
+    "params": {
+      "chat_id": 12345,
+      "parse_mode": "Markdown",
+      "text": "📖 *COMANDOS - ScoreHub*
+
+⚽ *Partidos:*
+  /partidos - Partidos de hoy
+  /manana - Partidos de mañana
+  /resultado [equipo] - Último resultado _(ej: /resultado brasil)_
+  /analizar [eq1] vs [eq2] - Análisis _(ej: /analizar brasil vs argentina)_
+  /proximos [equipo] · /siguiente [equipo] - Próximos partidos
+
+🏆 *Tablas:*
+  /tabla - Tabla del Mundial
+  /grupo [A-L] - Grupo específico _(ej: /grupo A)_
+
+👥 *Equipos:*
+  /info [equipo] - Info del equipo
+  /seguir [equipo] - Seguir equipo
+  /cambiarusuario [nombre] - Cambiar apodo
+  /yo · /reset - Perfil / borrar datos
+
+🎯 *Tips, cuotas y tendencias:*
+  /fixture - Próximos partidos del Mundial
+  /outrights - Cuotas de campeón, goleador y más
+  /odds <gameId> - Cuotas detalladas de un partido
+  /tip [eq1] vs [eq2] - Tip con % de confianza
+  /tendencias - Top tendencias + cuotas outright
+  /tendencias [eq1] vs [eq2] - Trends de un partido
+  /predicciones <gameId> - Predicciones comunidad
+
+📡 *Stats en vivo:*
+  /live - Partidos en vivo (con stats + odds)
+  /stats-vivo <gameId> - Stats del último snapshot
+  /alineacion <gameId> - Titulares y formación
+  /previa <gameId> - Pre-match stats
+  /h2h <gameId> - Historial entre los equipos
+
+📰 *Contenido del Mundial:*
+  /noticias - Últimas noticias del Mundial
+  /noticias [equipo] - Noticias de un equipo
+  /equipoideal - Team of the Week (formación, ratings)
+  /bracket - Llaves eliminatorias
+  /bracket grupos - Fase de grupos
+  /historial - Todos los campeones
+  /historial [año] - Final específica _(ej: /historial 2022)_
+  /historial [equipo] - Ediciones del equipo _(ej: /historial brasil)_
+  /goleadores - Ranking de goleadores
+
+💡 _También entendés: "Cómo le fue a X", "Brasil vs Francia", "Estadísticas de X", "Tabla de la Premier"…_",
+    },
+  },
+]
+`;
+
+exports[`handleCommand — comandos de solo-texto (golden-master) /start 1`] = `
+[
+  {
+    "method": "sendMessage",
+    "params": {
+      "chat_id": 12345,
+      "parse_mode": "Markdown",
+      "text": "🏆 *ScoreHub* - Asistente de fútbol
+
+¡Hola Tester! 👋 Soy tu asistente de fútbol.
+
+📱 *Comandos básicos:*
+  /start · /help - Iniciar / ver ayuda
+  /partidos - Partidos de hoy
+  /manana - Partidos de mañana
+  /tabla - Tabla del Mundial
+  /grupo [A-L] - Tabla de grupo _(ej: /grupo A)_
+  /resultado [equipo] - Resultado _(ej: /resultado brasil)_
+  /analizar [eq1] vs [eq2] - Análisis _(ej: /analizar brasil vs argentina)_
+  /info [equipo] · /seguir [equipo] - Info / seguir equipo
+  /cambiarusuario [nombre] - Cambiar apodo
+
+🎯 *Tips, cuotas y tendencias:*
+  /fixture - Próximos partidos del Mundial
+  /outrights - Cuotas de campeón, goleador y más
+  /odds <gameId> - Cuotas detalladas de un partido
+  /tip [eq1] vs [eq2] - Tip con confianza _(ej: /tip brasil vs argentina)_
+  /tendencias - Top tendencias + cuotas del Mundial
+  /tendencias [eq1] vs [eq2] - Trends de un partido
+  /predicciones <gameId> - Predicciones de la comunidad
+
+📡 *Stats y partidos:*
+  /partidos - Partidos de hoy (tips + trends + odds)
+  /live - Partidos en vivo con stats y odds
+  /stats-vivo <gameId> - Stats del último snapshot
+  /alineacion <gameId> - Titulares y formación
+  /previa <gameId> - Pre-match stats
+  /h2h <gameId> - Historial entre los equipos
+
+📰 *Contenido del Mundial:*
+  /noticias - Últimas noticias
+  /noticias [equipo] - Noticias de un equipo _(ej: /noticias brasil)_
+  /equipoideal - Team of the Week
+  /bracket - Llaves eliminatorias
+  /bracket grupos - Fase de grupos
+  /historial - Campeones 1930-2022
+  /historial 2022 - Final de ese año
+  /historial brasil - Ediciones del equipo
+  /goleadores - Top goleadores (con foto)
+  /jugador <nombre> - Foto + info del jugador
+
+💡 También podés escribir en lenguaje natural:
+  "¿Cómo quedó Brasil?"
+  "Tabla del grupo C"
+  "Dame info de Alemania"",
+    },
+  },
+]
+`;
