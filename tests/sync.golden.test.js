@@ -13,7 +13,7 @@ process.env.NODE_ENV = 'test';
 
 jest.mock('../database/connection', () => {
   const c = require('./helpers/dbCapture');
-  return { pool: c.pool, testConnection: jest.fn().mockResolvedValue(true) };
+  return { pool: c.pool, withTransaction: c.withTransaction, testConnection: jest.fn().mockResolvedValue(true) };
 });
 jest.mock('../database/db', () => require('./helpers/dbCapture').db);
 jest.mock('../utils/logger', () => ({ info() {}, warn() {}, error() {}, debug() {}, child() { return this; } }));
@@ -21,9 +21,12 @@ jest.mock('../services/scores365Service', () => ({
   getStandings: jest.fn(),
   getGamesAllScores: jest.fn(),
   getNews: jest.fn(),
+  getTrends: jest.fn(),
+  getBrackets: jest.fn(),
+  getGameSuggestions: jest.fn(),
 }));
 jest.mock('../services/syncCompetitions', () => {
-  const comps = [{ id: 5930, seasonNum: 25, startDate: '20260601', endDate: '20260715' }];
+  const comps = [{ id: 5930, seasonNum: 25, startDate: '20260601', endDate: '20260715', hasBrackets: true }];
   return {
     getActiveCompetitions: jest.fn(async () => comps),
     forEachActive: jest.fn(async (fn) => {
@@ -36,7 +39,7 @@ jest.mock('../services/syncCompetitions', () => {
 
 const api = require('../services/scores365Service');
 const { reset, getWrites } = require('./helpers/dbCapture');
-const sync = require('../services/syncService');
+const sync = require('../src/application/sync/syncService');
 
 beforeAll(() => { jest.useFakeTimers({ now: new Date('2026-07-27T12:00:00.000Z') }); });
 afterAll(() => { jest.useRealTimers(); });
@@ -85,5 +88,44 @@ describe('syncService — golden-master de escrituras', () => {
     api.getNews.mockResolvedValue({ news: [] });
     await sync.syncNews();
     expect(getWrites()).toEqual([]);
+  });
+
+  // Regresión del bug: withTransaction no estaba importado en syncService, así
+  // que este job (y transfers/suggestions/catalog/athletes) lanzaba
+  // ReferenceError silencioso y NO escribía. Ahora sí debe escribir (DELETE +
+  // INSERT dentro de la transacción).
+  test('syncTrends escribe trends de forma atómica (DELETE + INSERT en tx)', async () => {
+    api.getTrends.mockResolvedValue({
+      trends: [
+        { gameId: 4749268, lineTypeId: 3, name: 'Over 2.5' },
+        { homeTeamGameId: 4749269, lineTypeId: 5, name: 'BTTS' },
+      ],
+    });
+    await sync.syncTrends();
+    const writes = getWrites();
+    expect(writes.map((w) => w.via)).toEqual(['tx', 'tx']); // DELETE + INSERT en transacción
+    expect(writes[0].sql).toMatch(/^DELETE FROM trends/);
+    expect(writes[1].sql).toMatch(/^INSERT INTO trends/);
+  });
+
+  test('syncBrackets escribe brackets (upsertMany)', async () => {
+    api.getBrackets.mockResolvedValue({ stages: [{ name: 'Octavos' }] });
+    await sync.syncBrackets();
+    const writes = getWrites();
+    expect(writes).toHaveLength(1);
+    expect(writes[0].sql).toMatch(/^INSERT INTO brackets/);
+    expect(writes[0].params[0]).toBe(5930);
+  });
+
+  // Otro job de transacción que estaba fallando silenciosamente (withTransaction).
+  test('syncSuggestions escribe game_suggestions atómico (DELETE + INSERT)', async () => {
+    api.getGameSuggestions.mockResolvedValue({
+      suggestedGames: [{ id: 111, rank: 1 }, { id: 222, rank: 2 }],
+    });
+    await sync.syncSuggestions();
+    const writes = getWrites();
+    expect(writes.map((w) => w.via)).toEqual(['tx', 'tx']);
+    expect(writes[0].sql).toMatch(/^DELETE FROM game_suggestions/);
+    expect(writes[1].sql).toMatch(/^INSERT INTO game_suggestions/);
   });
 });
