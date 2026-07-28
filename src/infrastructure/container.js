@@ -1,17 +1,35 @@
 /**
- * Composition root (Fase 7 — Clean Architecture).
+ * src/infrastructure/container.js — Composition root de la arquitectura (Fase 7).
  *
- * Único lugar que conoce implementaciones concretas: instancia los adaptadores
- * de `infrastructure/` y los inyecta en los casos de uso de `application/`.
- * Los tests construyen un container con fakes; producción usa los adaptadores reales.
- *
- * VACÍO por ahora: se puebla a medida que la migración strangler mueve cada
- * comando/sync job al árbol nuevo. Ver docs/refactor-plans/07-clean-architecture-backend.md.
+ * Instancia adaptadores + use-cases + command handlers y los registra en el
+ * router. Recibe del proceso (telegramBot.js) los colaboradores concretos que
+ * aún viven fuera (`mundialista365`, `matchSearch`, `scores365`, `sendMessage`).
+ * Se va poblando a medida que la migración strangler mueve cada comando.
  */
 
-function createContainer(/* overrides = {} */) {
-  // TODO(Fase 2+): cablear gateways, repositorios y casos de uso.
-  return {};
+const { createRouter } = require('../interface/telegram/router');
+const { createScoresGateway } = require('./scores365/scoresGateway');
+const { createGetLiveMatches } = require('../application/matches/getLiveMatches');
+const { createGetFixture } = require('../application/matches/getFixture');
+const { TRIGGERS: HELP_TRIGGERS, createHelpCommand } = require('../interface/telegram/commands/help');
+const { TRIGGERS: LIVE_TRIGGERS, createLiveCommand } = require('../interface/telegram/commands/live');
+const { TRIGGERS: FIXTURE_TRIGGERS, createFixtureCommand } = require('../interface/telegram/commands/fixture');
+
+function createContainer({ mundialista365, matchSearch, scores365, sendMessage }) {
+  // Infraestructura (adaptadores de puertos).
+  const scoresGateway = createScoresGateway({ mundialista365, matchSearch, scores365 });
+
+  // Aplicación (use-cases).
+  const getLiveMatches = createGetLiveMatches({ scoresGateway });
+  const getFixture = createGetFixture({ scoresGateway });
+
+  // Interface (router + command handlers migrados).
+  const router = createRouter();
+  router.register(HELP_TRIGGERS, createHelpCommand({ sendMessage }));
+  router.register(LIVE_TRIGGERS, createLiveCommand({ getLiveMatches, sendMessage }));
+  router.register(FIXTURE_TRIGGERS, createFixtureCommand({ getFixture, sendMessage }));
+
+  return { router };
 }
 
 module.exports = { createContainer };
