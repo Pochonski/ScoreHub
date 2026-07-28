@@ -20,7 +20,7 @@
 | 1 · Transporte/lifecycle | ✅ | Transporte (`client.js`), HTTP server (`http/server.js`) y lifecycle (`lifecycle.js`) aislados en `src/interface/` + composition root. `telegramBot.js`: 1957 → 1419 líneas. **77 tests** (59 golden + 8 http + 10 lifecycle). |
 | 2 · Router + primeros 3 comandos | ✅ | Router/registry + arquitectura completa (domain port → use-case → adapter → presenter → container) para `/help` `/live` `/fixture`. Strangler activo. `telegramBot.js`: 1419 → 1319 líneas. **84 tests**. |
 | 3 · Migrar resto de comandos | ✅ | **Todos** los comandos slash + callbacks inline migrados. `handleCommand` vacío. `telegramBot.js`: 1319 → **197 líneas** (1957 → 197, −90%). **105 tests**. |
-| 4 · Sync | ✅ (core) | 🐛 Fix withTransaction (6 jobs fallaban silenciosos). Sync en 3 capas: `application/sync` + `infrastructure/persistence/syncWriters` + `interface/scheduler`. Golden-master 7 jobs. Pendiente opcional: split por dominio + cobertura de los 20 jobs. |
+| 4 · Sync | ✅ | 🐛 Fix withTransaction (6 jobs fallaban silenciosos). Sync **disuelto** en 8 módulos por dominio (games/standings/content/trendsOdds/details/catalog/athletes/transfers) + `context` compartido, sobre `infrastructure/persistence/syncWriters` + `interface/scheduler`. Golden-master de **los 22 jobs**. `syncService.js`: 1340 → 63 (agregador). |
 | 5 · Infra/cross-cutting | ⏳ | siguiente |
 | 3 · Migrar comandos | ⏳ | |
 | 4 · Sync | ⏳ | |
