@@ -10,6 +10,8 @@
 const { createRouter } = require('../interface/telegram/router');
 const { createScoresGateway } = require('./scores365/scoresGateway');
 const { createContentGateway } = require('./content/contentGateway');
+const { createMessageHandlerGateway } = require('./nlu/messageHandlerGateway');
+const { buildGameKeyboard, buildSingleGameKeyboard } = require('../interface/telegram/presenters/keyboards');
 const { createGetLiveMatches } = require('../application/matches/getLiveMatches');
 const { createGetFixture } = require('../application/matches/getFixture');
 const { createMatchDetailUseCases } = require('../application/matches/matchDetail');
@@ -21,11 +23,18 @@ const { TRIGGERS: FIXTURE_TRIGGERS, createFixtureCommand } = require('../interfa
 const { registerMatchDetailCommands } = require('../interface/telegram/commands/matchDetail');
 const { registerTrendsCommands } = require('../interface/telegram/commands/trends');
 const { registerContentCommands } = require('../interface/telegram/commands/content');
+const { registerTeamsCommands } = require('../interface/telegram/commands/teams');
 
-function createContainer({ mundialista365, mundialistaStats, matchSearch, scores365, sendMessage, sendPhoto }) {
+function createContainer(deps) {
+  const {
+    mundialista365, mundialistaStats, matchSearch, scores365, cache, messageHandler,
+    sendMessage, sendPhoto, sendMediaGroup, getTeamBadgeUrl, getCountryFlagUrl,
+  } = deps;
+
   // Infraestructura (adaptadores de puertos).
   const scoresGateway = createScoresGateway({ mundialista365, matchSearch, scores365 });
   const contentGateway = createContentGateway({ mundialistaStats });
+  const nlu = createMessageHandlerGateway({ messageHandler });
 
   // Aplicación (use-cases).
   const getLiveMatches = createGetLiveMatches({ scoresGateway });
@@ -42,6 +51,10 @@ function createContainer({ mundialista365, mundialistaStats, matchSearch, scores
   registerMatchDetailCommands(router, { matchDetail, sendMessage });
   registerTrendsCommands(router, { trends, sendMessage });
   registerContentCommands(router, { content, sendMessage, sendPhoto });
+  registerTeamsCommands(router, {
+    nlu, cache, matchSearch, sendMessage, sendPhoto, sendMediaGroup,
+    getTeamBadgeUrl, getCountryFlagUrl, buildGameKeyboard, buildSingleGameKeyboard,
+  });
 
   return { router };
 }
