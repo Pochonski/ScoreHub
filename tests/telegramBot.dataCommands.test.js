@@ -75,6 +75,20 @@ describe('handleCommand — comandos con datos (golden-master)', () => {
     expect(getSent()).toMatchSnapshot();
   });
 
+  test('/calendario (alias de /fixture) rutea por el router', async () => {
+    m365.getFixture.mockResolvedValue('📅 *FIXTURE DEL MUNDIAL*\n\nBrasil vs Argentina');
+    scores365.getFixtures.mockResolvedValue({
+      games: [
+        { id: 111, startTime: '2099-01-01T18:00:00Z', homeCompetitor: { name: 'Brasil' }, awayCompetitor: { name: 'Argentina' } },
+      ],
+    });
+    const result = await bot.handleCommand(CHAT, '/calendario', 'Tester', USER);
+    expect(result).toBe(true);
+    const sent = getSent();
+    expect(sent).toHaveLength(1);
+    expect(sent[0].params.reply_markup.inline_keyboard[0][0].callback_data).toBe('odds_111');
+  });
+
   test('/live sin partidos en vivo (texto plano)', async () => {
     m365.getLiveGames.mockResolvedValue('📡 No hay partidos en vivo en este momento.');
     matchSearch.findLiveGames.mockResolvedValue([]);

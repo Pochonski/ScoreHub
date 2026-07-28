@@ -39,11 +39,6 @@ if (process.env.ENABLE_LIVE_NOTIFIER === 'true') {
 let dbAvailable = false;
 const PORT = process.env.PORT || 8080;
 
-
-// El transporte de Telegram (telegramRequest, sendMessage, sendPhoto,
-// sendMediaGroup) vive ahora en src/interface/telegram/client.js (Fase 7) y se
-// importa arriba.
-
 /**
  * Maneja comandos de Telegram (que empiezan con /)
  */
@@ -106,7 +101,6 @@ async function handleCommand(chatId, text, userName, userId) {
         `  "Dame info de Alemania"`
       );
       return true;
-
 
     case '/cambiarnombre':
     case '/cambiarnombre@botmundialistabot':
