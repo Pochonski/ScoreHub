@@ -28,6 +28,10 @@ function createScoresGateway({ mundialista365, matchSearch, scores365 }) {
     getTendencias: (scope, id, limit) => mundialista365.getTendencias(scope, id, limit),
     getTendenciasByTeams: (home, away, limit) => mundialista365.getTendenciasByTeams(home, away, limit),
     findGameByTeams: (home, away) => matchSearch.findGameByTeams(home, away),
+    // Usados por el dispatcher de callbacks de botones inline (Fase 3 broche).
+    getAlineacion: (id) => mundialista365.getAlineacion(id),
+    formatTipForGame: (game) => mundialista365.formatTipForGame(game),
+    getTendenciasForGame: (gameId) => mundialista365.getTendencias('game', gameId),
   };
 }
 

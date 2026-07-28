@@ -21,7 +21,6 @@ const { telegramRequest, sendMessage, sendPhoto, sendMediaGroup } = require('./s
 const { createHttpServer } = require('./src/interface/http/server');
 const { createLifecycle } = require('./src/interface/telegram/lifecycle');
 const { createContainer } = require('./src/infrastructure/container');
-const { buildGameKeyboard, buildSingleGameKeyboard } = require('./src/interface/telegram/presenters/keyboards');
 
 if (process.env.ENABLE_LIVE_NOTIFIER === 'true') {
   try {
@@ -150,113 +149,13 @@ async function processMessage(chatId, userId, text, user) {
 }
 
 
-/**
- * Maneja callback queries del teclado inline de partidos
- */
-async function handlePartidosCallback(chatId, callbackData) {
-  const idx = callbackData.indexOf('_');
-  if (idx === -1) {
-    await sendMessage(chatId, '⚠️ Acción no válida.');
-    return;
-  }
-  const action = callbackData.substring(0, idx);
-  const gameId = callbackData.substring(idx + 1);
-
-  const handlers = {
-    tip: async () => {
-      try {
-        const game = await cache.getGameById(gameId);
-        if (game?.homeCompetitor?.name && game?.awayCompetitor?.name) {
-          const tip = await mundialista365.formatTipForGame(game);
-          if (tip) {
-            await sendMessage(chatId, tip);
-            if (gameId) {
-              await sendMessage(chatId, '💡 Más opciones:', { reply_markup: { inline_keyboard: buildSingleGameKeyboard(gameId, ['trends', 'odds']) } });
-            }
-          } else {
-            await sendMessage(chatId, '⚠️ No hay tip disponible para ese partido.');
-          }
-        } else {
-          await sendMessage(chatId, '⚠️ No pude obtener información de ese partido.');
-        }
-      } catch (e) {
-        console.error('[callback tip] error:', e.message);
-        await sendMessage(chatId, '⚠️ Error al obtener tip de ese partido.');
-      }
-    },
-    trends: async () => {
-      try {
-        const t = await mundialista365.getTendencias('game', gameId);
-        await sendMessage(chatId, t);
-        await sendMessage(chatId, '💡 Más opciones:', { reply_markup: { inline_keyboard: buildSingleGameKeyboard(gameId, ['tip', 'odds']) } });
-      } catch (e) {
-        await sendMessage(chatId, '⚠️ Error al obtener tendencias.');
-      }
-    },
-    odds: async () => {
-      try {
-        const t = await mundialista365.getOdds(gameId);
-        await sendMessage(chatId, t);
-        await sendMessage(chatId, '💡 Más opciones:', { reply_markup: { inline_keyboard: buildSingleGameKeyboard(gameId, ['tip', 'trends']) } });
-      } catch (e) {
-        console.error('[callback odds] error:', e);
-        await sendMessage(chatId, '⚠️ Error al obtener cuotas.');
-      }
-    },
-    h2h: async () => {
-      try {
-        const t = await mundialista365.getH2H(gameId);
-        await sendMessage(chatId, t);
-        await sendMessage(chatId, '💡 Más opciones:', { reply_markup: { inline_keyboard: buildSingleGameKeyboard(gameId, ['previa', 'odds']) } });
-      } catch (e) {
-        await sendMessage(chatId, '⚠️ Error al obtener historial.');
-      }
-    },
-    previa: async () => {
-      try {
-        const t = await mundialista365.getPrevia(gameId);
-        await sendMessage(chatId, t);
-        await sendMessage(chatId, '💡 Más opciones:', { reply_markup: { inline_keyboard: buildSingleGameKeyboard(gameId, ['lineup', 'h2h', 'odds']) } });
-      } catch (e) {
-        await sendMessage(chatId, '⚠️ Error al obtener previa.');
-      }
-    },
-    lineup: async () => {
-      try {
-        const t = await mundialista365.getAlineacion(gameId);
-        await sendMessage(chatId, t);
-        await sendMessage(chatId, '💡 Más opciones:', { reply_markup: { inline_keyboard: buildSingleGameKeyboard(gameId, ['previa', 'odds']) } });
-      } catch (e) {
-        await sendMessage(chatId, '⚠️ Error al obtener alineación.');
-      }
-    },
-    stats: async () => {
-      try {
-        const t = await mundialista365.getStatsVivo(gameId);
-        await sendMessage(chatId, t);
-        await sendMessage(chatId, '💡 Más opciones:', { reply_markup: { inline_keyboard: buildSingleGameKeyboard(gameId, ['odds']) } });
-      } catch (e) {
-        await sendMessage(chatId, '⚠️ Error al obtener stats.');
-      }
-    },
-  };
-
-  const handler = handlers[action];
-  if (handler) {
-    await handler();
-  } else {
-    await sendMessage(chatId, '⚠️ Acción no reconocida.');
-  }
-}
-
 // ---- Composition root (Fase 7) ----
-// Cablea las capas interface (lifecycle de Telegram + HTTP server) con los
-// handlers de dominio que aún viven en este archivo (processMessage,
-// handlePartidosCallback). Solo arranca el proceso cuando se ejecuta como entry
+// El container instancia toda la arquitectura por capas (router de comandos +
+// dispatcher de callbacks). Acá se cablea con las capas de delivery (lifecycle
+// de Telegram + HTTP server) y con `processMessage` (router de entrada, que aún
+// vive en este archivo). Solo arranca el proceso cuando se ejecuta como entry
 // point; bajo `require()` (tests) no se inicia polling, socket ni señales.
-// Router de comandos migrados a Clean Architecture (Fase 7). `handleCommand` lo
-// consulta primero; los comandos aún no migrados siguen en el if-else legacy.
-const { router } = createContainer({
+const { router, handleCallback } = createContainer({
   mundialista365, mundialistaStats, matchSearch, scores365, matchHandler, cache,
   messageHandler, userStorage, pool,
   sendMessage, sendPhoto, sendMediaGroup,
@@ -266,7 +165,7 @@ const { router } = createContainer({
 const lifecycle = createLifecycle({
   telegramRequest,
   processMessage,
-  handlePartidosCallback,
+  handlePartidosCallback: handleCallback,
   logger,
   testConnection,
   setDbAvailable: (v) => { dbAvailable = v; },
@@ -295,6 +194,4 @@ if (require.main === module && process.env.NODE_ENV !== 'test') {
 module.exports = {
   handleCommand,
   processMessage,
-  buildGameKeyboard,
-  buildSingleGameKeyboard,
 };

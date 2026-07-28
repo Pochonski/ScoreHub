@@ -11,6 +11,7 @@ const { createRouter } = require('../interface/telegram/router');
 const { createScoresGateway } = require('./scores365/scoresGateway');
 const { createContentGateway } = require('./content/contentGateway');
 const { createMessageHandlerGateway } = require('./nlu/messageHandlerGateway');
+const { createCallbackDispatcher } = require('../interface/telegram/callbacks');
 const { buildGameKeyboard, buildSingleGameKeyboard } = require('../interface/telegram/presenters/keyboards');
 const { createGetLiveMatches } = require('../application/matches/getLiveMatches');
 const { createGetFixture } = require('../application/matches/getFixture');
@@ -68,7 +69,10 @@ function createContainer(deps) {
     sendMessage, sendPhoto, sendMediaGroup, buildSingleGameKeyboard,
   });
 
-  return { router };
+  // Dispatcher de callbacks de botones inline (reusa el ScoresGateway).
+  const handleCallback = createCallbackDispatcher({ scoresGateway, cache, sendMessage });
+
+  return { router, handleCallback };
 }
 
 module.exports = { createContainer };
