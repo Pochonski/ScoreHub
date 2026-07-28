@@ -221,8 +221,13 @@ Usa este checklist para tildar items a medida que avanzas. Cada sección corresp
 - [x] **59 golden-master tests** (55 comandos del bot + 4 de sync), todos verde
 - [x] Esqueleto de capas `src/{domain,application,infrastructure,interface}` + README por capa + `container.js`
 
-### Fases 1-6 — pendientes
-- [ ] Fase 1 — aislar transporte/lifecycle de Telegram a `interface/telegram/`
+### Fase 1 — Aislar transporte/lifecycle de Telegram ✅
+- [x] `src/interface/telegram/client.js` (transporte) — [PR #3](https://github.com/Pochonski/ScoreHub/pull/3)
+- [x] `src/interface/http/server.js` (health/webhook/admin) como `createHttpServer(deps)` + `tests/http.server.test.js` (8)
+- [x] `src/interface/telegram/lifecycle.js` (polling/ruteo) como `createLifecycle(deps)` + `tests/lifecycle.test.js` (10)
+- [x] Composition root en `telegramBot.js` (1957 → 1419 líneas); 77/77 verde; comportamiento byte-idéntico
+
+### Fases 2-6 — pendientes
 - [ ] Fase 2 — router + registry + primeros 3 comandos (arranca strangler)
 - [ ] Fase 3 — dominio + application; migrar el resto de comandos por lotes
 - [ ] Fase 4 — sync como use-cases + scheduler

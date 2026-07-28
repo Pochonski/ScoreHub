@@ -1,12 +1,7 @@
 // ScoreHub - Telegram Bot (usando API directa)
 require('dotenv').config();
-const http = require('http');
-const https = require('https');
-const path = require('path');
-const fs = require('fs');
 const { install: installProcessGuard } = require('./utils/processGuard');
 installProcessGuard({ name: 'telegramBot' });
-const { isAdminEnabled, requireAdmin } = require('./utils/adminAuth');
 const messageHandler = require('./handlers/messageHandler');
 const matchSearch = require('./services/matchSearch');
 const scores365 = require('./services/scores365Service');
@@ -22,6 +17,10 @@ const userStorage = require('./utils/userStorage');
 const logger = require('./utils/logger');
 const telegramNotifier = require('./services/telegramNotifier');
 const conversationContext = require('./services/conversationContext');
+// Capa interface extraída (Fase 7): transporte Telegram + HTTP server.
+const { telegramRequest, sendMessage, sendPhoto, sendMediaGroup } = require('./src/interface/telegram/client');
+const { createHttpServer } = require('./src/interface/http/server');
+const { createLifecycle } = require('./src/interface/telegram/lifecycle');
 
 if (process.env.ENABLE_LIVE_NOTIFIER === 'true') {
   try {
@@ -32,410 +31,16 @@ if (process.env.ENABLE_LIVE_NOTIFIER === 'true') {
   }
 }
 
-// Token del bot de Telegram
-const TELEGRAM_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
-const API_URL = `https://api.telegram.org/bot${TELEGRAM_TOKEN}`;
-
-// Flag para saber si la DB está disponible
+// Estado de la DB: lo publica el lifecycle (init) y lo lee el HTTP server.
+// El wiring (lifecycle + HTTP server + arranque) vive en el composition root
+// al final del archivo (Fase 7).
 let dbAvailable = false;
-
-// Mini servidor HTTP para health checks + webhook de Telegram
 const PORT = process.env.PORT || 8080;
-const WEBHOOK_PATH = '/webhook';
-const WEBHOOK_URL = '';
-const rateLimit = new Map();
-function checkRateLimit(ip) {
-  const now = Date.now();
-  const entry = rateLimit.get(ip) || { count: 0, resetAt: now + 60000 };
-  if (now > entry.resetAt) { entry.count = 0; entry.resetAt = now + 60000; }
-  entry.count++;
-  rateLimit.set(ip, entry);
-  if (rateLimit.size > 1000) {
-    const oldest = rateLimit.keys().next().value;
-    rateLimit.delete(oldest);
-  }
-  return entry.count <= 30;
-}
 
-const server = http.createServer((req, res) => {
-  const url = req.url || '/';
-  if (url === '/health' || url === '/') {
-    const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress || 'unknown';
-    if (!checkRateLimit(ip)) {
-      res.writeHead(429, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: 'too many requests' }));
-      return;
-    }
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({
-      status: 'ok',
-      bot: 'ScoreHub',
-      uptime: process.uptime(),
-      db: dbAvailable ? 'connected' : 'demo',
-      timestamp: new Date().toISOString()
-    }));
-  } else if (url === WEBHOOK_PATH && req.method === 'POST') {
-    let body = '';
-    req.on('data', (chunk) => { body += chunk; });
-    req.on('end', () => {
-      res.writeHead(200);
-      res.end();
-      try {
-        const update = JSON.parse(body);
-        handleWebhookUpdate(update).catch(e => console.error('[webhook] handler error:', e.message));
-      } catch (e) {
-        console.error('[webhook] body parse error:', e.message);
-      }
-    });
-  } else if (url.startsWith('/admin')) {
-    handleAdminRoute(req, res, url);
-  } else {
-    res.writeHead(404);
-    res.end('Not found');
-  }
-});
 
-// El health/webhook server solo bindea el puerto cuando el bot corre como
-// entry point. Bajo `require()` (tests golden-master Fase 7) no se abre socket.
-if (require.main === module && process.env.NODE_ENV !== 'test') {
-  server.listen(PORT, () => {
-    console.log(`🌐 Health server listening on port ${PORT}`);
-  });
-}
-
-/**
- * Maneja las rutas del panel de administración (/admin)
- */
-async function handleAdminRoute(req, res, url) {
-  const parsedUrl = new URL(url, `http://${req.headers.host || 'localhost'}`);
-  const pathname = parsedUrl.pathname;
-
-  // Gate de auth: si ADMIN_TOKEN no está configurado, admin deshabilitado.
-  if (!isAdminEnabled()) {
-    res.writeHead(503, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ error: 'Admin deshabilitado. Configure ADMIN_TOKEN.' }));
-    return;
-  }
-  // Exigir token válido (Bearer o cookie) para TODO /admin/*.
-  if (!requireAdmin(req)) {
-    res.writeHead(401, {
-      'Content-Type': 'application/json',
-      'WWW-Authenticate': 'Bearer realm="scorehub-admin"',
-    });
-    res.end(JSON.stringify({ error: 'No autorizado. Provide Authorization: Bearer <ADMIN_TOKEN>.' }));
-    return;
-  }
-
-  // Servir index.html para /admin y /admin/
-  if (pathname === '/admin' || pathname === '/admin/') {
-    const indexPath = path.join(__dirname, 'admin', 'public', 'index.html');
-    try {
-      const html = fs.readFileSync(indexPath, 'utf-8');
-      res.writeHead(200, { 'Content-Type': 'text/html' });
-      res.end(html);
-    } catch (e) {
-      res.writeHead(500);
-      res.end('Error reading admin page');
-    }
-    return;
-  }
-
-  // API endpoints
-  if (pathname.startsWith('/admin/api/')) {
-    res.setHeader('Content-Type', 'application/json');
-
-    // POST: rename user
-    if (req.method === 'POST' && pathname === '/admin/api/users/rename') {
-      let body = '';
-      req.on('data', (chunk) => { body += chunk; });
-      req.on('end', async () => {
-        try {
-          const { id, alias } = JSON.parse(body);
-          if (!id || !alias) {
-            res.writeHead(400);
-            res.end(JSON.stringify({ error: 'id and alias required' }));
-            return;
-          }
-          await pool.query('UPDATE usuarios SET alias = $1 WHERE id = $2', [alias, id]);
-          res.writeHead(200);
-          res.end(JSON.stringify({ success: true }));
-        } catch (error) {
-          console.error('[admin] rename error:', error.message);
-          res.writeHead(500);
-          res.end(JSON.stringify({ error: 'Error al renombrar usuario' }));
-        }
-      });
-      return;
-    }
-
-    // Build platform filter
-    const platform = parsedUrl.searchParams.get('platform') || 'telegram';
-    const userCond = platform === 'whatsapp' ? "LIKE '%@%'" : platform === 'all' ? 'IS NOT NULL' : "NOT LIKE '%@%'";
-    const userFilter = `id ${userCond}`;
-    const uFilter = `u.id ${userCond}`;
-    const hFilter = `h.id_usuario ${userCond}`;
-
-    try {
-      let data;
-      switch (pathname) {
-        case '/admin/api/stats': {
-          const [users, queries, todayQueries, teamsFollowed] = await Promise.all([
-            pool.query(`SELECT COUNT(*) as total FROM usuarios WHERE ${userFilter}`),
-            pool.query(`SELECT COUNT(*) as total FROM historial_consultas h WHERE ${hFilter}`),
-            pool.query(`SELECT COUNT(*) as total FROM historial_consultas h WHERE ${hFilter} AND DATE(fecha) = CURRENT_DATE`),
-            pool.query(`SELECT COUNT(*) as total FROM equipos_seguidos e JOIN usuarios u ON e.id_usuario = u.id WHERE ${uFilter}`)
-          ]);
-          data = {
-            totalUsers: parseInt(users.rows[0].total),
-            totalQueries: parseInt(queries.rows[0].total),
-            teamsFollowed: parseInt(teamsFollowed.rows[0].total),
-            todayQueries: parseInt(todayQueries.rows[0].total)
-          };
-          break;
-        }
-        case '/admin/api/users': {
-          const result = await pool.query(`SELECT id, alias, fecha_registro FROM usuarios WHERE ${userFilter} ORDER BY fecha_registro DESC LIMIT 50`);
-          data = result.rows;
-          break;
-        }
-        case '/admin/api/queries': {
-          const limit = parseInt(parsedUrl.searchParams.get('limit')) || 50;
-          const offset = parseInt(parsedUrl.searchParams.get('offset')) || 0;
-          const search = parsedUrl.searchParams.get('search') || '';
-          let where = hFilter;
-          const params = [];
-          let paramIdx = 1;
-          if (search) {
-            where += ` AND (h.consulta ILIKE $${paramIdx} OR u.alias ILIKE $${paramIdx})`;
-            params.push(`%${search}%`);
-            paramIdx++;
-          }
-          params.push(limit, offset);
-          const result = await pool.query(
-            `SELECT h.id, h.consulta, h.tipo, h.respuesta, h.fecha, u.alias
-             FROM historial_consultas h
-             JOIN usuarios u ON h.id_usuario = u.id
-             WHERE ${where}
-             ORDER BY h.fecha DESC
-             LIMIT $${paramIdx} OFFSET $${paramIdx + 1}`, params
-          );
-          data = result.rows;
-          break;
-        }
-        case '/admin/api/followed-teams': {
-          const result = await pool.query(
-            `SELECT e.nombre_equipo, u.alias, e.fecha_seguimiento
-             FROM equipos_seguidos e
-             JOIN usuarios u ON e.id_usuario = u.id
-             WHERE ${uFilter}
-             ORDER BY e.fecha_seguimiento DESC
-             LIMIT 100`
-          );
-          data = result.rows;
-          break;
-        }
-        case '/admin/api/queries-by-type': {
-          const result = await pool.query(
-            `SELECT tipo, COUNT(*) as total
-             FROM historial_consultas h
-             WHERE ${hFilter}
-             GROUP BY tipo
-             ORDER BY total DESC`
-          );
-          data = result.rows;
-          break;
-        }
-        case '/admin/api/apuestas': {
-          const limit = parseInt(parsedUrl.searchParams.get('limit')) || 50;
-          const result = await pool.query(
-            `SELECT a.id, a.id_usuario, a.partido_extrado, a.partido_normalizado,
-                    a.marcador_local, a.marcador_visitante, a.estado, a.resultado_final,
-                    a.fecha_creacion, a.fecha_partido, a.fecha_cierre,
-                    u.alias
-             FROM apuestas a
-             JOIN usuarios u ON a.id_usuario = u.id
-             ORDER BY a.fecha_creacion DESC
-             LIMIT $1`, [limit]
-          );
-          data = result.rows;
-          break;
-        }
-        default:
-          res.writeHead(404);
-          res.end(JSON.stringify({ error: 'Not found' }));
-          return;
-      }
-      res.writeHead(200);
-      res.end(JSON.stringify(data));
-    } catch (error) {
-      console.error('[admin] Error en', pathname, error.message);
-      res.writeHead(500);
-      res.end(JSON.stringify({ error: 'Database error' }));
-    }
-    return;
-  }
-
-  // Servir archivos estáticos de admin/public/
-  if (pathname.startsWith('/admin/public/')) {
-    const relPath = pathname.replace('/admin/public/', '');
-    const filePath = path.join(__dirname, 'admin', 'public', relPath);
-    try {
-      const content = fs.readFileSync(filePath);
-      const ext = path.extname(filePath).toLowerCase();
-      const mime = {
-        '.css': 'text/css',
-        '.js': 'application/javascript',
-        '.html': 'text/html',
-        '.png': 'image/png',
-        '.jpg': 'image/jpeg',
-        '.svg': 'image/svg+xml',
-        '.json': 'application/json',
-      };
-      res.writeHead(200, { 'Content-Type': mime[ext] || 'application/octet-stream' });
-      res.end(content);
-    } catch (e) {
-      console.error('[admin] static file error:', filePath, e.message);
-      res.writeHead(404);
-      res.end('Not found');
-    }
-    return;
-  }
-
-  res.writeHead(404);
-  res.end('Not found');
-}
-
-/**
- * Errores que la API de Telegram puede devolver cuando parse_mode=Markdown
- * es rechazado. Ver:
- *  - 400 Bad Request: can't parse entities
- *  - descripciones que mencionan "Markdown", "entity", "parse"
- */
-const MARKDOWN_HINTS = [
-  "can't parse",
-  "parse entities",
-  'parse_mode',
-  'unsupported start symbol',
-  'no start symbol',
-];
-
-function looksLikeMarkdownIssue(parsed) {
-  const text = `${parsed?.description || ''}`;
-  return text && MARKDOWN_HINTS.some((h) => text.toLowerCase().includes(h));
-}
-
-/**
- * Hace una solicitud a la API de Telegram.
- *
- * Antes: cualquier `ok:false` (excepto 429) se resolvía con `parsed`,
- *        dejando al caller creer que el mensaje se había enviado. Ahora:
- *        se rechaza con un Error anotado con flags para que sendMessage /
- *        sendPhoto puedan decidir fallback (Markdown → plain text) y que
- *        el caller de alto nivel vea el fallo.
- */
-async function telegramRequest(method, params = {}, timeoutMs = 60000) {
-  const url = new URL(`${API_URL}/${method}`);
-  const body = JSON.stringify(params);
-  return new Promise((resolve, reject) => {
-    const req = https.request(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Content-Length': Buffer.byteLength(body),
-      },
-      timeout: timeoutMs,
-    }, (res) => {
-      let data = '';
-      res.on('data', (chunk) => { data += chunk; });
-      res.on('end', () => {
-        try {
-          const parsed = JSON.parse(data);
-          if (parsed.ok) return resolve(parsed);
-          const markdownIssue = looksLikeMarkdownIssue(parsed);
-          const err = new Error(
-            `Telegram API ${method} ${parsed.error_code || ''}: ${parsed.description || 'unknown error'}`
-          );
-          err.telegramError = true;
-          err.response = parsed;
-          err.markdownIssue = markdownIssue;
-          err.description = parsed.description;
-          err.errorCode = parsed.error_code;
-          if (parsed.error_code === 429 && parsed.parameters?.retry_after) {
-            err.isRateLimited = true;
-            err.retryAfter = parsed.parameters.retry_after;
-          }
-          console.error(
-            `[Telegram API] ${method} falló [${parsed.error_code}]: ${parsed.description}` +
-              (markdownIssue ? ' (markdownIssue=true)' : '')
-          );
-          reject(err);
-        } catch (e) {
-          reject(new Error(`Telegram API (${method}): respuesta no-JSON: ${data.substring(0, 200)}`));
-        }
-      });
-    });
-    req.on('error', reject);
-    req.on('timeout', () => { req.destroy(); reject(new Error(`Telegram API (${method}): timeout after ${timeoutMs}ms`)); });
-    req.write(body);
-    req.end();
-  });
-}
-
-/**
- * Envía un mensaje (con backoff ante 429).
- *
- * Si el primer intento falla por un error relacionado con Markdown,
- * reintenta sin `parse_mode` (texto plano). Solo se hace UN fallback,
- * no un loop infinito.
- */
-async function sendMessage(chatId, text, options = {}) {
-  const params = {
-    chat_id: chatId,
-    text,
-    parse_mode: 'Markdown',
-    ...options,
-  };
-  try {
-    return await telegramRequestWithRetry('sendMessage', params);
-  } catch (err) {
-    if (err.markdownIssue && params.parse_mode) {
-      const retryParams = { ...params };
-      delete retryParams.parse_mode;
-      console.warn(`[Telegram] sendMessage markdown inválido, reintentando sin parse_mode`);
-      return telegramRequestWithRetry('sendMessage', retryParams);
-    }
-    throw err;
-  }
-}
-
-async function sendPhoto(chatId, photoUrl, caption = '', options = {}) {
-  const params = {
-    chat_id: chatId,
-    photo: photoUrl,
-    caption,
-    parse_mode: 'Markdown',
-    ...options,
-  };
-  try {
-    return await telegramRequestWithRetry('sendPhoto', params);
-  } catch (err) {
-    if (err.markdownIssue && params.parse_mode) {
-      const retryParams = { ...params };
-      delete retryParams.parse_mode;
-      console.warn(`[Telegram] sendPhoto markdown inválido en caption, reintentando sin parse_mode`);
-      return telegramRequestWithRetry('sendPhoto', retryParams);
-    }
-    throw err;
-  }
-}
-
-async function sendMediaGroup(chatId, media, options = {}) {
-  return telegramRequest('sendMediaGroup', {
-    chat_id: chatId,
-    media,
-    ...options
-  });
-}
+// El transporte de Telegram (telegramRequest, sendMessage, sendPhoto,
+// sendMediaGroup) vive ahora en src/interface/telegram/client.js (Fase 7) y se
+// importa arriba.
 
 /**
  * Maneja comandos de Telegram (que empiezan con /)
@@ -1772,168 +1377,40 @@ async function handlePartidosCallback(chatId, callbackData) {
   }
 }
 
-/**
- * Maneja un update individual del webhook de Telegram
- */
-async function handleWebhookUpdate(update) {
-  // Callback queries (inline keyboard clicks)
-  if (update.callback_query) {
-    const cb = update.callback_query;
-    const chatId = cb.message.chat.id;
-    const cbData = cb.data || '';
-    const cbId = cb.id;
-    await telegramRequest('answerCallbackQuery', { callback_query_id: cbId }).catch(() => {});
-    const actionPrefix = cbData.split('_')[0];
-    const knownActions = ['tip', 'trends', 'odds', 'h2h', 'previa', 'lineup', 'stats'];
-    if (knownActions.includes(actionPrefix)) {
-      await handlePartidosCallback(chatId, cbData);
-    }
-    return;
-  }
+// ---- Composition root (Fase 7) ----
+// Cablea las capas interface (lifecycle de Telegram + HTTP server) con los
+// handlers de dominio que aún viven en este archivo (processMessage,
+// handlePartidosCallback). Solo arranca el proceso cuando se ejecuta como entry
+// point; bajo `require()` (tests) no se inicia polling, socket ni señales.
+const lifecycle = createLifecycle({
+  telegramRequest,
+  processMessage,
+  handlePartidosCallback,
+  logger,
+  testConnection,
+  setDbAvailable: (v) => { dbAvailable = v; },
+});
+const { server: httpServer } = createHttpServer({
+  getDbAvailable: () => dbAvailable,
+  handleWebhookUpdate: lifecycle.handleWebhookUpdate,
+});
 
-  // Mensajes regulares
-  const message = update?.message;
-  if (!message || !message.text) return;
-  if (message.chat.type !== 'private') return;
-
-  const chatId = message.chat.id;
-  const userId = message.from.id;
-  const text = message.text.trim();
-  const user = message.from.username || message.from.first_name;
-
-  await processMessage(chatId, userId, text, user);
-}
-
-/**
- * Procesa updates en batch (usado en init para updates pendientes)
- */
-async function processUpdates(updates) {
-  if (!updates.ok || !updates.result) return;
-  for (const update of updates.result) {
-    await handleWebhookUpdate(update);
-  }
-}
-
-/**
- * Envuelve telegramRequest con backoff ante rate-limit (429).
- * Reintenta respetando retry_after de Telegram.
- */
-async function telegramRequestWithRetry(method, params = {}, timeoutMs = 60000, attempt = 0) {
-  try {
-    return await telegramRequest(method, params, timeoutMs);
-  } catch (e) {
-    if (e.isRateLimited && attempt < 3) {
-      const wait = (e.retryAfter || 1) * 1000;
-      console.warn(`[Telegram] 429 en ${method}, esperando ${e.retryAfter}s (intento ${attempt + 1})...`);
-      await new Promise((r) => setTimeout(r, wait));
-      return telegramRequestWithRetry(method, params, timeoutMs, attempt + 1);
-    }
-    throw e;
-  }
-}
-
-// ---- Long-polling loop ----
-let polling = false;
-let pollOffset = 0;
-let shouldStop = false;
-
-const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-
-/**
- * Un ciclo de getUpdates con long-polling (timeout 30s).
- */
-async function fetchOnce() {
-  const params = { timeout: 30, allowed_updates: ['message', 'callback_query'] };
-  if (pollOffset) params.offset = pollOffset;
-  try {
-    const updates = await telegramRequest('getUpdates', params, 35000);
-    if (updates.ok && Array.isArray(updates.result) && updates.result.length > 0) {
-      for (const update of updates.result) {
-        try {
-          await handleWebhookUpdate(update);
-        } catch (e) {
-          console.error('[polling] handler error:', e.message);
-        }
-      }
-      // Confirmar procesado: offset = lastUpdateId + 1
-      pollOffset = updates.result[updates.result.length - 1].update_id + 1;
-    }
-    return true;
-  } catch (e) {
-    if (e.isRateLimited) {
-      const wait = (e.retryAfter || 1) * 1000;
-      console.warn(`[polling] 429, esperando ${e.retryAfter}s...`);
-      await sleep(wait);
-    } else {
-      console.error('[polling] getUpdates error:', e.message);
-      await sleep(3000); // backoff fijo ante errores de red
-    }
-    return false;
-  }
-}
-
-/**
- * Loop de long-polling continuo. Termina solo si shouldStop=true.
- */
-async function pollingLoop() {
-  while (!shouldStop) {
-    await fetchOnce();
-  }
-  console.log('[polling] loop detenido.');
-}
-
-/**
- * Inicializar bot
- */
-async function init() {
-  logger.info('Starting ScoreHub Telegram bot...');
-
-  testConnection().then(ok => {
-    dbAvailable = ok;
-    if (!dbAvailable) {
-      logger.warn('Demo mode active (no database)');
-    }
-  }).catch(() => {
-    logger.warn('Demo mode active (no database)');
-  });
-
-  try {
-    const wb = await telegramRequest('deleteWebhook', { drop_pending_updates: false });
-    logger.info({ ok: wb.ok, description: wb.description }, 'deleteWebhook');
-  } catch (e) {
-    logger.error({ err: e.message }, 'deleteWebhook failed');
-  }
-
-  polling = true;
-  pollingLoop().catch((e) => {
-    logger.error({ err: e.message }, 'Polling loop crashed');
-  });
-
-  logger.info('ScoreHub Telegram ready (long-polling)');
-}
-
-// Arranque: solo cuando se ejecuta directamente (`node telegramBot.js`).
-// Bajo `require()` (tests golden-master de la Fase 7) NO se inicia el polling
-// ni se registran handlers de señal — el comportamiento en producción es idéntico.
 if (require.main === module && process.env.NODE_ENV !== 'test') {
-  init();
-
-  // Graceful shutdown
-  process.on('SIGINT', () => {
-    logger.info('Shutting down Telegram bot (SIGINT)...');
-    shouldStop = true;
-    setTimeout(() => process.exit(0), 3000).unref();
+  httpServer.listen(PORT, () => {
+    console.log(`🌐 Health server listening on port ${PORT}`);
   });
+  lifecycle.init();
 
-  process.on('SIGTERM', () => {
-    logger.info('Shutting down Telegram bot (SIGTERM)...');
-    shouldStop = true;
+  const shutdown = (signal) => {
+    logger.info(`Shutting down Telegram bot (${signal})...`);
+    lifecycle.stop();
     setTimeout(() => process.exit(0), 3000).unref();
-  });
+  };
+  process.on('SIGINT', () => shutdown('SIGINT'));
+  process.on('SIGTERM', () => shutdown('SIGTERM'));
 }
 
-// Superficie exportada para los golden-master tests (Fase 7). No se usa en
-// producción; el entry point sigue siendo el arranque de arriba.
+// Superficie exportada para los golden-master tests (Fase 7).
 module.exports = {
   handleCommand,
   processMessage,
