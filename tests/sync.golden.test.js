@@ -22,9 +22,11 @@ jest.mock('../services/scores365Service', () => ({
   getGamesAllScores: jest.fn(),
   getNews: jest.fn(),
   getTrends: jest.fn(),
+  getBrackets: jest.fn(),
+  getGameSuggestions: jest.fn(),
 }));
 jest.mock('../services/syncCompetitions', () => {
-  const comps = [{ id: 5930, seasonNum: 25, startDate: '20260601', endDate: '20260715' }];
+  const comps = [{ id: 5930, seasonNum: 25, startDate: '20260601', endDate: '20260715', hasBrackets: true }];
   return {
     getActiveCompetitions: jest.fn(async () => comps),
     forEachActive: jest.fn(async (fn) => {
@@ -104,5 +106,26 @@ describe('syncService — golden-master de escrituras', () => {
     expect(writes.map((w) => w.via)).toEqual(['tx', 'tx']); // DELETE + INSERT en transacción
     expect(writes[0].sql).toMatch(/^DELETE FROM trends/);
     expect(writes[1].sql).toMatch(/^INSERT INTO trends/);
+  });
+
+  test('syncBrackets escribe brackets (upsertMany)', async () => {
+    api.getBrackets.mockResolvedValue({ stages: [{ name: 'Octavos' }] });
+    await sync.syncBrackets();
+    const writes = getWrites();
+    expect(writes).toHaveLength(1);
+    expect(writes[0].sql).toMatch(/^INSERT INTO brackets/);
+    expect(writes[0].params[0]).toBe(5930);
+  });
+
+  // Otro job de transacción que estaba fallando silenciosamente (withTransaction).
+  test('syncSuggestions escribe game_suggestions atómico (DELETE + INSERT)', async () => {
+    api.getGameSuggestions.mockResolvedValue({
+      suggestedGames: [{ id: 111, rank: 1 }, { id: 222, rank: 2 }],
+    });
+    await sync.syncSuggestions();
+    const writes = getWrites();
+    expect(writes.map((w) => w.via)).toEqual(['tx', 'tx']);
+    expect(writes[0].sql).toMatch(/^DELETE FROM game_suggestions/);
+    expect(writes[1].sql).toMatch(/^INSERT INTO game_suggestions/);
   });
 });
