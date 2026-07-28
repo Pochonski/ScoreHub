@@ -50,4 +50,89 @@ function helpText() {
   );
 }
 
-module.exports = { helpText };
+function previaUsage() {
+  return (
+    `🔮 *PREVIA DE PARTIDO*\n\n` +
+    `Uso: \`/previa <gameId>\`\n\n` +
+    `Ejemplo: \`/previa 4749268\`\n\n` +
+    `💡 Las previas se generan para partidos programados (statusGroup=2).`
+  );
+}
+
+function h2hUsage() {
+  return (
+    `🤝 *HISTORIAL ENTRE EQUIPOS (H2H)*\n\n` +
+    `Uso: \`/h2h <gameId>\`\n\n` +
+    `Ejemplo: \`/h2h 4749268\``
+  );
+}
+
+function oddsUsage() {
+  return (
+    `🎲 *CUOTAS DE PARTIDO*\n\n` +
+    `Uso: \`/odds <gameId>\`\n\n` +
+    `Ejemplo: \`/odds 4749268\`\n\n` +
+    `💡 Para encontrar el gameId, usá \`/partidos\`, \`/fixture\` o \`/live\`.`
+  );
+}
+
+function statsVivoUsage() {
+  return (
+    `📊 *STATS EN VIVO*\n\n` +
+    `Uso: \`/stats-vivo <gameId>\`\n\n` +
+    `Ejemplo: \`/stats-vivo 4749268\`\n\n` +
+    `💡 Para encontrar el gameId:\n` +
+    `• \`/live\` para partidos en vivo\n` +
+    `• \`/tip brasil vs argentina\` para un partido próximo`
+  );
+}
+
+function prediccionesUsage() {
+  return (
+    `🗳️ *PREDICCIONES DE LA COMUNIDAD*\n\n` +
+    `Uso: \`/predicciones <gameId>\`\n\n` +
+    `Ejemplo: \`/predicciones 4749268\`\n\n` +
+    `💡 Para buscar el gameId, usá \`/tip brasil vs argentina\` o \`/live\`.`
+  );
+}
+
+function tipUsage() {
+  return (
+    `🎯 *TIP DE PARTIDO*\n\n` +
+    `Uso: \`/tip [equipo1] vs [equipo2]\`\n\n` +
+    `Ejemplos:\n` +
+    `• /tip brasil vs argentina\n` +
+    `• /tip francia vs alemania\n\n` +
+    `💡 El tip se calcula con base en las tendencias de los partidos (365scores). ` +
+    `Para más detalles: \`/tendencias brasil vs argentina\` o \`/stats-vivo <gameId>\` (si lo conocés).`
+  );
+}
+
+function tipFormatError() {
+  return (
+    `⚠️ Formato: \`/tip [equipo1] vs [equipo2]\`\n\n` +
+    `Ejemplo: \`/tip brasil vs argentina\``
+  );
+}
+
+function tendenciasUsage() {
+  return (
+    `📊 *TENDENCIAS*\n\n` +
+    `Uso:\n` +
+    `  \`/tendencias\` — Top Mundial\n` +
+    `  \`/tendencias brasil vs argentina\` — Trends del partido\n\n` +
+    `💡 Para stats en vivo de un partido, usá los nombres con /tip, /stats-vivo o /alineacion.`
+  );
+}
+
+module.exports = {
+  helpText,
+  previaUsage,
+  h2hUsage,
+  oddsUsage,
+  statsVivoUsage,
+  prediccionesUsage,
+  tipUsage,
+  tipFormatError,
+  tendenciasUsage,
+};

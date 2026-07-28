@@ -181,6 +181,25 @@ exports[`handleCommand — comandos con datos (golden-master) /tendencias (top c
 ]
 `;
 
+exports[`handleCommand — comandos con datos (golden-master) /tendencias brasil (sin "vs") → usage fallback 1`] = `
+[
+  {
+    "method": "sendMessage",
+    "params": {
+      "chat_id": 12345,
+      "parse_mode": "Markdown",
+      "text": "📊 *TENDENCIAS*
+
+Uso:
+  \`/tendencias\` — Top Mundial
+  \`/tendencias brasil vs argentina\` — Trends del partido
+
+💡 Para stats en vivo de un partido, usá los nombres con /tip, /stats-vivo o /alineacion.",
+    },
+  },
+]
+`;
+
 exports[`handleCommand — comandos con datos (golden-master) /tendencias brasil vs argentina (por equipos + teclado si resuelve partido) 1`] = `
 [
   {
@@ -211,6 +230,21 @@ exports[`handleCommand — comandos con datos (golden-master) /tendencias brasil
         ],
       },
       "text": "💡 Más opciones:",
+    },
+  },
+]
+`;
+
+exports[`handleCommand — comandos con datos (golden-master) /tip brasil (sin "vs") → error de formato 1`] = `
+[
+  {
+    "method": "sendMessage",
+    "params": {
+      "chat_id": 12345,
+      "parse_mode": "Markdown",
+      "text": "⚠️ Formato: \`/tip [equipo1] vs [equipo2]\`
+
+Ejemplo: \`/tip brasil vs argentina\`",
     },
   },
 ]
