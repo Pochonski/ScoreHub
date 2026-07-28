@@ -1,9 +1,9 @@
 require('dotenv').config();
-const api = require('./scores365Service');
-const { pool, withTransaction } = require('../database/connection');
-const db = require('../database/db');
-const { getActiveCompetitions, forEachActive } = require('./syncCompetitions');
-const logger = require('../utils/logger');
+const api = require('../../../services/scores365Service');
+const { pool, withTransaction } = require('../../../database/connection');
+const db = require('../../../database/db');
+const { getActiveCompetitions, forEachActive } = require('../../../services/syncCompetitions');
+const logger = require('../../../utils/logger');
 
 // Logger por defecto para este módulo. Cada vez que se ejecuta un sync
 // completo se crea un child con su propio `syncRunId` para correlacionar

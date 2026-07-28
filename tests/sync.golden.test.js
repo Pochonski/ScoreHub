@@ -37,7 +37,7 @@ jest.mock('../services/syncCompetitions', () => {
 
 const api = require('../services/scores365Service');
 const { reset, getWrites } = require('./helpers/dbCapture');
-const sync = require('../services/syncService');
+const sync = require('../src/application/sync/syncService');
 
 beforeAll(() => { jest.useFakeTimers({ now: new Date('2026-07-27T12:00:00.000Z') }); });
 afterAll(() => { jest.useRealTimers(); });
