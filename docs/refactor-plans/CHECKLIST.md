@@ -246,8 +246,16 @@ Usa este checklist para tildar items a medida que avanzas. Cada sección corresp
 - [x] **Broche**: `handlePartidosCallback` (callbacks de botones inline) migrado a `interface/telegram/callbacks.js` + `tests/callbacks.test.js` (11)
 - [x] **`telegramBot.js` 1319 → 197 líneas** (1957 → 197 total en Fase 7, **−90%**); interface 100% migrado (comandos + callbacks); 105/105 verde
 
-### Fases 4-6 — pendientes
-- [ ] Fase 4 — sync como use-cases + scheduler
+### Fase 4 — Sync a Clean Architecture ✅ (core)
+- [x] 🐛 **Fix**: `withTransaction` no estaba importado → 6 jobs (trends/transfers/suggestions/catalog/athletes) fallaban silenciosos (ReferenceError tragado). **Bug de producción — considerar cherry-pick a master.**
+- [x] `services/syncService.js` → `src/application/sync/syncService.js` (git mv, requires corregidos)
+- [x] Write-helpers → `src/infrastructure/persistence/syncWriters.js`
+- [x] `sync.js` cron → `src/interface/scheduler/scheduler.js` (exporta `start()`); `sync.js` queda como entry fino
+- [x] Golden-master de sync ampliado a 7 jobs (standings/games/news/trends/brackets/suggestions) — patrones upsertMany/upsertGames/junction/transacción
+- [ ] Opcional (refinamiento): split de syncService por dominio (games/standings/athletes/…) + golden-master de los 20 jobs + wrap del api como gateway
+
+### Fases 5-6 — pendientes
+- [ ] Fase 5 — consolidar infraestructura y cross-cutting
 - [ ] Fase 3 — dominio + application; migrar el resto de comandos por lotes
 - [ ] Fase 4 — sync como use-cases + scheduler
 - [ ] Fase 5 — consolidar infraestructura y cross-cutting
