@@ -854,74 +854,8 @@ async function handleCommand(chatId, text, userName, userId) {
       // ===========================================================
 
       // /noticias [equipo]
-      if (cmd === '/noticias' || cmd === '/noticias@botmundialistabot') {
-        const t = await mundialistaStats.getNoticias({ equipo: null, limit: 10 });
-        await sendMessage(chatId, t);
-        return true;
-      }
-      if (cmd.startsWith('/noticias ') || cmd.startsWith('/noticias@botmundialistabot ')) {
-        const arg = text.replace(/^\/noticias(?:@\w+)?\s+/i, '').trim();
-        const t = await mundialistaStats.getNoticias({ equipo: arg, limit: 10 });
-        await sendMessage(chatId, t);
-        return true;
-      }
-
-      // /equipoideal /idealtm /tow
-      if (cmd === '/equipoideal' || cmd === '/equipoideal@botmundialistabot' ||
-          cmd === '/idealtm' || cmd === '/idealtm@botmundialistabot' ||
-          cmd === '/tow' || cmd === '/tow@botmundialistabot') {
-        const t = await mundialistaStats.getEquipoIdeal();
-        await sendMessage(chatId, t);
-        return true;
-      }
-
-      // /bracket [grupos|eliminatorias|todo]  /llaves
-      if (cmd === '/bracket' || cmd === '/bracket@botmundialistabot' ||
-          cmd === '/llaves' || cmd === '/llaves@botmundialistabot') {
-        const t = await mundialistaStats.getBracket('eliminatorias');
-        await sendMessage(chatId, t);
-        return true;
-      }
-      if (cmd === '/bracket grupos' || cmd === '/bracket@botmundialistabot grupos' ||
-          cmd === '/llaves grupos' || cmd === '/llaves@botmundialistabot grupos') {
-        const t = await mundialistaStats.getBracket('grupos');
-        await sendMessage(chatId, t);
-        return true;
-      }
-      if (cmd === '/bracket todo' || cmd === '/bracket@botmundialistabot todo' ||
-          cmd === '/bracket completo' || cmd === '/bracket@botmundialistabot completo') {
-        const t = await mundialistaStats.getBracket('todo');
-        await sendMessage(chatId, t);
-        return true;
-      }
-
-      // /historial [año|equipo]
-      if (cmd === '/historial' || cmd === '/historial@botmundialistabot') {
-        const t = await mundialistaStats.getHistorial(null);
-        await sendMessage(chatId, t);
-        return true;
-      }
-      if (cmd.startsWith('/historial ') || cmd.startsWith('/historial@botmundialistabot ')) {
-        const arg = text.replace(/^\/historial(?:@\w+)?\s+/i, '').trim();
-        const t = await mundialistaStats.getHistorial(arg);
-        await sendMessage(chatId, t);
-        return true;
-      }
-
-      // /goleadores /rankinggoleador /topgoleador
-      if (cmd === '/goleadores' || cmd === '/goleadores@botmundialistabot' ||
-          cmd === '/rankinggoleador' || cmd === '/rankinggoleador@botmundialistabot' ||
-          cmd === '/topgoleador' || cmd === '/topgoleador@botmundialistabot') {
-        const t = await mundialistaStats.getGoleadores(10);
-        if (t.photoUrl) {
-          await sendPhoto(chatId, t.photoUrl, t.text);
-        } else {
-          await sendMessage(chatId, t.text);
-        }
-        const o = await mundialista365.getOutrights().catch(() => null);
-        if (o) await sendMessage(chatId, o);
-        return true;
-      }
+      // /noticias, /equipoideal, /bracket, /historial, /goleadores:
+      // migrados al router (Fase 7 — commands/content.js).
 
       // /jugador <nombre> — foto + info del jugador
       if (cmd.startsWith('/jugador') || cmd.startsWith('/jugador@botmundialistabot ')) {
@@ -1189,7 +1123,7 @@ async function handlePartidosCallback(chatId, callbackData) {
 // point; bajo `require()` (tests) no se inicia polling, socket ni señales.
 // Router de comandos migrados a Clean Architecture (Fase 7). `handleCommand` lo
 // consulta primero; los comandos aún no migrados siguen en el if-else legacy.
-const { router } = createContainer({ mundialista365, matchSearch, scores365, sendMessage });
+const { router } = createContainer({ mundialista365, mundialistaStats, matchSearch, scores365, sendMessage, sendPhoto });
 
 const lifecycle = createLifecycle({
   telegramRequest,
