@@ -18,7 +18,8 @@
 |---|---|---|
 | 0 · Red de seguridad | ✅ | Jest en root, andamiaje en `telegramBot.js`, esqueleto de capas, **59 golden-master tests** (55 comandos del bot + 4 de sync), todos verde. |
 | 1 · Transporte/lifecycle | ✅ | Transporte (`client.js`), HTTP server (`http/server.js`) y lifecycle (`lifecycle.js`) aislados en `src/interface/` + composition root. `telegramBot.js`: 1957 → 1419 líneas. **77 tests** (59 golden + 8 http + 10 lifecycle). |
-| 2 · Router + comandos | ⏳ | siguiente |
+| 2 · Router + primeros 3 comandos | ✅ | Router/registry + arquitectura completa (domain port → use-case → adapter → presenter → container) para `/help` `/live` `/fixture`. Strangler activo. `telegramBot.js`: 1419 → 1319 líneas. **84 tests**. |
+| 3 · Migrar resto de comandos | ⏳ | siguiente |
 | 3 · Migrar comandos | ⏳ | |
 | 4 · Sync | ⏳ | |
 | 5 · Infra/cross-cutting | ⏳ | |

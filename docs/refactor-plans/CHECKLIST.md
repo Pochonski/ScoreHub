@@ -227,8 +227,15 @@ Usa este checklist para tildar items a medida que avanzas. Cada sección corresp
 - [x] `src/interface/telegram/lifecycle.js` (polling/ruteo) como `createLifecycle(deps)` + `tests/lifecycle.test.js` (10)
 - [x] Composition root en `telegramBot.js` (1957 → 1419 líneas); 77/77 verde; comportamiento byte-idéntico
 
-### Fases 2-6 — pendientes
-- [ ] Fase 2 — router + registry + primeros 3 comandos (arranca strangler)
+### Fase 2 — Router + registry + primeros 3 comandos ✅
+- [x] `src/interface/telegram/router.js` (registry: triggers/alias/@bot + dispatch) + `tests/router.test.js` (7)
+- [x] Arquitectura completa por capas: `domain/ports/scoresGateway` → `application/matches/*` → `infrastructure/scores365/*` → `interface/telegram/{commands,presenters}/*`
+- [x] `infrastructure/container.js` (composition root) cablea y registra
+- [x] `/help` `/live` `/fixture` migrados; ramas legacy eliminadas; teclados movidos al presenter
+- [x] `telegramBot.js` 1419 → 1319 líneas; 84/84 verde (golden-master byte-idénticos vía arquitectura nueva) — [PR #4](https://github.com/Pochonski/ScoreHub/pull/4)
+
+### Fases 3-6 — pendientes
+- [ ] Fase 3 — migrar el resto de comandos por lotes (matches/teams/betting/stats/history)
 - [ ] Fase 3 — dominio + application; migrar el resto de comandos por lotes
 - [ ] Fase 4 — sync como use-cases + scheduler
 - [ ] Fase 5 — consolidar infraestructura y cross-cutting

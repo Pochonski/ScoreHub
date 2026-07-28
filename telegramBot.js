@@ -21,6 +21,8 @@ const conversationContext = require('./services/conversationContext');
 const { telegramRequest, sendMessage, sendPhoto, sendMediaGroup } = require('./src/interface/telegram/client');
 const { createHttpServer } = require('./src/interface/http/server');
 const { createLifecycle } = require('./src/interface/telegram/lifecycle');
+const { createContainer } = require('./src/infrastructure/container');
+const { buildGameKeyboard, buildSingleGameKeyboard } = require('./src/interface/telegram/presenters/keyboards');
 
 if (process.env.ENABLE_LIVE_NOTIFIER === 'true') {
   try {
@@ -37,16 +39,17 @@ if (process.env.ENABLE_LIVE_NOTIFIER === 'true') {
 let dbAvailable = false;
 const PORT = process.env.PORT || 8080;
 
-
-// El transporte de Telegram (telegramRequest, sendMessage, sendPhoto,
-// sendMediaGroup) vive ahora en src/interface/telegram/client.js (Fase 7) y se
-// importa arriba.
-
 /**
  * Maneja comandos de Telegram (que empiezan con /)
  */
 async function handleCommand(chatId, text, userName, userId) {
   const cmd = text.toLowerCase();
+
+  // Fase 7 (strangler): el router atiende los comandos ya migrados a la nueva
+  // arquitectura (interface/telegram/commands → application → infrastructure).
+  // Si ninguno matchea, cae al if-else legacy de abajo.
+  if (await router.dispatch({ cmd, text, chatId, userName, userId })) return true;
+
   const storedAlias = userStorage.getAlias(userId);
   const alias = storedAlias || userName || 'Usuario';
 
@@ -96,52 +99,6 @@ async function handleCommand(chatId, text, userName, userId) {
         `  "¿Cómo quedó Brasil?"\n` +
         `  "Tabla del grupo C"\n` +
         `  "Dame info de Alemania"`
-      );
-      return true;
-
-    case '/help':
-    case '/ayuda':
-      await sendMessage(chatId,
-        `📖 *COMANDOS - ScoreHub*\n\n` +
-        `⚽ *Partidos:*\n` +
-        `  /partidos - Partidos de hoy\n` +
-        `  /manana - Partidos de mañana\n` +
-        `  /resultado [equipo] - Último resultado _(ej: /resultado brasil)_\n` +
-        `  /analizar [eq1] vs [eq2] - Análisis _(ej: /analizar brasil vs argentina)_\n` +
-        `  /proximos [equipo] · /siguiente [equipo] - Próximos partidos\n\n` +
-        `🏆 *Tablas:*\n` +
-        `  /tabla - Tabla del Mundial\n` +
-        `  /grupo [A-L] - Grupo específico _(ej: /grupo A)_\n\n` +
-        `👥 *Equipos:*\n` +
-        `  /info [equipo] - Info del equipo\n` +
-        `  /seguir [equipo] - Seguir equipo\n` +
-        `  /cambiarusuario [nombre] - Cambiar apodo\n` +
-        `  /yo · /reset - Perfil / borrar datos\n\n` +
-        `🎯 *Tips, cuotas y tendencias:*\n` +
-        `  /fixture - Próximos partidos del Mundial\n` +
-        `  /outrights - Cuotas de campeón, goleador y más\n` +
-        `  /odds <gameId> - Cuotas detalladas de un partido\n` +
-        `  /tip [eq1] vs [eq2] - Tip con % de confianza\n` +
-        `  /tendencias - Top tendencias + cuotas outright\n` +
-        `  /tendencias [eq1] vs [eq2] - Trends de un partido\n` +
-        `  /predicciones <gameId> - Predicciones comunidad\n\n` +
-        `📡 *Stats en vivo:*\n` +
-        `  /live - Partidos en vivo (con stats + odds)\n` +
-        `  /stats-vivo <gameId> - Stats del último snapshot\n` +
-        `  /alineacion <gameId> - Titulares y formación\n` +
-        `  /previa <gameId> - Pre-match stats\n` +
-        `  /h2h <gameId> - Historial entre los equipos\n\n` +
-        `📰 *Contenido del Mundial:*\n` +
-        `  /noticias - Últimas noticias del Mundial\n` +
-        `  /noticias [equipo] - Noticias de un equipo\n` +
-        `  /equipoideal - Team of the Week (formación, ratings)\n` +
-        `  /bracket - Llaves eliminatorias\n` +
-        `  /bracket grupos - Fase de grupos\n` +
-        `  /historial - Todos los campeones\n` +
-        `  /historial [año] - Final específica _(ej: /historial 2022)_\n` +
-        `  /historial [equipo] - Ediciones del equipo _(ej: /historial brasil)_\n` +
-        `  /goleadores - Ranking de goleadores\n\n` +
-        `💡 _También entendés: "Cómo le fue a X", "Brasil vs Francia", "Estadísticas de X", "Tabla de la Premier"…_`
       );
       return true;
 
@@ -708,22 +665,7 @@ async function handleCommand(chatId, text, userName, userId) {
       // FASE 1.5: Fixtures y Outrights
       // ===========================================================
 
-      // /fixture — próximos partidos agrupados por fecha
-      if (cmd === '/fixture' || cmd === '/fixture@botmundialistabot' || cmd === '/fixtures' || cmd === '/calendario') {
-        try {
-          const text = await mundialista365.getFixture();
-          const live = await scores365.getFixtures(mundialista365.COMPETITION_ID);
-          const games = (live?.games || []).filter((g) => new Date(g.startTime || g.date || 0) > new Date()).sort((a, b) => new Date(a.startTime || a.date) - new Date(b.startTime || b.date)).slice(0, 10);
-          if (games.length) {
-            await sendMessage(chatId, text, { reply_markup: { inline_keyboard: buildGameKeyboard(games, ['odds']) } });
-          } else {
-            await sendMessage(chatId, text);
-          }
-        } catch (e) {
-          await sendMessage(chatId, `⚠️ Error al obtener fixtures: ${e.message}`);
-        }
-        return true;
-      }
+      // /fixture: migrado al router (Fase 7 — interface/telegram/commands/fixture.js).
 
       // /outrights — cuotas de campeón, goleador, etc.
       if (cmd === '/outrights' || cmd === '/outrights@botmundialistabot' || cmd === '/cuotas') {
@@ -736,17 +678,7 @@ async function handleCommand(chatId, text, userName, userId) {
       // FASE 2: Tips y Tendencias (365scores via Cosmos)
       // ===========================================================
 
-      // /live — partidos en vivo ahora
-      if (cmd === '/live' || cmd === '/live@botmundialistabot' || cmd === '/envivo' || cmd === '/envivo@botmundialistabot') {
-        const text = await mundialista365.getLiveGames();
-        const games = await matchSearch.findLiveGames();
-        if (games && games.length > 0) {
-          await sendMessage(chatId, text, { reply_markup: { inline_keyboard: buildGameKeyboard(games, ['stats', 'odds']) } });
-        } else {
-          await sendMessage(chatId, text);
-        }
-        return true;
-      }
+      // /live: migrado al router (Fase 7 — interface/telegram/commands/live.js).
 
       // /tip — puede ser con args (eq1 vs eq2) o sin args (prompt de uso)
       if (cmd === '/tip' || cmd === '/tip@botmundialistabot') {
@@ -1235,48 +1167,6 @@ async function processMessage(chatId, userId, text, user) {
   }
 }
 
-const ACTION_LABELS = {
-  tip: '🎯 Tip',
-  trends: '📊 Trends',
-  odds: '🎲 Odds',
-  h2h: '🤝 H2H',
-  previa: '📊 Previa',
-  lineup: '📋 Alineación',
-  stats: '📈 Stats Vivo',
-};
-
-/**
- * Construye teclado inline para una lista de partidos.
- * @param {Array} games
- * @param {string[]} actions - acciones por partido (tip, trends, odds, h2h, previa, lineup, stats)
- */
-function buildGameKeyboard(games, actions = ['tip', 'trends', 'odds']) {
-  const keyboard = [];
-  for (const m of games) {
-    const gameId = m.id;
-    const home = (m.homeCompetitor?.name || m.homeTeam || '???').substring(0, 3).toUpperCase();
-    const away = (m.awayCompetitor?.name || m.awayTeam || '???').substring(0, 3).toUpperCase();
-    const row = actions.map((a) => ({
-      text: `${ACTION_LABELS[a] || a} ${home}-${away}`,
-      callback_data: `${a}_${gameId}`,
-    }));
-    keyboard.push(row);
-  }
-  return keyboard;
-}
-
-/**
- * Construye teclado inline para un solo partido (una fila).
- * @param {string|number} gameId
- * @param {string[]} actions
- */
-function buildSingleGameKeyboard(gameId, actions = ['odds']) {
-  const row = actions.map((a) => ({
-    text: ACTION_LABELS[a] || a,
-    callback_data: `${a}_${gameId}`,
-  }));
-  return [row];
-}
 
 /**
  * Maneja callback queries del teclado inline de partidos
@@ -1382,6 +1272,10 @@ async function handlePartidosCallback(chatId, callbackData) {
 // handlers de dominio que aún viven en este archivo (processMessage,
 // handlePartidosCallback). Solo arranca el proceso cuando se ejecuta como entry
 // point; bajo `require()` (tests) no se inicia polling, socket ni señales.
+// Router de comandos migrados a Clean Architecture (Fase 7). `handleCommand` lo
+// consulta primero; los comandos aún no migrados siguen en el if-else legacy.
+const { router } = createContainer({ mundialista365, matchSearch, scores365, sendMessage });
+
 const lifecycle = createLifecycle({
   telegramRequest,
   processMessage,
