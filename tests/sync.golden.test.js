@@ -13,7 +13,7 @@ process.env.NODE_ENV = 'test';
 
 jest.mock('../database/connection', () => {
   const c = require('./helpers/dbCapture');
-  return { pool: c.pool, testConnection: jest.fn().mockResolvedValue(true) };
+  return { pool: c.pool, withTransaction: c.withTransaction, testConnection: jest.fn().mockResolvedValue(true) };
 });
 jest.mock('../database/db', () => require('./helpers/dbCapture').db);
 jest.mock('../utils/logger', () => ({ info() {}, warn() {}, error() {}, debug() {}, child() { return this; } }));
@@ -21,6 +21,7 @@ jest.mock('../services/scores365Service', () => ({
   getStandings: jest.fn(),
   getGamesAllScores: jest.fn(),
   getNews: jest.fn(),
+  getTrends: jest.fn(),
 }));
 jest.mock('../services/syncCompetitions', () => {
   const comps = [{ id: 5930, seasonNum: 25, startDate: '20260601', endDate: '20260715' }];
@@ -85,5 +86,23 @@ describe('syncService — golden-master de escrituras', () => {
     api.getNews.mockResolvedValue({ news: [] });
     await sync.syncNews();
     expect(getWrites()).toEqual([]);
+  });
+
+  // Regresión del bug: withTransaction no estaba importado en syncService, así
+  // que este job (y transfers/suggestions/catalog/athletes) lanzaba
+  // ReferenceError silencioso y NO escribía. Ahora sí debe escribir (DELETE +
+  // INSERT dentro de la transacción).
+  test('syncTrends escribe trends de forma atómica (DELETE + INSERT en tx)', async () => {
+    api.getTrends.mockResolvedValue({
+      trends: [
+        { gameId: 4749268, lineTypeId: 3, name: 'Over 2.5' },
+        { homeTeamGameId: 4749269, lineTypeId: 5, name: 'BTTS' },
+      ],
+    });
+    await sync.syncTrends();
+    const writes = getWrites();
+    expect(writes.map((w) => w.via)).toEqual(['tx', 'tx']); // DELETE + INSERT en transacción
+    expect(writes[0].sql).toMatch(/^DELETE FROM trends/);
+    expect(writes[1].sql).toMatch(/^INSERT INTO trends/);
   });
 });

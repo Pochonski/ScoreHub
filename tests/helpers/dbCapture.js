@@ -13,15 +13,35 @@
 
 const writes = [];
 
+function recordSql(via, sql, params) {
+  const s = String(sql).replace(/\s+/g, ' ').trim();
+  if (/^(INSERT|UPDATE|DELETE)/i.test(s)) writes.push({ via, sql: s, params });
+}
+
 const pool = {
   query: async (sql, params) => {
-    const s = String(sql).replace(/\s+/g, ' ').trim();
-    if (/^(INSERT|UPDATE|DELETE)/i.test(s)) {
-      writes.push({ via: 'pool', sql: s, params });
-    }
+    recordSql('pool', sql, params);
     return { rows: [], rowCount: 0 };
   },
+  // Para withTransaction: un client que captura writes (BEGIN/COMMIT se ignoran).
+  connect: async () => ({
+    query: async (sql, params) => {
+      recordSql('tx', sql, params);
+      return { rows: [], rowCount: 0 };
+    },
+    release: () => {},
+  }),
 };
+
+// Réplica del withTransaction real (database/connection.js) contra el pool mock.
+async function withTransaction(fn) {
+  const client = await pool.connect();
+  await client.query('BEGIN');
+  const r = await fn(client);
+  await client.query('COMMIT');
+  client.release();
+  return r;
+}
 
 function recordDb(op) {
   return async (table, ...args) => {
@@ -47,4 +67,4 @@ const db = {
 function reset() { writes.length = 0; }
 function getWrites() { return writes.map((w) => ({ ...w })); }
 
-module.exports = { pool, db, reset, getWrites };
+module.exports = { pool, db, withTransaction, reset, getWrites };
