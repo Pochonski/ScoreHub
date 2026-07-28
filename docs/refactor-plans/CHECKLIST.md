@@ -242,9 +242,9 @@ Usa este checklist para tildar items a medida que avanzas. Cada sección corresp
 - [x] Batch B (equipos): /seguir /info /grupo /resultado /analizar /racha /proximos /dondever /dejarseguir /misfavoritos + stat aliases (gateway del messageHandler)
 - [x] Batch final: /start /cambiarusuario /mialias /yo /reset /mundial /partidos /manana /tabla /jugador /alineacion
 - [x] **`handleCommand` vacío** (solo router.dispatch); switch + default legacy eliminados
-- [x] `telegramBot.js` 1319 → 300 líneas (1957 → 300 total en Fase 7, −85%); 94/94 verde
 - [x] Quirks legacy preservados y documentados (/cambiarusuario arg, /jugador literal); test flawed de /jugador corregido
-- Nota: `handlePartidosCallback` (callbacks de botones inline) queda como glue de interface — migración opcional (Fase 5)
+- [x] **Broche**: `handlePartidosCallback` (callbacks de botones inline) migrado a `interface/telegram/callbacks.js` + `tests/callbacks.test.js` (11)
+- [x] **`telegramBot.js` 1319 → 197 líneas** (1957 → 197 total en Fase 7, **−90%**); interface 100% migrado (comandos + callbacks); 105/105 verde
 
 ### Fases 4-6 — pendientes
 - [ ] Fase 4 — sync como use-cases + scheduler
