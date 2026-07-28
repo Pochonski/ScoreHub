@@ -234,8 +234,20 @@ Usa este checklist para tildar items a medida que avanzas. Cada sección corresp
 - [x] `/help` `/live` `/fixture` migrados; ramas legacy eliminadas; teclados movidos al presenter
 - [x] `telegramBot.js` 1419 → 1319 líneas; 84/84 verde (golden-master byte-idénticos vía arquitectura nueva) — [PR #4](https://github.com/Pochonski/ScoreHub/pull/4)
 
-### Fases 3-6 — pendientes
-- [ ] Fase 3 — migrar el resto de comandos por lotes (matches/teams/betting/stats/history)
+### Fase 3 — Migrar el resto de comandos ✅
+- [x] Router con prefix matching (comandos con args) + tests
+- [x] Batch A1 (detalle): /outrights /previa /h2h /odds /stats-vivo /predicciones
+- [x] Batch A2 (tips/trends): /tip /tendencias (parseo "vs")
+- [x] Batch C (contenido): /noticias /equipoideal /bracket /historial /goleadores
+- [x] Batch B (equipos): /seguir /info /grupo /resultado /analizar /racha /proximos /dondever /dejarseguir /misfavoritos + stat aliases (gateway del messageHandler)
+- [x] Batch final: /start /cambiarusuario /mialias /yo /reset /mundial /partidos /manana /tabla /jugador /alineacion
+- [x] **`handleCommand` vacío** (solo router.dispatch); switch + default legacy eliminados
+- [x] `telegramBot.js` 1319 → 300 líneas (1957 → 300 total en Fase 7, −85%); 94/94 verde
+- [x] Quirks legacy preservados y documentados (/cambiarusuario arg, /jugador literal); test flawed de /jugador corregido
+- Nota: `handlePartidosCallback` (callbacks de botones inline) queda como glue de interface — migración opcional (Fase 5)
+
+### Fases 4-6 — pendientes
+- [ ] Fase 4 — sync como use-cases + scheduler
 - [ ] Fase 3 — dominio + application; migrar el resto de comandos por lotes
 - [ ] Fase 4 — sync como use-cases + scheduler
 - [ ] Fase 5 — consolidar infraestructura y cross-cutting

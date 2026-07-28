@@ -16,7 +16,6 @@ const { pool, testConnection } = require('./database/connection');
 const userStorage = require('./utils/userStorage');
 const logger = require('./utils/logger');
 const telegramNotifier = require('./services/telegramNotifier');
-const conversationContext = require('./services/conversationContext');
 // Capa interface extraída (Fase 7): transporte Telegram + HTTP server.
 const { telegramRequest, sendMessage, sendPhoto, sendMediaGroup } = require('./src/interface/telegram/client');
 const { createHttpServer } = require('./src/interface/http/server');
