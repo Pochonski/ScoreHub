@@ -677,74 +677,7 @@ async function handleCommand(chatId, text, userName, userId) {
       // /live: migrado al router (Fase 7 — interface/telegram/commands/live.js).
 
       // /tip — puede ser con args (eq1 vs eq2) o sin args (prompt de uso)
-      if (cmd === '/tip' || cmd === '/tip@botmundialistabot') {
-        await sendMessage(chatId,
-          `🎯 *TIP DE PARTIDO*\n\n` +
-          `Uso: \`/tip [equipo1] vs [equipo2]\`\n\n` +
-          `Ejemplos:\n` +
-          `• /tip brasil vs argentina\n` +
-          `• /tip francia vs alemania\n\n` +
-          `💡 El tip se calcula con base en las tendencias de los partidos (365scores). ` +
-          `Para más detalles: \`/tendencias brasil vs argentina\` o \`/stats-vivo <gameId>\` (si lo conocés).`
-        );
-        return true;
-      }
-      if (cmd.startsWith('/tip ')) {
-        const args = text.replace(/^\/tip(?:@\w+)?\s+/i, '').trim();
-        const m = args.match(/^(.+?)\s+(?:vs\.?|y|contra|c\/)\s+(.+)$/i);
-        if (!m) {
-          await sendMessage(chatId,
-            `⚠️ Formato: \`/tip [equipo1] vs [equipo2]\`\n\n` +
-            `Ejemplo: \`/tip brasil vs argentina\``
-          );
-          return true;
-        }
-        const home = m[1].trim();
-        const away = m[2].trim();
-        const t = await mundialista365.getTipPartido(home, away);
-        await sendMessage(chatId, t);
-        const game = await matchSearch.findGameByTeams(home, away).catch(() => null);
-        if (game?.id) {
-          await sendMessage(chatId, '💡 Más opciones:', { reply_markup: { inline_keyboard: buildSingleGameKeyboard(game.id, ['trends', 'odds']) } });
-        }
-        return true;
-      }
-
-      // /tendencias — top Mundial o por equipos (eq1 vs eq2)
-      if (cmd === '/tendencias' || cmd === '/tendencias@botmundialistabot' || cmd === '/trends' || cmd === '/trends@botmundialistabot') {
-        const t = await mundialista365.getTendencias('competition', null, 10);
-        const o = await mundialista365.getOutrights();
-        await sendMessage(chatId, t + '\n\n━━━━━━━━━━━━━━━━\n' + o);
-        return true;
-      }
-      if (cmd.startsWith('/tendencias ') || cmd.startsWith('/trends ')) {
-        const arg = text.replace(/^\/(tendencias|trends)(?:@\w+)?\s+/i, '').trim();
-        if (!arg) {
-          const t = await mundialista365.getTendencias('competition', null, 10);
-          await sendMessage(chatId, t);
-          return true;
-        }
-        // Modo: "eq1 vs eq2" → resuelve partido y devuelve sus trends
-        const m = arg.match(/^(.+?)\s+(?:vs\.?|y|contra|c\/)\s+(.+)$/i);
-        if (m) {
-          const t = await mundialista365.getTendenciasByTeams(m[1].trim(), m[2].trim(), 10);
-          await sendMessage(chatId, t);
-          const game = await matchSearch.findGameByTeams(m[1].trim(), m[2].trim()).catch(() => null);
-          if (game?.id) {
-            await sendMessage(chatId, '💡 Más opciones:', { reply_markup: { inline_keyboard: buildSingleGameKeyboard(game.id, ['tip', 'odds']) } });
-          }
-          return true;
-        }
-        // Fallback: usage
-        await sendMessage(chatId,
-          `📊 *TENDENCIAS*\n\n` +
-          `Uso:\n` +
-          `  \`/tendencias\` — Top Mundial\n` +
-          `  \`/tendencias brasil vs argentina\` — Trends del partido\n\n` +
-          `💡 Para stats en vivo de un partido, usá los nombres con /tip, /stats-vivo o /alineacion.`
-        );
-        return true;
-      }
+      // /tip, /tendencias: migrados al router (Fase 7 — commands/trends.js).
 
       // /predicciones <gameId>
       // /predicciones: migrado al router (Fase 7 — commands/matchDetail.js).

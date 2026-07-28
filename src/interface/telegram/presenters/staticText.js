@@ -96,6 +96,35 @@ function prediccionesUsage() {
   );
 }
 
+function tipUsage() {
+  return (
+    `🎯 *TIP DE PARTIDO*\n\n` +
+    `Uso: \`/tip [equipo1] vs [equipo2]\`\n\n` +
+    `Ejemplos:\n` +
+    `• /tip brasil vs argentina\n` +
+    `• /tip francia vs alemania\n\n` +
+    `💡 El tip se calcula con base en las tendencias de los partidos (365scores). ` +
+    `Para más detalles: \`/tendencias brasil vs argentina\` o \`/stats-vivo <gameId>\` (si lo conocés).`
+  );
+}
+
+function tipFormatError() {
+  return (
+    `⚠️ Formato: \`/tip [equipo1] vs [equipo2]\`\n\n` +
+    `Ejemplo: \`/tip brasil vs argentina\``
+  );
+}
+
+function tendenciasUsage() {
+  return (
+    `📊 *TENDENCIAS*\n\n` +
+    `Uso:\n` +
+    `  \`/tendencias\` — Top Mundial\n` +
+    `  \`/tendencias brasil vs argentina\` — Trends del partido\n\n` +
+    `💡 Para stats en vivo de un partido, usá los nombres con /tip, /stats-vivo o /alineacion.`
+  );
+}
+
 module.exports = {
   helpText,
   previaUsage,
@@ -103,4 +132,7 @@ module.exports = {
   oddsUsage,
   statsVivoUsage,
   prediccionesUsage,
+  tipUsage,
+  tipFormatError,
+  tendenciasUsage,
 };

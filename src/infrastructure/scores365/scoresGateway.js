@@ -23,6 +23,11 @@ function createScoresGateway({ mundialista365, matchSearch, scores365 }) {
     getOdds: (id) => mundialista365.getOdds(id),
     getStatsVivo: (id) => mundialista365.getStatsVivo(id),
     getPredicciones: (id) => mundialista365.getPredicciones(id),
+    // Tips y tendencias (Fase 3 batch A2).
+    getTipPartido: (home, away) => mundialista365.getTipPartido(home, away),
+    getTendencias: (scope, id, limit) => mundialista365.getTendencias(scope, id, limit),
+    getTendenciasByTeams: (home, away, limit) => mundialista365.getTendenciasByTeams(home, away, limit),
+    findGameByTeams: (home, away) => matchSearch.findGameByTeams(home, away),
   };
 }
 
