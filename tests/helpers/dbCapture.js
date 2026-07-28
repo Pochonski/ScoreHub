@@ -50,6 +50,15 @@ function recordDb(op) {
   };
 }
 
+// Resultado que devuelven las lecturas por db.execAdvanced (SELECT). Los jobs
+// per-game leen ids de games así; setExecResult() lo configura por test.
+// Algunos jobs (syncAthletes) hacen varias lecturas distintas → setExecResults
+// permite una secuencia (una por llamada; se agota a []).
+let execResult = [];
+let execQueue = null;
+function setExecResult(r) { execResult = r; execQueue = null; }
+function setExecResults(seq) { execQueue = [...seq]; }
+
 const db = {
   query: async () => ({ data: [], error: null }),
   insert: recordDb('insert'),
@@ -58,13 +67,17 @@ const db = {
   remove: recordDb('remove'),
   execAdvanced: async (sql, params) => {
     const s = String(sql).replace(/\s+/g, ' ').trim();
-    if (/^(INSERT|UPDATE|DELETE)/i.test(s)) writes.push({ via: 'execAdvanced', sql: s, params });
-    return [];
+    if (/^(INSERT|UPDATE|DELETE)/i.test(s)) {
+      writes.push({ via: 'execAdvanced', sql: s, params });
+      return []; // db.execAdvanced real devuelve result.rows (array)
+    }
+    if (execQueue) return execQueue.length ? execQueue.shift() : [];
+    return execResult;
   },
-  execAdvancedFull: async () => ({ rows: [], rowCount: 0 }),
+  execAdvancedFull: async () => ({ rows: execResult, rowCount: execResult.length }),
 };
 
-function reset() { writes.length = 0; }
+function reset() { writes.length = 0; execResult = []; execQueue = null; }
 function getWrites() { return writes.map((w) => ({ ...w })); }
 
-module.exports = { pool, db, withTransaction, reset, getWrites };
+module.exports = { pool, db, withTransaction, reset, getWrites, setExecResult, setExecResults };
