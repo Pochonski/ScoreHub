@@ -125,8 +125,74 @@ function tendenciasUsage() {
   );
 }
 
+function startText(alias) {
+  return (
+    `🏆 *ScoreHub* - Asistente de fútbol\n\n` +
+    `¡Hola ${alias}! 👋 Soy tu asistente de fútbol.\n\n` +
+    `📱 *Comandos básicos:*\n` +
+    `  /start · /help - Iniciar / ver ayuda\n` +
+    `  /partidos - Partidos de hoy\n` +
+    `  /manana - Partidos de mañana\n` +
+    `  /tabla - Tabla del Mundial\n` +
+    `  /grupo [A-L] - Tabla de grupo _(ej: /grupo A)_\n` +
+    `  /resultado [equipo] - Resultado _(ej: /resultado brasil)_\n` +
+    `  /analizar [eq1] vs [eq2] - Análisis _(ej: /analizar brasil vs argentina)_\n` +
+    `  /info [equipo] · /seguir [equipo] - Info / seguir equipo\n` +
+    `  /cambiarusuario [nombre] - Cambiar apodo\n\n` +
+    `🎯 *Tips, cuotas y tendencias:*\n` +
+    `  /fixture - Próximos partidos del Mundial\n` +
+    `  /outrights - Cuotas de campeón, goleador y más\n` +
+    `  /odds <gameId> - Cuotas detalladas de un partido\n` +
+    `  /tip [eq1] vs [eq2] - Tip con confianza _(ej: /tip brasil vs argentina)_\n` +
+    `  /tendencias - Top tendencias + cuotas del Mundial\n` +
+    `  /tendencias [eq1] vs [eq2] - Trends de un partido\n` +
+    `  /predicciones <gameId> - Predicciones de la comunidad\n\n` +
+    `📡 *Stats y partidos:*\n` +
+    `  /partidos - Partidos de hoy (tips + trends + odds)\n` +
+    `  /live - Partidos en vivo con stats y odds\n` +
+    `  /stats-vivo <gameId> - Stats del último snapshot\n` +
+    `  /alineacion <gameId> - Titulares y formación\n` +
+    `  /previa <gameId> - Pre-match stats\n` +
+    `  /h2h <gameId> - Historial entre los equipos\n\n` +
+    `📰 *Contenido del Mundial:*\n` +
+    `  /noticias - Últimas noticias\n` +
+    `  /noticias [equipo] - Noticias de un equipo _(ej: /noticias brasil)_\n` +
+    `  /equipoideal - Team of the Week\n` +
+    `  /bracket - Llaves eliminatorias\n` +
+    `  /bracket grupos - Fase de grupos\n` +
+    `  /historial - Campeones 1930-2022\n` +
+    `  /historial 2022 - Final de ese año\n` +
+    `  /historial brasil - Ediciones del equipo\n` +
+    `  /goleadores - Top goleadores (con foto)\n` +
+    `  /jugador <nombre> - Foto + info del jugador\n\n` +
+    `💡 También podés escribir en lenguaje natural:\n` +
+    `  "¿Cómo quedó Brasil?"\n` +
+    `  "Tabla del grupo C"\n` +
+    `  "Dame info de Alemania"`
+  );
+}
+
+function mundialText() {
+  return (
+    `🏆 *COMPETICIÓN*\n\n` +
+    `🌎 *Sede:* EE.UU. · Canadá · México\n` +
+    `📅 *Fechas:* 11 junio – 19 julio 2026\n` +
+    `👥 *Equipos:* 48 selecciones\n` +
+    `🗂 *Grupos:* 12 (A a L)\n` +
+    `⚽ *Partidos:* 104 (64 fase grupos + 32 eliminación + 8 clasificación)\n` +
+    `🥇 *Final:* 19 jul 2026 — MetLife Stadium, NJ\n\n` +
+    `📋 *Comandos relacionados:*\n` +
+    `• /grupo [A-L] — Tabla de un grupo\n` +
+    `• /partidos — Partidos de hoy\n` +
+    `• /manana — Partidos de mañana\n` +
+    `• /goleadores — Top goleadores`
+  );
+}
+
 module.exports = {
   helpText,
+  startText,
+  mundialText,
   previaUsage,
   h2hUsage,
   oddsUsage,

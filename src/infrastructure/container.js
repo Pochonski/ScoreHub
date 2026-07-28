@@ -24,11 +24,16 @@ const { registerMatchDetailCommands } = require('../interface/telegram/commands/
 const { registerTrendsCommands } = require('../interface/telegram/commands/trends');
 const { registerContentCommands } = require('../interface/telegram/commands/content');
 const { registerTeamsCommands } = require('../interface/telegram/commands/teams');
+const { registerProfileCommands } = require('../interface/telegram/commands/profile');
+const { registerMatchDataCommands } = require('../interface/telegram/commands/matchData');
+const { registerPlayerCommands } = require('../interface/telegram/commands/players');
 
 function createContainer(deps) {
   const {
-    mundialista365, mundialistaStats, matchSearch, scores365, cache, messageHandler,
-    sendMessage, sendPhoto, sendMediaGroup, getTeamBadgeUrl, getCountryFlagUrl,
+    mundialista365, mundialistaStats, matchSearch, scores365, matchHandler, cache,
+    messageHandler, userStorage, pool,
+    sendMessage, sendPhoto, sendMediaGroup,
+    getTeamBadgeUrl, getCountryFlagUrl, getAthletePhotoUrl, getAthleteThumbUrl,
   } = deps;
 
   // Infraestructura (adaptadores de puertos).
@@ -54,6 +59,13 @@ function createContainer(deps) {
   registerTeamsCommands(router, {
     nlu, cache, matchSearch, sendMessage, sendPhoto, sendMediaGroup,
     getTeamBadgeUrl, getCountryFlagUrl, buildGameKeyboard, buildSingleGameKeyboard,
+  });
+  registerProfileCommands(router, { userStorage, pool, sendMessage });
+  registerMatchDataCommands(router, { matchHandler, cache, nlu, sendMessage, buildGameKeyboard });
+  registerPlayerCommands(router, {
+    cache, scores365, mundialista365,
+    getAthletePhotoUrl, getAthleteThumbUrl, getTeamBadgeUrl,
+    sendMessage, sendPhoto, sendMediaGroup, buildSingleGameKeyboard,
   });
 
   return { router };
