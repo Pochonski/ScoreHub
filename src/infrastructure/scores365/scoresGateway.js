@@ -16,6 +16,13 @@ function createScoresGateway({ mundialista365, matchSearch, scores365 }) {
     get competitionId() {
       return mundialista365.COMPETITION_ID;
     },
+    // Detalle de partido / competición (Fase 3).
+    getOutrights: () => mundialista365.getOutrights(),
+    getPrevia: (id) => mundialista365.getPrevia(id),
+    getH2H: (id) => mundialista365.getH2H(id),
+    getOdds: (id) => mundialista365.getOdds(id),
+    getStatsVivo: (id) => mundialista365.getStatsVivo(id),
+    getPredicciones: (id) => mundialista365.getPredicciones(id),
   };
 }
 

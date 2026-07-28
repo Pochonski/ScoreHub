@@ -11,9 +11,11 @@ const { createRouter } = require('../interface/telegram/router');
 const { createScoresGateway } = require('./scores365/scoresGateway');
 const { createGetLiveMatches } = require('../application/matches/getLiveMatches');
 const { createGetFixture } = require('../application/matches/getFixture');
+const { createMatchDetailUseCases } = require('../application/matches/matchDetail');
 const { TRIGGERS: HELP_TRIGGERS, createHelpCommand } = require('../interface/telegram/commands/help');
 const { TRIGGERS: LIVE_TRIGGERS, createLiveCommand } = require('../interface/telegram/commands/live');
 const { TRIGGERS: FIXTURE_TRIGGERS, createFixtureCommand } = require('../interface/telegram/commands/fixture');
+const { registerMatchDetailCommands } = require('../interface/telegram/commands/matchDetail');
 
 function createContainer({ mundialista365, matchSearch, scores365, sendMessage }) {
   // Infraestructura (adaptadores de puertos).
@@ -22,12 +24,14 @@ function createContainer({ mundialista365, matchSearch, scores365, sendMessage }
   // Aplicación (use-cases).
   const getLiveMatches = createGetLiveMatches({ scoresGateway });
   const getFixture = createGetFixture({ scoresGateway });
+  const matchDetail = createMatchDetailUseCases({ scoresGateway });
 
   // Interface (router + command handlers migrados).
   const router = createRouter();
   router.register(HELP_TRIGGERS, createHelpCommand({ sendMessage }));
   router.register(LIVE_TRIGGERS, createLiveCommand({ getLiveMatches, sendMessage }));
   router.register(FIXTURE_TRIGGERS, createFixtureCommand({ getFixture, sendMessage }));
+  registerMatchDetailCommands(router, { matchDetail, sendMessage });
 
   return { router };
 }

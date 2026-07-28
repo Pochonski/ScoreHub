@@ -50,4 +50,57 @@ function helpText() {
   );
 }
 
-module.exports = { helpText };
+function previaUsage() {
+  return (
+    `🔮 *PREVIA DE PARTIDO*\n\n` +
+    `Uso: \`/previa <gameId>\`\n\n` +
+    `Ejemplo: \`/previa 4749268\`\n\n` +
+    `💡 Las previas se generan para partidos programados (statusGroup=2).`
+  );
+}
+
+function h2hUsage() {
+  return (
+    `🤝 *HISTORIAL ENTRE EQUIPOS (H2H)*\n\n` +
+    `Uso: \`/h2h <gameId>\`\n\n` +
+    `Ejemplo: \`/h2h 4749268\``
+  );
+}
+
+function oddsUsage() {
+  return (
+    `🎲 *CUOTAS DE PARTIDO*\n\n` +
+    `Uso: \`/odds <gameId>\`\n\n` +
+    `Ejemplo: \`/odds 4749268\`\n\n` +
+    `💡 Para encontrar el gameId, usá \`/partidos\`, \`/fixture\` o \`/live\`.`
+  );
+}
+
+function statsVivoUsage() {
+  return (
+    `📊 *STATS EN VIVO*\n\n` +
+    `Uso: \`/stats-vivo <gameId>\`\n\n` +
+    `Ejemplo: \`/stats-vivo 4749268\`\n\n` +
+    `💡 Para encontrar el gameId:\n` +
+    `• \`/live\` para partidos en vivo\n` +
+    `• \`/tip brasil vs argentina\` para un partido próximo`
+  );
+}
+
+function prediccionesUsage() {
+  return (
+    `🗳️ *PREDICCIONES DE LA COMUNIDAD*\n\n` +
+    `Uso: \`/predicciones <gameId>\`\n\n` +
+    `Ejemplo: \`/predicciones 4749268\`\n\n` +
+    `💡 Para buscar el gameId, usá \`/tip brasil vs argentina\` o \`/live\`.`
+  );
+}
+
+module.exports = {
+  helpText,
+  previaUsage,
+  h2hUsage,
+  oddsUsage,
+  statsVivoUsage,
+  prediccionesUsage,
+};

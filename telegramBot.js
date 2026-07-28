@@ -668,11 +668,7 @@ async function handleCommand(chatId, text, userName, userId) {
       // /fixture: migrado al router (Fase 7 — interface/telegram/commands/fixture.js).
 
       // /outrights — cuotas de campeón, goleador, etc.
-      if (cmd === '/outrights' || cmd === '/outrights@botmundialistabot' || cmd === '/cuotas') {
-        const text = await mundialista365.getOutrights();
-        await sendMessage(chatId, text);
-        return true;
-      }
+      // /outrights: migrado al router (Fase 7 — commands/matchDetail.js).
 
       // ===========================================================
       // FASE 2: Tips y Tendencias (365scores via Cosmos)
@@ -751,65 +747,13 @@ async function handleCommand(chatId, text, userName, userId) {
       }
 
       // /predicciones <gameId>
-      if (cmd === '/predicciones' || cmd === '/predicciones@botmundialistabot' || cmd === '/prediccion' || cmd === '/prediccion@botmundialistabot') {
-        await sendMessage(chatId,
-          `🗳️ *PREDICCIONES DE LA COMUNIDAD*\n\n` +
-          `Uso: \`/predicciones <gameId>\`\n\n` +
-          `Ejemplo: \`/predicciones 4749268\`\n\n` +
-          `💡 Para buscar el gameId, usá \`/tip brasil vs argentina\` o \`/live\`.`
-        );
-        return true;
-      }
-      if (cmd.startsWith('/predicciones ') || cmd.startsWith('/prediccion ')) {
-        const arg = text.replace(/^\/(predicciones|prediccion)(?:@\w+)?\s+/i, '').trim();
-        const t = await mundialista365.getPredicciones(arg);
-        await sendMessage(chatId, t);
-        await sendMessage(chatId, '💡 Más opciones:', { reply_markup: { inline_keyboard: buildSingleGameKeyboard(arg, ['odds']) } });
-        return true;
-      }
+      // /predicciones: migrado al router (Fase 7 — commands/matchDetail.js).
 
       // ===========================================================
       // FASE 4: Stats en vivo y alineaciones (365scores via Cosmos)
       // ===========================================================
 
-      // /stats-vivo <gameId> — último snapshot de game_snapshots
-      if (cmd === '/stats-vivo' || cmd === '/stats-vivo@botmundialistabot' ||
-          cmd === '/statsvivo' || cmd === '/statsvivo@botmundialistabot' ||
-          cmd === '/live-stats' || cmd === '/live-stats@botmundialistabot') {
-        await sendMessage(chatId,
-          `📊 *STATS EN VIVO*\n\n` +
-          `Uso: \`/stats-vivo <gameId>\`\n\n` +
-          `Ejemplo: \`/stats-vivo 4749268\`\n\n` +
-          `💡 Para encontrar el gameId:\n` +
-          `• \`/live\` para partidos en vivo\n` +
-          `• \`/tip brasil vs argentina\` para un partido próximo`
-        );
-        return true;
-      }
-      if (cmd.startsWith('/stats-vivo ') || cmd.startsWith('/statsvivo ') || cmd.startsWith('/live-stats ')) {
-        const arg = text.replace(/^\/(stats-vivo|statsvivo|live-stats)(?:@\w+)?\s+/i, '').trim();
-        const t = await mundialista365.getStatsVivo(arg);
-        await sendMessage(chatId, t);
-        await sendMessage(chatId, '💡 Más opciones:', { reply_markup: { inline_keyboard: buildSingleGameKeyboard(arg, ['odds']) } });
-        return true;
-      }
-
-      // /odds <gameId> — cuotas detalladas de un partido
-      if (cmd === '/odds' || cmd === '/odds@botmundialistabot') {
-        await sendMessage(chatId,
-          `🎲 *CUOTAS DE PARTIDO*\n\n` +
-          `Uso: \`/odds <gameId>\`\n\n` +
-          `Ejemplo: \`/odds 4749268\`\n\n` +
-          `💡 Para encontrar el gameId, usá \`/partidos\`, \`/fixture\` o \`/live\`.`
-        );
-        return true;
-      }
-      if (cmd.startsWith('/odds ')) {
-        const arg = text.replace(/^\/odds(?:@\w+)?\s+/i, '').trim();
-        const t = await mundialista365.getOdds(arg);
-        await sendMessage(chatId, t);
-        return true;
-      }
+      // /stats-vivo, /odds: migrados al router (Fase 7 — commands/matchDetail.js).
 
       // /alineacion [gameId | eq1 vs eq2] — titulares y formación + fotos de jugadores
       const alineacionRe = /^\/(alineaci[oó]n|lineup|titulares)(?:@\w+)?/i;
@@ -903,22 +847,7 @@ async function handleCommand(chatId, text, userName, userId) {
       }
 
       // /previa <gameId> — pre-match stats
-      if (cmd === '/previa' || cmd === '/previa@botmundialistabot' || cmd === '/preview' || cmd === '/preview@botmundialistabot') {
-        await sendMessage(chatId,
-          `🔮 *PREVIA DE PARTIDO*\n\n` +
-          `Uso: \`/previa <gameId>\`\n\n` +
-          `Ejemplo: \`/previa 4749268\`\n\n` +
-          `💡 Las previas se generan para partidos programados (statusGroup=2).`
-        );
-        return true;
-      }
-      if (cmd.startsWith('/previa ') || cmd.startsWith('/preview ')) {
-        const arg = text.replace(/^\/(previa|preview)(?:@\w+)?\s+/i, '').trim();
-        const t = await mundialista365.getPrevia(arg);
-        await sendMessage(chatId, t);
-        await sendMessage(chatId, '💡 Más opciones:', { reply_markup: { inline_keyboard: buildSingleGameKeyboard(arg, ['lineup', 'h2h', 'odds']) } });
-        return true;
-      }
+      // /previa: migrado al router (Fase 7 — commands/matchDetail.js).
 
       // ===========================================================
       // TIER 1: Contenido del Mundial (365scores via Cosmos)
@@ -1050,21 +979,7 @@ async function handleCommand(chatId, text, userName, userId) {
       }
 
       // /h2h <gameId> — historial entre equipos
-      if (cmd === '/h2h' || cmd === '/h2h@botmundialistabot' || cmd === '/historial-partido' || cmd === '/historial-partido@botmundialistabot') {
-        await sendMessage(chatId,
-          `🤝 *HISTORIAL ENTRE EQUIPOS (H2H)*\n\n` +
-          `Uso: \`/h2h <gameId>\`\n\n` +
-          `Ejemplo: \`/h2h 4749268\``
-        );
-        return true;
-      }
-      if (cmd.startsWith('/h2h ') || cmd.startsWith('/historial-partido ')) {
-        const arg = text.replace(/^\/(h2h|historial-partido)(?:@\w+)?\s+/i, '').trim();
-        const t = await mundialista365.getH2H(arg);
-        await sendMessage(chatId, t);
-        await sendMessage(chatId, '💡 Más opciones:', { reply_markup: { inline_keyboard: buildSingleGameKeyboard(arg, ['previa', 'odds']) } });
-        return true;
-      }
+      // /h2h: migrado al router (Fase 7 — commands/matchDetail.js).
 
       return false;
   }
