@@ -22,7 +22,7 @@
 | 3 · Migrar resto de comandos | ✅ | **Todos** los comandos slash + callbacks inline migrados. `handleCommand` vacío. `telegramBot.js`: 1319 → **197 líneas** (1957 → 197, −90%). **105 tests**. |
 | 4 · Sync | ✅ | 🐛 Fix withTransaction (6 jobs fallaban silenciosos). Sync **disuelto** en 8 módulos por dominio (games/standings/content/trendsOdds/details/catalog/athletes/transfers) + `context` compartido, sobre `infrastructure/persistence/syncWriters` + `interface/scheduler`. Golden-master de **los 22 jobs**. `syncService.js`: 1340 → 63 (agregador). |
 | 5 · Infra/cross-cutting | ✅ | Config del bot centralizada en `src/infrastructure/config.js`. Confirmado: sin dead code (alcanzabilidad) y cross-cutting compartido (bot+sync+dashboard+admin) correctamente en utils/database — no se mueve. |
-| 6 · Legacy + docs | ⏳ | siguiente |
+| 6 · Legacy + docs | ✅ | WhatsApp cuarentenado en `legacy/` (deps pesadas removidas). `docs/architecture.md` + README actualizados. **Fase 7 completa.** |
 | 3 · Migrar comandos | ⏳ | |
 | 4 · Sync | ⏳ | |
 | 5 · Infra/cross-cutting | ⏳ | |

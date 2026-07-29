@@ -260,8 +260,16 @@ Usa este checklist para tildar items a medida que avanzas. Cada sección corresp
 - [x] Cross-cutting (logger/dbStats/db/connection) confirmado **compartido** por bot+sync+dashboard+admin → se deja en utils/database (moverlo a src/infrastructure acoplaría el dashboard). El plan asumía cross-cutting local al bot; la realidad es compartida.
 - [x] Container = composition root del bot (finalizado en F2-F4); sync tiene su agregador; admin es app separada
 
-### Fase 6 — pendiente
-- [ ] Fase 6 — limpieza legacy (WhatsApp) + docs de arquitectura
+### Fase 6 — Limpieza legacy + docs ✅
+- [x] WhatsApp cuarentenado: `bot.js` → `legacy/whatsapp-bot.js`; deps `whatsapp-web.js` + `qrcode-terminal` removidas de package.json (solo bot.js las usaba); `main`/`start` → telegramBot.js; `legacy/README.md`. Bot activo no afectado.
+- [x] `docs/architecture.md` (árbol src/, regla de dependencia, entry points, flujo de comando, cross-cutting, tests)
+- [x] README actualizado (estructura src/ + legacy/, estado de WhatsApp y backend)
+
+---
+
+## 🏁 Fase 7 — COMPLETA (Fases 0-6)
+
+`telegramBot.js` **1957 → 197 líneas** (−90%). Bot + sync en Clean Architecture. **124/124 tests verde.** Stack de PRs #2→#8 (+ #7 con el 🐛 fix de withTransaction — cherry-pick a master).
 - [ ] Fase 3 — dominio + application; migrar el resto de comandos por lotes
 - [ ] Fase 4 — sync como use-cases + scheduler
 - [ ] Fase 5 — consolidar infraestructura y cross-cutting
