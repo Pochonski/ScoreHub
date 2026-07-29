@@ -21,8 +21,9 @@ const { telegramRequest, sendMessage, sendPhoto, sendMediaGroup } = require('./s
 const { createHttpServer } = require('./src/interface/http/server');
 const { createLifecycle } = require('./src/interface/telegram/lifecycle');
 const { createContainer } = require('./src/infrastructure/container');
+const config = require('./src/infrastructure/config');
 
-if (process.env.ENABLE_LIVE_NOTIFIER === 'true') {
+if (config.liveNotifierEnabled) {
   try {
     telegramNotifier.registerBot({ sendMessage }, 'telegram');
     telegramNotifier.attach();
@@ -35,7 +36,7 @@ if (process.env.ENABLE_LIVE_NOTIFIER === 'true') {
 // El wiring (lifecycle + HTTP server + arranque) vive en el composition root
 // al final del archivo (Fase 7).
 let dbAvailable = false;
-const PORT = process.env.PORT || 8080;
+const PORT = config.port;
 
 /**
  * Maneja comandos de Telegram (que empiezan con /)

@@ -254,8 +254,14 @@ Usa este checklist para tildar items a medida que avanzas. Cada sección corresp
 - [x] **`syncService` disuelto** en 8 módulos por dominio (games/standings/content/trendsOdds/details/catalog/athletes/transfers) + `context.js` compartido; `syncService.js` = agregador de 63 líneas
 - [x] Validado: 23/23 sync golden-master byte-idénticos tras el split; 124/124 total; wiring de producción verificado
 
-### Fases 5-6 — pendientes
-- [ ] Fase 5 — consolidar infraestructura y cross-cutting
+### Fase 5 — Consolidar infraestructura y cross-cutting ✅
+- [x] Config del bot centralizada en `src/infrastructure/config.js` (TELEGRAM_BOT_TOKEN/PORT/ENABLE_LIVE_NOTIFIER; antes ad-hoc)
+- [x] Análisis de orfandad/alcanzabilidad: **sin dead code** — todo handler/service llega desde un entry activo; `liveGamesPoller` es entry standalone
+- [x] Cross-cutting (logger/dbStats/db/connection) confirmado **compartido** por bot+sync+dashboard+admin → se deja en utils/database (moverlo a src/infrastructure acoplaría el dashboard). El plan asumía cross-cutting local al bot; la realidad es compartida.
+- [x] Container = composition root del bot (finalizado en F2-F4); sync tiene su agregador; admin es app separada
+
+### Fase 6 — pendiente
+- [ ] Fase 6 — limpieza legacy (WhatsApp) + docs de arquitectura
 - [ ] Fase 3 — dominio + application; migrar el resto de comandos por lotes
 - [ ] Fase 4 — sync como use-cases + scheduler
 - [ ] Fase 5 — consolidar infraestructura y cross-cutting
