@@ -216,7 +216,7 @@ Usa este checklist para tildar items a medida que avanzas. Cada sección corresp
 | 7 | 6/6 | ✅ |
 | **8.0** | **** | **⭐ Activa** |
 | **8.1** | 8/8 | **✅** |
-| **8.2** | | ⏳ |
+| **8.2** | 6/6 | **✅** |
 | **8.3** | | ⏳ |
 | **8.4** | | ⏳ |
 | **8.5** | | ⏳ |
@@ -296,19 +296,20 @@ Usa este checklist para tildar items a medida que avanzas. Cada sección corresp
 - [x] **Validación**: `MAX(updated_at)` de `games` < 1 min, `athletes` < 24h, `news` < 24h, `odds_lines` < 24h
 - [x] Tests: 145/145 verde, 11 suites, 60 snapshots OK
 
-### Fase 8.2 — Predictions + tablas bot ⏳
+### Fase 8.2 — Predictions + tablas bot ✅
 
 > Plan: [10-db-predictions-y-bot-tables.md](./10-db-predictions-y-bot-tables.md)
+> Commit: `b0ec8f2`
 
 #### 8.2.1 — Predictions
-- [ ] Diagnosticar por qué `predictions` = 0 filas (API vs sync)
-- [ ] Fix sync o deshabilitar endpoint con mensaje claro
-- [ ] Verificar que dashboard y bot no crashean con predictions vacío
+- [x] Diagnosticar por qué `predictions` = 0 filas (API devuelve predicciones en `games[i].promotedPredictions.predictions[]`, no top-level)
+- [x] Fix sync: extraer del path correcto + filtrar por games existentes
+- [x] Verificar que dashboard y bot no crashean con predictions vacío
 
 #### 8.2.2 — Tablas bot
-- [ ] Determinar si el bot apunta a esta DB o a otra
-- [ ] Unificar DBs o documentar decisión
-- [ ] Test E2E: escritura/lectura en `usuarios`, `equipos_seguidos`, `historial_consultas`
+- [x] Determinar si el bot apunta a esta DB: NO — `telegramBot.js` no corre en este host (solo `sync.js` está activo vía PM2)
+- [x] Test E2E `bot.persistence.test.js` — 6/6 verde: INSERT/SELECT/DELETE + FK CASCADE
+- [x] **Conclusión**: las tablas son operativas; el bot corre en otro lado
 
 ### Fase 8.3 — Cobertura DB completa ⏳
 
