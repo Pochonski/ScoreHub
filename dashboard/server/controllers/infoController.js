@@ -141,15 +141,20 @@ async function getCompetitionDetail(req, res, next) {
     const comp = byId.get(id);
     if (!comp) return res.status(404).json({ error: 'Competición no disponible' });
 
-    // 1. Cache DB
-    const { data, error: dbErr } = await db.query('competitions', {
-      select: 'data',
-      eq: { id },
-      maybeSingle: true,
-    });
-    if (dbErr) throw dbErr;
-    if (data) {
-      const c = data.data?.competitions?.[0] || data.data?.competition;
+    // DB-first con write-back (Fase 8.4).
+    const { data: row } = await db.readThrough(
+      'competitions',
+      { select: 'data', eq: { id }, maybeSingle: true },
+      async () => {
+        const live = await scores365.getCompetition(id);
+        if (!live) return null;
+        return { id, data: JSON.stringify(live) };
+      },
+      { onConflict: 'id', ttlMs: 6 * 60 * 60 * 1000 }, // 6h
+    );
+
+    if (row?.data) {
+      const c = row.data?.competitions?.[0] || row.data?.competition;
       if (c) {
         return res.json({
           ...comp,
@@ -159,20 +164,6 @@ async function getCompetitionDetail(req, res, next) {
         });
       }
     }
-
-    // 2. Fallback a upstream en vivo.
-    try {
-      const live = await scores365.getCompetition(id);
-      const c = live?.competitions?.[0];
-      if (c) {
-        return res.json({
-          ...comp,
-          upstream: c,
-          hasTransfers: !!c.hasTransfers,
-          seasons: c.seasons || [],
-        });
-      }
-    } catch (_) { /* fallthrough */ }
 
     res.json({ ...comp, upstream: null, seasons: [] });
   } catch (err) {
@@ -191,22 +182,21 @@ async function getCompetitionSeasons(req, res, next) {
     const { byId } = await loadActiveCompetitions();
     if (!byId.has(id)) return res.status(404).json({ error: 'Competición no disponible' });
 
-    const { data, error: dbErr } = await db.query('competitions', {
-      select: 'data',
-      eq: { id },
-      maybeSingle: true,
-    });
-    if (dbErr) throw dbErr;
-    const c = data?.data?.competitions?.[0] || data?.data?.competition;
-    if (c?.seasons?.length) return res.json(c.seasons);
+    // DB-first con write-back (Fase 8.4) — comparte fila con getCompetitionDetail.
+    const { data: row } = await db.readThrough(
+      'competitions',
+      { select: 'data', eq: { id }, maybeSingle: true },
+      async () => {
+        const live = await scores365.getCompetition(id);
+        if (!live) return null;
+        return { id, data: JSON.stringify(live) };
+      },
+      { onConflict: 'id', ttlMs: 6 * 60 * 60 * 1000 }, // 6h
+    );
 
-    try {
-      const live = await scores365.getCompetition(id);
-      const c2 = live?.competitions?.[0];
-      return res.json(c2?.seasons || []);
-    } catch (_) {
-      return res.json([]);
-    }
+    const c = row?.data?.competitions?.[0] || row?.data?.competition;
+    if (c?.seasons?.length) return res.json(c.seasons);
+    return res.json([]);
   } catch (err) {
     next(err);
   }

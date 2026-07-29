@@ -15,6 +15,9 @@ const counters = {
   supabaseErrors: 0,
   pgCalls: 0,
   pgErrors: 0,
+  // Fase 8.4: contadores para write-back automático vía readThrough().
+  upsertsFromCacheMiss: 0,
+  readThroughCalls: 0,
   startedAt: new Date().toISOString(),
 };
 
@@ -29,6 +32,18 @@ function recordPgCall() {
 }
 function recordPgError() {
   counters.pgErrors++;
+}
+/**
+ * Fase 8.4: un write-back automático ocurrió (cache miss → fetch 365 → upsert DB).
+ * Útil para verificar en /api/football/health que los endpoints DB_FIRST
+ * realmente están hidratando la DB.
+ */
+function recordUpsertFromCacheMiss() {
+  counters.upsertsFromCacheMiss++;
+  counters.readThroughCalls++;
+}
+function recordReadThroughHit() {
+  counters.readThroughCalls++;
 }
 
 function getStats() {
@@ -46,6 +61,8 @@ function reset() {
   counters.supabaseErrors = 0;
   counters.pgCalls = 0;
   counters.pgErrors = 0;
+  counters.upsertsFromCacheMiss = 0;
+  counters.readThroughCalls = 0;
   counters.startedAt = new Date().toISOString();
 }
 
@@ -54,6 +71,8 @@ module.exports = {
   recordSupabaseError,
   recordPgCall,
   recordPgError,
+  recordUpsertFromCacheMiss,
+  recordReadThroughHit,
   getStats,
   reset,
 };

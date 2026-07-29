@@ -377,4 +377,82 @@ module.exports = {
   remove,
   execAdvanced,
   execAdvancedFull,
+  readThrough,
 };
+
+/**
+ * Read-through cache pattern (Fase 8.4):
+ *
+ *  1. Lee de DB usando los `queryOpts` (mismo shape que `db.query`).
+ *  2. Si encuentra datos → los devuelve con `source: 'db'`.
+ *  3. Si NO encuentra (cache miss) → llama a `fetcher()`.
+ *  4. Si `fetcher` devuelve datos → los persiste en DB con `upsert`.
+ *  5. Devuelve los datos con `source: '365+writeback'`.
+ *
+ * Si la fila de DB está stale (edad > `ttlMs`), también se considera
+ * cache miss para forzar refresh.
+ *
+ * @param {string} table
+ * @param {object} queryOpts - mismo shape que db.query (eq, select, single, etc.)
+ * @param {() => any} fetcher - función que trae datos de 365scores.
+ *                             Puede devolver cualquier shape; se persiste como JSONB.
+ * @param {object} [opts]
+ * @param {string|string[]} [opts.onConflict='id'] - columnas de conflict para upsert.
+ * @param {number} [opts.ttlMs] - si la fila de DB es más vieja que esto, se rehidrata.
+ * @returns {Promise<{ data, error, source: 'db'|'365+writeback'|'365-error' }>}
+ */
+async function readThrough(table, queryOpts, fetcher, opts = {}) {
+  const { onConflict = 'id', ttlMs = null } = opts;
+
+  // 1. Intentar DB
+  const { data: row, error } = await query(table, queryOpts);
+  if (error) return { data: null, error, source: 'db-error' };
+
+  const hasData = row && (Array.isArray(row) ? row.length > 0 : true);
+  if (hasData) {
+    const single = Array.isArray(row) ? row[0] : row;
+    const updatedAt = single?.updated_at;
+    const isStale =
+      ttlMs != null &&
+      updatedAt != null &&
+      Date.now() - new Date(updatedAt).getTime() > ttlMs;
+    if (!isStale) {
+      return { data: row, error: null, source: 'db' };
+    }
+  }
+
+  // 2. Cache miss / stale: fetcher
+  let fresh = null;
+  let upstreamError = null;
+  try {
+    fresh = await fetcher();
+  } catch (err) {
+    upstreamError = err;
+  }
+
+  if (fresh != null && !upstreamError) {
+    try {
+      const rows = Array.isArray(fresh) ? fresh : [fresh];
+      await upsert(table, rows.map(r => {
+        if (typeof r === 'object' && r !== null && !Array.isArray(r)) return r;
+        return { data: r };
+      }), onConflict);
+      try {
+        require('../utils/dbStats').recordUpsertFromCacheMiss();
+      } catch {}
+    } catch (persistErr) {
+      const logger = require('../utils/logger');
+      logger.warn({ err: persistErr.message, table }, 'readThrough write-back failed');
+    }
+    return { data: fresh, error: null, source: '365+writeback' };
+  }
+
+  if (hasData) {
+    return { data: row, error: null, source: 'db-stale' };
+  }
+  return {
+    data: null,
+    error: upstreamError || { message: 'no data from DB or upstream' },
+    source: '365-error',
+  };
+}
