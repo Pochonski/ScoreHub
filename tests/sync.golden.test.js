@@ -183,9 +183,33 @@ describe('syncService — golden-master de escrituras', () => {
   });
 
   test('syncPredictions → predictions', async () => {
-    api.getPredictions.mockResolvedValue({ predictions: [{ gameId: 1, p: 0.5 }] });
+    // 365scores devuelve predicciones dentro de cada game:
+    //   data.games[i].promotedPredictions.predictions[]
+    api.getPredictions.mockResolvedValue({
+      games: [{
+        id: 4749268,
+        promotedPredictions: {
+          predictions: [{ gameId: 4749268, title: '¿Quién gana?', options: [] }],
+        },
+      }],
+    });
+    setExecResult([{ id: 4749268 }]); // game existe en nuestra DB
     await sync.syncPredictions();
-    expect(getWrites()[0].sql).toMatch(/^INSERT INTO predictions/);
+    expect(getWrites().some((w) => /INSERT INTO predictions/.test(w.sql))).toBe(true);
+  });
+
+  test('syncPredictions → filtra games que no están en nuestra DB', async () => {
+    api.getPredictions.mockResolvedValue({
+      games: [{
+        id: 9999999,
+        promotedPredictions: {
+          predictions: [{ gameId: 9999999 }],
+        },
+      }],
+    });
+    setExecResult([]); // game NO existe en nuestra DB
+    await sync.syncPredictions();
+    expect(getWrites().some((w) => /INSERT INTO predictions/.test(w.sql))).toBe(false);
   });
 
   test('syncCountries → countries', async () => {

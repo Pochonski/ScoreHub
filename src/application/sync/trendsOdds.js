@@ -53,19 +53,56 @@ async function syncTrends() {
 }
 
 async function syncPredictions() {
-  // No depende de competition_id: predictions viene del feed global de
-  // fútbol. Lo dejamos como está.
+  // La API de 365scores devuelve las predicciones dentro de cada game:
+  //   data.games[i].promotedPredictions.predictions[]
+  // no en un array top-level `data.predictions`.
+  //
+  // Filtramos para guardar solo predicciones de games que estén en la
+  // tabla `games` (i.e. competiciones activas en active_competitions) —
+  // así el comando `/predicciones <id>` solo intenta mostrar datos
+  // relevantes para el usuario.
   log('Fetching predictions...');
   try {
     const data = await api.getPredictions(1);
-    const items = data?.predictions ?? [];
-    const rows = items.map(p => ({
-      game_id: p.gameId ?? p.id,
-      data: JSON.stringify(p),
-      updated_at: new Date().toISOString(),
-    }));
-    await upsertMany('predictions', 'game_id', rows);
-    log(`Synced ${rows.length} predictions`);
+    const games = data?.games ?? [];
+    if (!games.length) {
+      log('Synced 0 predictions (no games in upstream response)');
+      return;
+    }
+
+    // Construir map gameId -> {gameId, data} con las predicciones.
+    const rows = [];
+    for (const g of games) {
+      const gid = g.id;
+      const pp = g.promotedPredictions;
+      if (!pp || !Array.isArray(pp.predictions) || !pp.predictions.length) continue;
+      rows.push({
+        game_id: gid,
+        data: JSON.stringify(g), // guarda el game completo (incluye promotedPredictions)
+        updated_at: new Date().toISOString(),
+      });
+    }
+    if (!rows.length) {
+      log('Synced 0 predictions (none with promotedPredictions)');
+      return;
+    }
+
+    // Filtrar por games en competiciones activas (no insertar basura
+    // de games que no están en nuestra DB).
+    const gameIds = rows.map(r => r.game_id);
+    const existing = await db.execAdvanced(
+      `SELECT id FROM games WHERE id = ANY($1::bigint[])`,
+      [gameIds]
+    );
+    const existingIds = new Set(existing.map(r => Number(r.id)));
+    const filteredRows = rows.filter(r => existingIds.has(Number(r.game_id)));
+    if (!filteredRows.length) {
+      log(`Synced 0 predictions (none of ${rows.length} upstream games are in our DB)`);
+      return;
+    }
+
+    await upsertMany('predictions', 'game_id', filteredRows);
+    log(`Synced ${filteredRows.length} predictions (${rows.length - filteredRows.length} filtered out)`);
   } catch (e) {
     logErr(`Error syncing predictions: ${e.message}`);
   }
