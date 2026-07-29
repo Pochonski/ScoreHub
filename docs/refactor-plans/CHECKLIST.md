@@ -1,6 +1,6 @@
 # Checklist de refactorización ScoreHub
 
-**Estado global**: proyecto estable. Todas las fases 1-4 + Fase 5/6 de cierre planificadas y completadas. Migration normalizada (019) y frontend migrado a TanStack Query. Production OK.
+**Estado global**: proyecto estable. Fases 1-4 + 5/6 + 7 completadas. Migration normalizada (019) y frontend migrado a TanStack Query. **Fase 8 (DB Coverage) en curso — 8.0 activa.**
 
 Usa este checklist para tildar items a medida que avanzas. Cada sección corresponde a una fase.
 
@@ -182,6 +182,12 @@ Usa este checklist para tildar items a medida que avanzas. Cada sección corresp
 
 ---
 
+## 📌 Fase 7 — COMPLETA ✅
+
+`telegramBot.js` **1957 → 197 líneas** (−90%). Bot + sync en Clean Architecture. **124/124 tests verde.** Stack de PRs #2→#8 ([#7](https://github.com/Pochonski/ScoreHub/pull/7) con el 🐛 fix de withTransaction — cherry-pick a master).
+
+---
+
 ## 📊 Métricas acumuladas
 
 | Métrica | Estado | Detalle |
@@ -200,89 +206,139 @@ Usa este checklist para tildar items a medida que avanzas. Cada sección corresp
 ## 📌 Estado global ✅
 
 | Fase | Items | Estado |
-|---|---|---|
+|---|---|---|---|
 | 1 | 5/5 | ✅ |
 | 2 | 5/5 | ✅ |
 | 3 | 7/8 | ✅ (018 migration 020 opcional para DROP) |
 | 4 | code ✅, activación ⏳ | depende de Vercel env vars |
 | 5 | 4/4 | ✅ |
 | 6 | 14/14 hooks | ✅ |
-
----
-
-## 📌 Fase 7 — Clean Architecture en el backend/root 🚧
-
-> Plan: [07-clean-architecture-backend.md](./07-clean-architecture-backend.md) · Rama `refactor/clean-arch-phase7` · [PR #2](https://github.com/Pochonski/ScoreHub/pull/2)
-
-### Fase 0 — Red de seguridad + andamiaje ✅
-- [x] Jest en el root (`jest.config.js`, script `test`)
-- [x] Andamiaje `telegramBot.js`: `init()`/`server.listen`/señales bajo `require.main === module && NODE_ENV !== 'test'`; `module.exports` de `handleCommand`/`processMessage`
-- [x] Harness golden-master: `tests/helpers/httpsCapture.js` (transporte Telegram) + `tests/helpers/dbCapture.js` (escrituras DB)
-- [x] **59 golden-master tests** (55 comandos del bot + 4 de sync), todos verde
-- [x] Esqueleto de capas `src/{domain,application,infrastructure,interface}` + README por capa + `container.js`
-
-### Fase 1 — Aislar transporte/lifecycle de Telegram ✅
-- [x] `src/interface/telegram/client.js` (transporte) — [PR #3](https://github.com/Pochonski/ScoreHub/pull/3)
-- [x] `src/interface/http/server.js` (health/webhook/admin) como `createHttpServer(deps)` + `tests/http.server.test.js` (8)
-- [x] `src/interface/telegram/lifecycle.js` (polling/ruteo) como `createLifecycle(deps)` + `tests/lifecycle.test.js` (10)
-- [x] Composition root en `telegramBot.js` (1957 → 1419 líneas); 77/77 verde; comportamiento byte-idéntico
-
-### Fase 2 — Router + registry + primeros 3 comandos ✅
-- [x] `src/interface/telegram/router.js` (registry: triggers/alias/@bot + dispatch) + `tests/router.test.js` (7)
-- [x] Arquitectura completa por capas: `domain/ports/scoresGateway` → `application/matches/*` → `infrastructure/scores365/*` → `interface/telegram/{commands,presenters}/*`
-- [x] `infrastructure/container.js` (composition root) cablea y registra
-- [x] `/help` `/live` `/fixture` migrados; ramas legacy eliminadas; teclados movidos al presenter
-- [x] `telegramBot.js` 1419 → 1319 líneas; 84/84 verde (golden-master byte-idénticos vía arquitectura nueva) — [PR #4](https://github.com/Pochonski/ScoreHub/pull/4)
-
-### Fase 3 — Migrar el resto de comandos ✅
-- [x] Router con prefix matching (comandos con args) + tests
-- [x] Batch A1 (detalle): /outrights /previa /h2h /odds /stats-vivo /predicciones
-- [x] Batch A2 (tips/trends): /tip /tendencias (parseo "vs")
-- [x] Batch C (contenido): /noticias /equipoideal /bracket /historial /goleadores
-- [x] Batch B (equipos): /seguir /info /grupo /resultado /analizar /racha /proximos /dondever /dejarseguir /misfavoritos + stat aliases (gateway del messageHandler)
-- [x] Batch final: /start /cambiarusuario /mialias /yo /reset /mundial /partidos /manana /tabla /jugador /alineacion
-- [x] **`handleCommand` vacío** (solo router.dispatch); switch + default legacy eliminados
-- [x] Quirks legacy preservados y documentados (/cambiarusuario arg, /jugador literal); test flawed de /jugador corregido
-- [x] **Broche**: `handlePartidosCallback` (callbacks de botones inline) migrado a `interface/telegram/callbacks.js` + `tests/callbacks.test.js` (11)
-- [x] **`telegramBot.js` 1319 → 197 líneas** (1957 → 197 total en Fase 7, **−90%**); interface 100% migrado (comandos + callbacks); 105/105 verde
-
-### Fase 4 — Sync a Clean Architecture ✅
-- [x] 🐛 **Fix**: `withTransaction` no estaba importado → 6 jobs (trends/transfers/suggestions/catalog/athletes) fallaban silenciosos (ReferenceError tragado). **Bug de producción — considerar cherry-pick a master.**
-- [x] Write-helpers → `src/infrastructure/persistence/syncWriters.js`
-- [x] `sync.js` cron → `src/interface/scheduler/scheduler.js` (exporta `start()`); `sync.js` queda como entry fino
-- [x] **Golden-master de los 22 jobs** (red completa — prerrequisito seguro del split)
-- [x] **`syncService` disuelto** en 8 módulos por dominio (games/standings/content/trendsOdds/details/catalog/athletes/transfers) + `context.js` compartido; `syncService.js` = agregador de 63 líneas
-- [x] Validado: 23/23 sync golden-master byte-idénticos tras el split; 124/124 total; wiring de producción verificado
-
-### Fase 5 — Consolidar infraestructura y cross-cutting ✅
-- [x] Config del bot centralizada en `src/infrastructure/config.js` (TELEGRAM_BOT_TOKEN/PORT/ENABLE_LIVE_NOTIFIER; antes ad-hoc)
-- [x] Análisis de orfandad/alcanzabilidad: **sin dead code** — todo handler/service llega desde un entry activo; `liveGamesPoller` es entry standalone
-- [x] Cross-cutting (logger/dbStats/db/connection) confirmado **compartido** por bot+sync+dashboard+admin → se deja en utils/database (moverlo a src/infrastructure acoplaría el dashboard). El plan asumía cross-cutting local al bot; la realidad es compartida.
-- [x] Container = composition root del bot (finalizado en F2-F4); sync tiene su agregador; admin es app separada
-
-### Fase 6 — Limpieza legacy + docs ✅
-- [x] WhatsApp cuarentenado: `bot.js` → `legacy/whatsapp-bot.js`; deps `whatsapp-web.js` + `qrcode-terminal` removidas de package.json (solo bot.js las usaba); `main`/`start` → telegramBot.js; `legacy/README.md`. Bot activo no afectado.
-- [x] `docs/architecture.md` (árbol src/, regla de dependencia, entry points, flujo de comando, cross-cutting, tests)
-- [x] README actualizado (estructura src/ + legacy/, estado de WhatsApp y backend)
-
----
-
-## 🏁 Fase 7 — COMPLETA (Fases 0-6)
-
-`telegramBot.js` **1957 → 197 líneas** (−90%). Bot + sync en Clean Architecture. **124/124 tests verde.** Stack de PRs #2→#8 (+ #7 con el 🐛 fix de withTransaction — cherry-pick a master).
-- [ ] Fase 3 — dominio + application; migrar el resto de comandos por lotes
-- [ ] Fase 4 — sync como use-cases + scheduler
-- [ ] Fase 5 — consolidar infraestructura y cross-cutting
-- [ ] Fase 6 — limpieza legacy (WhatsApp) + docs de arquitectura
+| 7 | 6/6 | ✅ |
+| **8.0** | **** | **⭐ Activa** |
+| **8.1** | | ⏳ |
+| **8.2** | | ⏳ |
+| **8.3** | | ⏳ |
+| **8.4** | | ⏳ |
+| **8.5** | | ⏳ |
 
 ---
 
 ## 📌 Pendientes futuros (opcionales)
 
-1. **Activar Supabase JS HTTP en Vercel** — solo requiere agregar env vars (procedimiento documentado)
-2. **Migration 020** (DROP viejo `bet_followers`) — opcional, tabla legacy sin uso
-3. **Mutations en TanStack Query** (`useMutation` para follow/unfollow cuando bot tenga endpoint HTTP)
-4. **Traducción TypeScript de useEffect/useState legacy** en componentes UI (no data-fetch) — Fase 7
+1. **Migration 020** (DROP viejo `bet_followers`) — opcional, tabla legacy sin uso
+2. **Mutations en TanStack Query** (`useMutation` para follow/unfollow cuando bot tenga endpoint HTTP)
+3. **Traducción TypeScript de useEffect/useState legacy** en componentes UI (no data-fetch)
+
+## 📌 Fase 7 — Clean Architecture backend/root ✅
+
+> Plan: [07-clean-architecture-backend.md](./07-clean-architecture-backend.md)
+> Rama `refactor/clean-arch-phase7`
+
+### Fase 7.0 — Red de seguridad ✅
+- [x] Jest en el root, golden-master (55 comandos + 4 sync)
+- [x] Esqueleto src/{domain,application,infrastructure,interface}
+
+### Fase 7.1 — Transporte/lifecycle ✅
+- [x] `src/interface/telegram/client.js`, `lifecycle.js`, `http/server.js`
+- [x] `telegramBot.js`: 1957→1419 líneas (−28%)
+
+### Fase 7.2 — Router + 3 comandos ✅
+- [x] Router/registry, arquitectura completa por capas
+- [x] `/help`, `/live`, `/fixture` migrados; `telegramBot.js`: 1419→1319
+
+### Fase 7.3 — Migrar resto de comandos ✅
+- [x] Todos los comandos slash + callbacks migrados
+- [x] `handleCommand` vacío; `telegramBot.js`: 1319→197 (−90%)
+
+### Fase 7.4 — Sync a Clean Architecture ✅
+- [x] 🐛 Fix: `withTransaction` no importado (6 jobs caían silenciosos)
+- [x] Sync disuelto en 8 módulos por dominio + syncWriters
+
+### Fase 7.5 — Infra/cross-cutting ✅
+- [x] Config centralizada en `src/infrastructure/config.js`
+- [x] Sin dead code, cross-cutting compartido
+
+### Fase 7.6 — Legacy + docs ✅
+- [x] WhatsApp cuarentenado en `legacy/`
+- [x] `docs/architecture.md` + README actualizados
+
+**124/124 tests verde. `telegramBot.js`: 1957→197 líneas (−90%).**
+
+---
+
+## 📌 Fase 8 — Cobertura DB-only 🚧
+
+> **Objetivo**: lograr que el 100 % de requests del dashboard y bot se sirvan desde la DB,
+> sin llamadas en caliente a 365scores.
+>
+> Documento permanente de referencia: `docs/architecture/db-coverage.md`
+
+### Fase 8.0 — Auditoría y documentación ⭐ Activa
+
+> Plan: [08-db-coverage-fase0-auditoria.md](./08-db-coverage-fase0-auditoria.md)
+
+- [x] `docs/architecture/db-coverage.md` creado (mapeo completo DB)
+- [x] Planes 09-13 creados
+- [x] CHECKLIST.md y README.md actualizados
+- [ ] **Validación Fase 8.0**: `git diff --stat` solo muestra `.md` files
+
+### Fase 8.1 — Frescura y salud del sync ⏳
+
+> Plan: [09-db-frescura-y-salud.md](./09-db-frescura-y-salud.md)
+
+- [ ] Diagnosticar procesos de sync (pm2/systemd, logs)
+- [ ] Ejecutar jobs stale manualmente (games, athletes, news, odds_lines)
+- [ ] Añadir `tests/sync.freshness.test.js`
+- [ ] `MAX(updated_at)` de `games` < 1 h
+- [ ] `MAX(updated_at)` de `athletes` < 24 h
+- [ ] `MAX(updated_at)` de `news` < 24 h
+- [ ] `MAX(updated_at)` de `odds_lines` < 24 h
+
+### Fase 8.2 — Predictions + tablas bot ⏳
+
+> Plan: [10-db-predictions-y-bot-tables.md](./10-db-predictions-y-bot-tables.md)
+
+#### 8.2.1 — Predictions
+- [ ] Diagnosticar por qué `predictions` = 0 filas (API vs sync)
+- [ ] Fix sync o deshabilitar endpoint con mensaje claro
+- [ ] Verificar que dashboard y bot no crashean con predictions vacío
+
+#### 8.2.2 — Tablas bot
+- [ ] Determinar si el bot apunta a esta DB o a otra
+- [ ] Unificar DBs o documentar decisión
+- [ ] Test E2E: escritura/lectura en `usuarios`, `equipos_seguidos`, `historial_consultas`
+
+### Fase 8.3 — Cobertura DB completa ⏳
+
+> Plan: [11-db-coverage-completa.md](./11-db-coverage-completa.md)
+
+- [ ] Migration 020: `trend_details`
+- [ ] Migration 021: `team_recent_form`, `team_upcoming_matches`, `team_recent_results`
+- [ ] Sync jobs: `syncTrendDetails`, `syncTeamState` (on-demand)
+- [ ] Refactor `trendDetailController` → DB_ONLY
+- [ ] Refactor `teamEnhancementsController` (3 endpoints) → DB_ONLY
+- [ ] Invertir `GET /teams/:id/info` → DB_FIRST
+- [ ] 0 endpoints 365_ONLY o 365_PRIMARY en routes/football.js
+
+### Fase 8.4 — Write-back cache ⏳
+
+> Plan: [12-db-write-back-cache.md](./12-db-write-back-cache.md)
+
+- [ ] Añadir `db.readThrough(table, queryOpts, fetcher, opts)` en `database/db.js`
+- [ ] Añadir contador `upsertsFromCacheMiss` en `utils/dbStats.js`
+- [ ] Refactor 14 endpoints DB_FIRST con `readThrough`
+- [ ] Tests: integration y unit de cache miss → write-back
+- [ ] Tras warmup, `scores365` deja de recibir requests del dashboard
+
+### Fase 8.5 — Activar Supabase HTTP ⏳
+
+> Plan: [13-db-activa-supabase-http.md](./13-db-activa-supabase-http.md)
+
+- [ ] Obtener `SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY` del panel Supabase
+- [ ] Añadir en Vercel Production + Preview
+- [ ] Verificar con `scripts/check-supabase-config.js`
+- [ ] Verificar `supabasePercent > 80 %` en health endpoint
+- [ ] Cero `EMAXCONNSESSION`
 
 ## 📌 Cómo correr todo localmente
 
