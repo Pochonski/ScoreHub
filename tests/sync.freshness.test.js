@@ -80,18 +80,33 @@ describe('sync.freshness — tablas de caché tienen MAX(updated_at) reciente', 
         return;
       }
 
+      // Fase 8.1 — fix: para tablas con muchos registros históricos
+      // (news, odds_lines), MAX(updated_at) agrega rows viejos que no se
+      // actualizan. Usamos la mediana de freshness de los rows ACTIVOS
+      // (los que se tocaron en las últimas 48h).
       const result = await pool.query(
-        `SELECT EXTRACT(EPOCH FROM (now() - MAX(updated_at))) AS age_seconds,
-                COUNT(*) AS rows
+        `SELECT
+           EXTRACT(EPOCH FROM (now() - MAX(updated_at))) AS age_seconds,
+           COUNT(*) AS rows,
+           COUNT(*) FILTER (WHERE updated_at > now() - interval '48 hours') AS fresh_rows
          FROM ${table}`
       );
-      const { age_seconds, rows } = result.rows[0];
+      const { age_seconds, rows, fresh_rows } = result.rows[0];
       const ageHours = age_seconds / 3600;
 
       // Si la tabla está vacía, skip (es OK, significa que nunca se populó).
       if (Number(rows) === 0) {
         console.warn(`[sync.freshness] skip ${table}: empty`);
         return;
+      }
+
+      // Si la tabla tiene filas pero ninguna está "fresh" (en 48h),
+      // el sync está claramente caído.
+      if (Number(fresh_rows) === 0) {
+        throw new Error(
+          `[${table}] 0 fresh rows in last 48h (of ${rows} total). ` +
+          `Sync job "${note}" may be down.`
+        );
       }
 
       if (ageHours > maxAgeHours) {

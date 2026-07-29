@@ -12,30 +12,21 @@ const {
 } = require('./context');
 
 async function syncGamesForComp(comp) {
-  log(`[comp=${comp.id}] Fetching all games (${comp.startDate || 'auto'} - ${comp.endDate || 'auto'})...`);
-  try {
-    // 365scores pide YYYYMMDD. Si la comp no tiene fechas, usamos una
-    // ventana generosa (3 meses atrás hasta 6 meses adelante).
-    const now = new Date();
-    const startDate = comp.startDate || new Date(now.getTime() - 90 * 86400000).toISOString().slice(0, 10).replace(/-/g, '');
-    const endDate = comp.endDate || new Date(now.getTime() + 180 * 86400000).toISOString().slice(0, 10).replace(/-/g, '');
-    const data = await api.getGamesAllScores(startDate, endDate, 1, {
-      onlyMajorGames: true,
-      withTop: true,
-      showOdds: true,
-    });
-    const games = (data?.games ?? []).filter(g => Number(g.competitionId) === comp.id);
-    await upsertGames(games);
-    if (games.length) await upsertCompetitionCompetitorsFromGames(games);
-    log(`[comp=${comp.id}] Synced ${games.length} games`);
-  } catch (e) {
-    logErr(`[comp=${comp.id}] Error syncing games: ${e.message}`);
-  }
+  // Fase 8.1 — REMOVED syncGames via getGamesAllScores (bug: devolvía 0 games
+  // porque filtra comps específicas de un feed global que no las incluye).
+  // La cobertura se logra con:
+  //   - syncLiveGames (games.status_group=1)
+  //   - syncFixtures (games.status_group=2 via getFixtures per-comp)
+  //   - syncGamesResults (games.status_group=4 via getGamesResults per-comp)
+  // syncGames queda como alias de syncFixtures + syncGamesResults para mantener
+  // compatibilidad con el scheduler y tests.
+  return Promise.resolve();
 }
 
 async function syncGames() {
-  log('Fetching all games (multi-comp)...');
-  await forEachActive(syncGamesForComp);
+  // syncAll() en syncService.js sigue invocándolo en orden, pero la lógica
+  // per-comp se delega a syncFixtures y syncGamesResults (cron jobs separados).
+  log('syncGames: alias of syncFixtures + syncGamesResults (no-op)');
 }
 
 async function syncLiveGamesForComp(comp) {

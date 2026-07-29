@@ -24,7 +24,9 @@ async function syncAll() {
   try {
     await catalog.syncCatalog();
     await catalog.syncCountries();
-    await games.syncGames();
+    // games.syncGames() REMOVIDO en Fase 8.1 — bug: devolvía 0 games porque
+    // usaba getGamesAllScores (global) con filtro por comp. syncGames ahora
+    // es no-op alias; la cobertura se logra con syncFixtures + syncGamesResults.
     await games.syncLiveGames();
     await games.syncGamesResults();
     await games.syncFixtures();
@@ -39,9 +41,12 @@ async function syncAll() {
     await trendsOdds.syncPredictions();
     await trendsOdds.syncOutrights();
     await trendsOdds.syncOdds();
-    await details.syncGameDetails();
+    // syncGameDetails REMOVIDO de syncAll() — Fase 8.1: este job es lento
+    // (5 calls × 50 games = 250 requests) y se interbloquea con los crons
+    // de live games via jobGuard. El cron de 10min lo cubre.
     await details.syncLiveStats();
-    await athletes.syncAthletes();
+    // syncAthletes REMOVIDO de syncAll() — Fase 8.1: 1108 athletes en serie
+    // es muy lento y se interbloquea con los crons. El cron de 10min lo cubre.
     await athletes.syncVenues();
     await transfers.syncTransfers();
     await transfers.syncSuggestions();

@@ -78,19 +78,15 @@ describe('syncService — golden-master de escrituras', () => {
     expect(getWrites()).toMatchSnapshot();
   });
 
-  test('syncGames escribe games (+ junction desde games)', async () => {
-    api.getGamesAllScores.mockResolvedValue({
-      games: [
-        {
-          id: 4749268, competitionId: 5930, statusGroup: 2, statusText: 'Scheduled',
-          startTime: '2026-06-10T18:00:00Z', seasonNum: 25, stage: 'Group A',
-          homeCompetitor: { id: 100, score: -1 }, awayCompetitor: { id: 101, score: -1 },
-        },
-        { id: 999, competitionId: 1234, homeCompetitor: { id: 5 }, awayCompetitor: { id: 6 } }, // otra comp → filtrada
-      ],
-    });
+  test('syncGames → no-op (alias of syncFixtures + syncGamesResults)', async () => {
+    // Fase 8.1: syncGames ya no usa getGamesAllScores (devolvía 0 games porque
+    // el feed global no incluye nuestras comps). Es no-op; la cobertura la
+    // dan syncFixtures + syncGamesResults.
+    api.getGamesAllScores.mockResolvedValue({ games: [] });
     await sync.syncGames();
-    expect(getWrites()).toMatchSnapshot();
+    // No debe haber escrituras (no-op).
+    const writes = getWrites();
+    expect(writes.filter(w => /INSERT INTO games/.test(w.sql))).toHaveLength(0);
   });
 
   test('syncNews escribe news', async () => {

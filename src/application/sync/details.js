@@ -95,16 +95,28 @@ async function syncGameDetails() {
   try {
     const comps = await getActiveCompetitions();
     const ids = comps.map(c => c.id);
+    // Fase 8.1 — limit 50 → 25 (5 calls × 25 games = 125 requests; bajo control).
+    // Si se necesitan más, se ejecuta varias veces (cron 10min).
     const rows = await db.execAdvanced(
       `SELECT id FROM games WHERE competition_id = ANY($1::int[]) AND status_group IN (1, 2, 4)
-       ORDER BY start_time DESC LIMIT 50`,
+       ORDER BY start_time DESC LIMIT 25`,
       [ids]
     );
     let count = 0;
     for (const { id } of rows) {
-      await syncGameDetailsForGame(id);
-      await syncGameNewsForGame(id);
-      count++;
+      try {
+        // Timeout duro para evitar que un juego se cuelgue y bloquee todo.
+        await Promise.race([
+          syncGameDetailsForGame(id),
+          new Promise((_, reject) =>
+            setTimeout(() => reject(new Error(`syncGameDetails timeout for ${id}`)), 30000)
+          ),
+        ]);
+        await syncGameNewsForGame(id);
+        count++;
+      } catch (e) {
+        logErr(`game ${id} details failed: ${e.message}`);
+      }
     }
     log(`Synced details for ${count} games`);
   } catch (e) {

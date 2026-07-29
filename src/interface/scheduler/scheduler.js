@@ -14,9 +14,13 @@ async function start() {
     process.exit(1);
   }
 
-  // Run full sync immediately on startup
-  log.info('Iniciando sync completo inicial...');
-  await sync.syncAll();
+  // Run full sync immediately on startup.
+  // Fase 8.1: se ejecuta en background para no bloquear el startup si un job
+  // tarda (los crons tienen jobGuard anti-solapamiento).
+  log.info('Iniciando sync completo inicial (background)...');
+  sync.syncAll().catch((err) => {
+    log.error({ err: err.message }, 'syncAll failed');
+  });
 
   // Helper para schedulear con guard anti-solapamiento
   const every = (expr, name, fn) => cron.schedule(expr, jobGuard.wrap(name, fn));
