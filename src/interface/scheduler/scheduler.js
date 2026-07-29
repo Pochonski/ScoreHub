@@ -53,6 +53,9 @@ async function start() {
   // Suggestions (top upcoming games) — every 30 minutes (cambian poco)
   every('*/30 * * * *', 'syncSuggestions', sync.syncSuggestions);
 
+  // Trend details — every 30 minutes (Fase 8.3 — cierra /trends/details)
+  every('*/30 * * * *', 'syncTrendDetails', sync.syncTrendDetails);
+
   // Transfers (fichajes por equipo) — cada 6 horas (cambian lento)
   every('0 */6 * * *', 'syncTransfers', sync.syncTransfers);
 

@@ -29,6 +29,7 @@ jest.mock('../services/scores365Service', () => ({
   getGameSuggestions: jest.fn(),
   getTournamentStats: jest.fn(),
   getTeamOfWeek: jest.fn(),
+  getTrendDetails: jest.fn(),
   getCompetitionHistory: jest.fn(),
   getOutrights: jest.fn(),
   getPredictions: jest.fn(),
@@ -210,6 +211,28 @@ describe('syncService — golden-master de escrituras', () => {
     setExecResult([]); // game NO existe en nuestra DB
     await sync.syncPredictions();
     expect(getWrites().some((w) => /INSERT INTO predictions/.test(w.sql))).toBe(false);
+  });
+
+  test('syncTrendDetails → hidrata solo los stale/missing', async () => {
+    // trends table devuelve trend_ids conocidos
+    setExecResults([
+      [{ trend_id: 100 }, { trend_id: 101 }], // trend_ids de trends table
+      [{ id: 101 }], // stale filter: solo 101 está stale/missing
+    ]);
+    api.getTrendDetails.mockResolvedValue({ trend: { id: 101 }, games: [] });
+    await sync.syncTrendDetails();
+    const writes = getWrites();
+    expect(writes.some((w) => /INSERT INTO trend_details/.test(w.sql))).toBe(true);
+  });
+
+  test('syncTrendDetails → skip cuando todos están fresh', async () => {
+    setExecResults([
+      [{ trend_id: 200 }, { trend_id: 201 }],
+      [], // ninguno está stale
+    ]);
+    await sync.syncTrendDetails();
+    const writes = getWrites();
+    expect(writes.some((w) => /INSERT INTO trend_details/.test(w.sql))).toBe(false);
   });
 
   test('syncCountries → countries', async () => {

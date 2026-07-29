@@ -165,5 +165,71 @@ async function syncOutrights() {
   await forEachActive(syncOutrightsForComp);
 }
 
+/**
+ * syncTrendDetails — puebla `trend_details` desde los trend_ids conocidos
+ * en `trends`. Solo hidrata los que están stale (> 30 min) o no existen.
+ *
+ * Reemplaza al endpoint `GET /trends/details?trendId=X` que iba directo
+ * a 365scores en cada request (Fase 8.3).
+ */
+async function syncTrendDetails() {
+  log('Hydrating trend_details (stale or missing)...');
+  try {
+    // Tomamos trend_ids únicos de la tabla `trends` (los que tienen lineTypeId
+    // son los "promoted" — los que el dashboard puede pedir).
+    const trendIds = await db.execAdvanced(
+      `SELECT DISTINCT (data->>'id')::int AS trend_id
+         FROM trends
+        WHERE data->>'id' IS NOT NULL
+          AND line_type_id IS NOT NULL`
+    );
+    if (!trendIds.length) {
+      log('No trends to hydrate (trends table empty or no lineTypeId)');
+      return;
+    }
+    const ids = trendIds.map(r => r.trend_id).filter(Number.isFinite);
 
-module.exports = { syncTrends, syncPredictions, syncOdds, syncOutrights };
+    // Filtramos los que necesitan hidratación (no existen o > 30min).
+    const cutoffIso = new Date(Date.now() - 30 * 60 * 1000).toISOString();
+    const staleIds = await db.execAdvanced(
+      `SELECT id FROM (
+         SELECT unnest($1::int[]) AS id
+       ) s
+       WHERE NOT EXISTS (
+         SELECT 1 FROM trend_details t
+          WHERE t.trend_id = s.id
+            AND t.updated_at > $2::timestamptz
+       )`,
+      [ids, cutoffIso]
+    );
+    const toHydrate = staleIds.map(r => Number(r.id));
+    if (!toHydrate.length) {
+      log(`All ${ids.length} trend_details are fresh (skip)`);
+      return;
+    }
+
+    let hydrated = 0;
+    let failed = 0;
+    for (const tid of toHydrate) {
+      try {
+        const data = await api.getTrendDetails(tid);
+        if (!data?.trend?.id) { failed++; continue; }
+        await upsertMany('trend_details', 'trend_id', [{
+          trend_id: Number(data.trend.id),
+          data: JSON.stringify(data),
+          updated_at: new Date().toISOString(),
+        }]);
+        hydrated++;
+      } catch (e) {
+        failed++;
+        logErr(`  trend ${tid} hydrate failed: ${e.message}`);
+      }
+    }
+    log(`Hydrated ${hydrated} trend_details (${failed} failed, ${ids.length - toHydrate.length} fresh)`);
+  } catch (e) {
+    logErr(`Error syncing trend details: ${e.message}`);
+  }
+}
+
+
+module.exports = { syncTrends, syncPredictions, syncOdds, syncOutrights, syncTrendDetails };
