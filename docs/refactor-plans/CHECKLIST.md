@@ -217,7 +217,7 @@ Usa este checklist para tildar items a medida que avanzas. Cada sección corresp
 | **8.0** | **** | **⭐ Activa** |
 | **8.1** | 8/8 | **✅** |
 | **8.2** | 6/6 | **✅** |
-| **8.3** | | ⏳ |
+| **8.3** | 8/8 | **✅** |
 | **8.4** | | ⏳ |
 | **8.5** | | ⏳ |
 
@@ -311,17 +311,19 @@ Usa este checklist para tildar items a medida que avanzas. Cada sección corresp
 - [x] Test E2E `bot.persistence.test.js` — 6/6 verde: INSERT/SELECT/DELETE + FK CASCADE
 - [x] **Conclusión**: las tablas son operativas; el bot corre en otro lado
 
-### Fase 8.3 — Cobertura DB completa ⏳
+### Fase 8.3 — Cobertura DB completa ✅
 
-> Plan: [11-db-coverage-completa.md](./11-db-coverage-completa.md)
+> Plan: [11-db-cobertura-completa.md](./11-db-cobertura-completa.md)
+> Commit: `9a92e6b`
 
-- [ ] Migration 020: `trend_details`
-- [ ] Migration 021: `team_recent_form`, `team_upcoming_matches`, `team_recent_results`
-- [ ] Sync jobs: `syncTrendDetails`, `syncTeamState` (on-demand)
-- [ ] Refactor `trendDetailController` → DB_ONLY
-- [ ] Refactor `teamEnhancementsController` (3 endpoints) → DB_ONLY
-- [ ] Invertir `GET /teams/:id/info` → DB_FIRST
-- [ ] 0 endpoints 365_ONLY o 365_PRIMARY en routes/football.js
+- [x] Migration 020: `trend_details` — aplicada
+- [x] Migration 021: `team_recent_form`, `team_upcoming`, `team_recent_results` — aplicadas
+- [x] Sync job `syncTrendDetails` — 108 trend_details pobladas en primer run
+- [x] Team state tables: hydrate-on-demand en controllers (sin cron)
+- [x] Refactor `trendDetailController` → DB_ONLY con hydrate
+- [x] Refactor `teamEnhancementsController` (3 endpoints) → DB_ONLY con hydrate
+- [x] Invertir `GET /teams/:id/info` → DB_FIRST (era 365_PRIMARY)
+- [x] **0 endpoints 365_ONLY o 365_PRIMARY** restantes
 
 ### Fase 8.4 — Write-back cache ⏳
 
