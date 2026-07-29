@@ -406,7 +406,7 @@ export function DashboardPage() {
       <div className="lg:grid lg:grid-cols-[280px_minmax(0,1fr)_320px] lg:gap-5 lg:px-4 lg:pt-4">
         {/* Rail izquierdo — ligas + partidos compactos */}
         <aside className="hidden lg:block" aria-label="Ligas y partidos">
-          <div className="sticky top-[72px] max-h-[calc(100dvh-88px)] overflow-y-auto pb-4">
+          <div className="sticky top-[72px] pb-4">
             <LeaguesRail
               competitions={featuredSorted}
               scope={scope}
@@ -427,7 +427,7 @@ export function DashboardPage() {
 
         {/* Rail derecho — goleadores · tabla · noticias */}
         <aside className="hidden lg:block" aria-label="Estadísticas">
-          <div className="sticky top-[72px] max-h-[calc(100dvh-88px)] space-y-4 overflow-y-auto pb-4">
+          <div className="sticky top-[72px] space-y-4 pb-4">
             <StatsRail competitionId={activeCompId} seasonNum={activeComp?.seasonNum} />
             <StandingsRail competitionId={activeCompId} seasonNum={activeComp?.seasonNum} />
             <NewsRail competitionId={activeCompId} />
