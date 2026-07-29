@@ -33,6 +33,11 @@ const pool = {
   }),
 };
 
+// Réplica de pgQueryRetry del connection.js real — Fase 8.1: tras conectar
+// pgQueryRetry al wrapper db.js, todas las escrituras pg pasan por aquí.
+// Para los golden-master, basta con delegar en pool.query (que captura).
+const pgQueryRetry = async (sql, params) => pool.query(sql, params);
+
 // Réplica del withTransaction real (database/connection.js) contra el pool mock.
 async function withTransaction(fn) {
   const client = await pool.connect();
@@ -80,4 +85,4 @@ const db = {
 function reset() { writes.length = 0; execResult = []; execQueue = null; }
 function getWrites() { return writes.map((w) => ({ ...w })); }
 
-module.exports = { pool, db, withTransaction, reset, getWrites, setExecResult, setExecResults };
+module.exports = { pool, db, withTransaction, pgQueryRetry, reset, getWrites, setExecResult, setExecResults };

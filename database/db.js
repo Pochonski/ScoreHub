@@ -22,7 +22,7 @@
  */
 
 const { getClient, isEnabled } = require('./supabaseClient');
-const { pool } = require('./connection');
+const { pool, pgQueryRetry } = require('./connection');
 const logger = require('../utils/logger');
 const { recordSupabaseCall, recordSupabaseError, recordPgCall, recordPgError } = require('../utils/dbStats');
 
@@ -192,11 +192,16 @@ async function remove(table, filter) {
 /**
  * Run a raw SQL statement via the (now size-1) pg pool.
  * Reserved for queries PostgREST can't do (CTEs, multi-row INSERTs, etc).
+ *
+ * Uses `pgQueryRetry` from connection.js to absorb transient connection
+ * failures (timeout, ECONNRESET) before propagating. The retry only fires
+ * on errors tagged as network/connection — constraint violations surface
+ * immediately.
  */
 async function execAdvanced(sql, params = []) {
   try {
     recordPgCall();
-    const result = await pool.query(sql, params);
+    const result = await pgQueryRetry(sql, params);
     return result.rows;
   } catch (err) {
     recordPgError();
@@ -212,7 +217,7 @@ async function execAdvanced(sql, params = []) {
 async function execAdvancedFull(sql, params = []) {
   try {
     recordPgCall();
-    const result = await pool.query(sql, params);
+    const result = await pgQueryRetry(sql, params);
     return result;
   } catch (err) {
     recordPgError();
@@ -261,7 +266,7 @@ async function queryViaPg(table, options) {
       params.push(options.limit || to - from + 1);
       sql += ` LIMIT $${params.length}`;
     }
-    const result = await pool.query(sql, params);
+    const result = await pgQueryRetry(sql, params);
     const rows = result.rows;
     if (options.single && rows.length === 0) {
       return { data: null, error: { code: 'PGRST116', message: 'no rows' } };
@@ -292,7 +297,7 @@ async function insertViaPg(table, rows, { onConflict, select }) {
       sql += ` ON CONFLICT (${Array.isArray(onConflict) ? onConflict.join(', ') : onConflict}) DO NOTHING`;
     }
     if (select) sql += ` RETURNING ${select}`;
-    const result = await pool.query(sql, values);
+    const result = await pgQueryRetry(sql, values);
     return { data: result.rows, error: null };
   } catch (err) {
     recordPgError();
@@ -318,7 +323,7 @@ async function upsertViaPg(table, rows, onConflict, { select } = {}) {
     let sql = `INSERT INTO ${table} (${keys.join(', ')}) VALUES ${placeholders}
                ON CONFLICT (${conflictClause}) DO UPDATE SET ${updates}`;
     if (select) sql += ` RETURNING ${select}`;
-    const result = await pool.query(sql, values);
+    const result = await pgQueryRetry(sql, values);
     return { data: result.rows, error: null };
   } catch (err) {
     recordPgError();
@@ -340,7 +345,7 @@ async function updateViaPg(table, updates, filter) {
         .map((c, i) => c.replace(/\$(\d+)/g, (_, n) => `$${parseInt(n, 10) + keys.length}`))
         .join(' AND ');
     }
-    const result = await pool.query(sql, params);
+    const result = await pgQueryRetry(sql, params);
     return { data: result.rows, error: null };
   } catch (err) {
     recordPgError();
@@ -356,7 +361,7 @@ async function removeViaPg(table, filter) {
     if (whereFromFilters.conds.length) {
       sql += ' WHERE ' + whereFromFilters.conds.join(' AND ');
     }
-    const result = await pool.query(sql, whereFromFilters.params);
+    const result = await pgQueryRetry(sql, whereFromFilters.params);
     return { data: result.rows, error: null };
   } catch (err) {
     recordPgError();

@@ -13,7 +13,7 @@ process.env.NODE_ENV = 'test';
 
 jest.mock('../database/connection', () => {
   const c = require('./helpers/dbCapture');
-  return { pool: c.pool, withTransaction: c.withTransaction, testConnection: jest.fn().mockResolvedValue(true) };
+  return { pool: c.pool, withTransaction: c.withTransaction, pgQueryRetry: c.pgQueryRetry, testConnection: jest.fn().mockResolvedValue(true) };
 });
 jest.mock('../database/db', () => require('./helpers/dbCapture').db);
 jest.mock('../utils/logger', () => ({ info() {}, warn() {}, error() {}, debug() {}, child() { return this; } }));

@@ -10,7 +10,7 @@
  * el resto usa el `pool` directo.
  */
 
-const { pool } = require('../../../database/connection');
+const { pool, pgQueryRetry } = require('../../../database/connection');
 
 async function upsertMany(table, conflictCols, rows) {
   if (!rows.length) return;
@@ -29,7 +29,7 @@ async function upsertMany(table, conflictCols, rows) {
   const values = rows.flatMap(r => keys.map(k => r[k]));
 
   const query = `INSERT INTO ${table} (${keys.join(', ')}) VALUES ${placeholders} ON CONFLICT (${conflictClause}) DO UPDATE SET ${updates}`;
-  await pool.query(query, values);
+  await pgQueryRetry(query, values);
 }
 
 // ============================================================================
@@ -182,7 +182,7 @@ async function upsertCompetitionCompetitorsFromStandings(competitionId, seasonNu
     if (!Number.isFinite(stageNum)) continue;
   }
   if (compIds.length === 0) return;
-  await pool.query(
+  await pgQueryRetry(
     `INSERT INTO competition_competitors
        (competition_id, competitor_id, season_num, source, last_seen_at)
      SELECT * FROM UNNEST($1::int[], $2::int[], $3::int[], $4::text[], $5::timestamptz[])
@@ -247,7 +247,7 @@ async function upsertCompetitionCompetitorsFromGames(games) {
   }
   if (!rows.length) return;
   // Upsert into competition_competitors. Use Postgres-specific ON CONFLICT.
-  await pool.query(
+  await pgQueryRetry(
     `INSERT INTO competition_competitors
        (competition_id, competitor_id, season_num, stage_num, group_id, source, joined_at, last_seen_at)
      SELECT * FROM UNNEST($1::int[], $2::int[], $3::int[], $4::int[], $5::int[], $6::text[], $7::timestamptz[], $8::timestamptz[])
