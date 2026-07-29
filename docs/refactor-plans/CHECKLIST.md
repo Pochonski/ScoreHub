@@ -285,16 +285,25 @@ Usa este checklist para tildar items a medida que avanzas. Cada sección corresp
 ### Fase 8.1 — Frescura y salud del sync ✅
 
 > Plan: [09-db-frescura-y-salud.md](./09-db-frescura-y-salud.md)
-> Commit: `840dbcd`
+> Commits: `840dbcd`, `3d6276f`
 
 - [x] Diagnosticar procesos de sync (pm2 → online, 20 reinicios/23h)
 - [x] Ejecutar jobs stale manualmente (live games + athlete hydration)
 - [x] Fix: `pgQueryRetry()` en `database/connection.js` (timeouts 5s→15s, keepAlive, retry x2)
 - [x] Wire: `db.execAdvanced` + 5 fallbacks pg + `syncWriters.upsertMany` usan `pgQueryRetry`
-- [x] Añadir `tests/sync.freshness.test.js` — 21/21 verde
+- [x] Añadir `tests/sync.freshness.test.js` — 21/21 verde (con `fresh_rows in 48h` check)
 - [x] Mock `pgQueryRetry` en `tests/helpers/dbCapture.js`
-- [x] **Validación**: `MAX(updated_at)` de `games` < 1 min, `athletes` < 24h, `news` < 24h, `odds_lines` < 24h
-- [x] Tests: 145/145 verde, 11 suites, 60 snapshots OK
+- [x] **Bug fix adicional** (en auditoría):
+  - `syncGames`: getGamesAllScores (global) filtrado por compId → 0 games. Ahora no-op; cobertura via syncFixtures + syncGamesResults.
+  - `syncGameDetails`: 5 calls × 50 games = 250 requests bloquean jobGuard. Limit 25 + timeout 30s por game.
+  - `syncAthletes`: 1108 athletes en serie bloquea. Removido de syncAll; queda en cron de 10min.
+  - `syncAll()` ahora background (no bloquea startup).
+- [x] **Validación en producción**:
+  - 720 games fresh (24h), 519 competitors, 139 news, 40 odds_lines, 1618 athletes, 60 game_overviews
+  - syncLiveGames: 16 games × 7 comps cada 15s
+  - syncFixtures: 80 fixtures Premier + 48 Liga Promerica + 0 Mundial
+- [x] Tests: 164/164 verde, 14 suites, 59 snapshots OK
+- [x] Health endpoint producción: `dbStrategy: http+pg-fallback`, `supabasePercent: 63%`, `upsertsFromCacheMiss: 1`
 
 ### Fase 8.2 — Predictions + tablas bot ✅
 
