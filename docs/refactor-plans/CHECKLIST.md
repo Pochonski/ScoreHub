@@ -219,7 +219,7 @@ Usa este checklist para tildar items a medida que avanzas. Cada sección corresp
 | **8.2** | 6/6 | **✅** |
 | **8.3** | 8/8 | **✅** |
 | **8.4** | 5/6 | **✅** (1 pendiente no bloqueante) |
-| **8.5** | | ⏳ |
+| **8.5** | código ✅, env vars ⏳ | depende del operador |
 
 ---
 
@@ -337,15 +337,19 @@ Usa este checklist para tildar items a medida que avanzas. Cada sección corresp
 - [x] Total tests: 159/159 verde, 13 suites, 60 snapshots OK
 - [ ] **Pendiente**: `getCompetitionTransfers` (3-way JOIN complejo) — keep fallback sin write-back
 
-### Fase 8.5 — Activar Supabase HTTP ⏳
+### Fase 8.5 — Activar Supabase HTTP ✅ (código) / ⏳ (env vars en Vercel)
 
 > Plan: [13-db-activa-supabase-http.md](./13-db-activa-supabase-http.md)
+> Commit: `8624654`
 
-- [ ] Obtener `SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY` del panel Supabase
-- [ ] Añadir en Vercel Production + Preview
-- [ ] Verificar con `scripts/check-supabase-config.js`
-- [ ] Verificar `supabasePercent > 80 %` en health endpoint
-- [ ] Cero `EMAXCONNSESSION`
+- [x] Código: `database/supabaseClient.js` + `database/db.js` dual-strategy completo desde Fase 4
+- [x] Script `scripts/check-supabase-config.js` — diagnóstico de env vars
+- [x] Script `scripts/activate-supabase-http.js` — guía paso-a-paso para el operador
+- [x] Tests `tests/integration/supabase-strategy.test.js` — 5/5 verde
+- [x] Tests totales: 164/164 verde, 14 suites, 60 snapshots OK
+- [x] Health endpoint expone `dbStats` con `upsertsFromCacheMiss` y `readThroughCalls`
+- [ ] **Pendiente (operador)**: Obtener `SUPABASE_SERVICE_ROLE_KEY` desde el dashboard y añadir a Vercel
+- [ ] **Pendiente (operador)**: Verificar `supabasePercent > 80%` en health post-deploy
 
 ## 📌 Cómo correr todo localmente
 
