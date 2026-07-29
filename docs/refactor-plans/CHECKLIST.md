@@ -215,7 +215,7 @@ Usa este checklist para tildar items a medida que avanzas. Cada sección corresp
 | 6 | 14/14 hooks | ✅ |
 | 7 | 6/6 | ✅ |
 | **8.0** | **** | **⭐ Activa** |
-| **8.1** | | ⏳ |
+| **8.1** | 8/8 | **✅** |
 | **8.2** | | ⏳ |
 | **8.3** | | ⏳ |
 | **8.4** | | ⏳ |
@@ -282,17 +282,19 @@ Usa este checklist para tildar items a medida que avanzas. Cada sección corresp
 - [x] CHECKLIST.md y README.md actualizados
 - [ ] **Validación Fase 8.0**: `git diff --stat` solo muestra `.md` files
 
-### Fase 8.1 — Frescura y salud del sync ⏳
+### Fase 8.1 — Frescura y salud del sync ✅
 
 > Plan: [09-db-frescura-y-salud.md](./09-db-frescura-y-salud.md)
+> Commit: `840dbcd`
 
-- [ ] Diagnosticar procesos de sync (pm2/systemd, logs)
-- [ ] Ejecutar jobs stale manualmente (games, athletes, news, odds_lines)
-- [ ] Añadir `tests/sync.freshness.test.js`
-- [ ] `MAX(updated_at)` de `games` < 1 h
-- [ ] `MAX(updated_at)` de `athletes` < 24 h
-- [ ] `MAX(updated_at)` de `news` < 24 h
-- [ ] `MAX(updated_at)` de `odds_lines` < 24 h
+- [x] Diagnosticar procesos de sync (pm2 → online, 20 reinicios/23h)
+- [x] Ejecutar jobs stale manualmente (live games + athlete hydration)
+- [x] Fix: `pgQueryRetry()` en `database/connection.js` (timeouts 5s→15s, keepAlive, retry x2)
+- [x] Wire: `db.execAdvanced` + 5 fallbacks pg + `syncWriters.upsertMany` usan `pgQueryRetry`
+- [x] Añadir `tests/sync.freshness.test.js` — 21/21 verde
+- [x] Mock `pgQueryRetry` en `tests/helpers/dbCapture.js`
+- [x] **Validación**: `MAX(updated_at)` de `games` < 1 min, `athletes` < 24h, `news` < 24h, `odds_lines` < 24h
+- [x] Tests: 145/145 verde, 11 suites, 60 snapshots OK
 
 ### Fase 8.2 — Predictions + tablas bot ⏳
 
