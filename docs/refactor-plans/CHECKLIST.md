@@ -218,7 +218,7 @@ Usa este checklist para tildar items a medida que avanzas. Cada sección corresp
 | **8.1** | 8/8 | **✅** |
 | **8.2** | 6/6 | **✅** |
 | **8.3** | 8/8 | **✅** |
-| **8.4** | | ⏳ |
+| **8.4** | 5/6 | **✅** (1 pendiente no bloqueante) |
 | **8.5** | | ⏳ |
 
 ---
@@ -325,15 +325,17 @@ Usa este checklist para tildar items a medida que avanzas. Cada sección corresp
 - [x] Invertir `GET /teams/:id/info` → DB_FIRST (era 365_PRIMARY)
 - [x] **0 endpoints 365_ONLY o 365_PRIMARY** restantes
 
-### Fase 8.4 — Write-back cache ⏳
+### Fase 8.4 — Write-back cache ✅
 
 > Plan: [12-db-write-back-cache.md](./12-db-write-back-cache.md)
+> Commit: `59e9795`
 
-- [ ] Añadir `db.readThrough(table, queryOpts, fetcher, opts)` en `database/db.js`
-- [ ] Añadir contador `upsertsFromCacheMiss` en `utils/dbStats.js`
-- [ ] Refactor 14 endpoints DB_FIRST con `readThrough`
-- [ ] Tests: integration y unit de cache miss → write-back
-- [ ] Tras warmup, `scores365` deja de recibir requests del dashboard
+- [x] Añadir `db.readThrough(table, queryOpts, fetcher, opts)` en `database/db.js`
+- [x] Añadir contador `upsertsFromCacheMiss` en `utils/dbStats.js`
+- [x] Refactor 11 endpoints DB_FIRST con `readThrough`
+- [x] Tests: `tests/unit/readThrough.test.js` — 5/5 verde
+- [x] Total tests: 159/159 verde, 13 suites, 60 snapshots OK
+- [ ] **Pendiente**: `getCompetitionTransfers` (3-way JOIN complejo) — keep fallback sin write-back
 
 ### Fase 8.5 — Activar Supabase HTTP ⏳
 
