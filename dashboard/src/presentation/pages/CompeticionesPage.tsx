@@ -9,7 +9,7 @@ export function CompeticionesPage() {
 
   if (loading) {
     return (
-      <div className="mx-auto max-w-7xl space-y-6 px-4 py-12">
+      <div className="mx-auto max-w-[1400px] space-y-6 px-4 py-12">
         <HeroSkeleton />
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {Array.from({ length: 4 }).map((_, i) => (
@@ -22,14 +22,14 @@ export function CompeticionesPage() {
 
   if (error) {
     return (
-      <div className="mx-auto max-w-7xl px-4 py-12">
+      <div className="mx-auto max-w-[1400px] px-4 py-12">
         <ErrorState message={error} onRetry={refetch} />
       </div>
     )
   }
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-8">
+    <div className="mx-auto max-w-[1400px] px-4 py-8">
       <div className="mb-8 text-center">
         <h1 className="font-display text-text-primary text-3xl font-bold tracking-wide sm:text-4xl">
           Competiciones

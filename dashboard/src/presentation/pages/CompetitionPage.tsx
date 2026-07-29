@@ -270,7 +270,7 @@ export function CompetitionPage() {
 
   if (competitionId == null) {
     return (
-      <div className="mx-auto max-w-7xl px-4 py-12">
+      <div className="mx-auto max-w-[1400px] px-4 py-12">
         <ErrorState message="Competición inválida" />
       </div>
     )
@@ -278,7 +278,7 @@ export function CompetitionPage() {
 
   if (detailLoading) {
     return (
-      <div className="mx-auto max-w-7xl space-y-6 px-4 py-12">
+      <div className="mx-auto max-w-[1400px] space-y-6 px-4 py-12">
         <div className="space-y-3 text-center">
           <div className="bg-bg-elevated skeleton mx-auto h-8 w-72 rounded" />
           <div className="bg-bg-elevated skeleton mx-auto h-4 w-48 rounded" />
@@ -289,7 +289,7 @@ export function CompetitionPage() {
 
   if (!detail) {
     return (
-      <div className="mx-auto max-w-7xl px-4 py-12">
+      <div className="mx-auto max-w-[1400px] px-4 py-12">
         <ErrorState
           message={`No se encontró la competición ${competitionId}.`}
           onAction={() => navigate('/competiciones')}
@@ -327,7 +327,7 @@ export function CompetitionPage() {
     seasonFilter === 'all' || (seasonFilter !== null && seasonFilter !== activeSeasonNum)
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-8">
+    <div className="mx-auto max-w-[1400px] px-4 py-8">
       {/* Hero header */}
       <div className="mb-8 text-center">
         <div className="mb-3 flex items-center justify-center gap-3">

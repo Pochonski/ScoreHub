@@ -1,4 +1,5 @@
-import { useParams, useNavigate } from 'react-router-dom'
+import { useEffect } from 'react'
+import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import { useGameDetail } from '@/presentation/hooks/useGameDetail'
 import { ErrorState } from '@/presentation/components/ui/ErrorState'
 import { MatchHeader } from '@/presentation/components/match-detail/MatchHeader'
@@ -13,9 +14,19 @@ import { MatchNews } from '@/presentation/components/match-detail/MatchNews'
 export function MatchDetailPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
+  const location = useLocation()
   const gameId = id ? parseInt(id, 10) : null
   const { game, stats, lineups, timeline, predictions, tips, news, loading, error } =
     useGameDetail(gameId)
+
+  // Scroll a la sección indicada por el hash (#alineaciones, #estadisticas)
+  // una vez que el partido cargó. Complementa el ScrollToTop global, que solo
+  // reacciona al pathname.
+  useEffect(() => {
+    if (loading || !game || !location.hash) return
+    const el = document.querySelector(location.hash)
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }, [loading, game, location.hash])
 
   if (error) return <ErrorState message={error} fullPage />
   if (loading) {
@@ -47,8 +58,12 @@ export function MatchDetailPage() {
     <div className="mx-auto max-w-4xl space-y-6 px-4 py-8">
       <MatchHeader />
       <MatchScoreCard game={game} />
-      <MatchStatsTable stats={stats} />
-      <MatchLineups game={game} lineups={lineups} />
+      <div id="estadisticas" className="scroll-mt-20">
+        <MatchStatsTable stats={stats} />
+      </div>
+      <div id="alineaciones" className="scroll-mt-20">
+        <MatchLineups game={game} lineups={lineups} />
+      </div>
       <MatchTimeline timeline={timeline} homeTeamId={game.homeTeam.id} awayTeamId={game.awayTeam.id} />
       <MatchPredictions predictions={predictions} />
       <MatchTips tips={tips} />

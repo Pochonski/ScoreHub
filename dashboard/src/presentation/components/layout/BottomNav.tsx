@@ -24,12 +24,6 @@ type NavItem = {
 
 const NAV_ITEMS: readonly NavItem[] = [
   {
-    id: 'live',
-    label: 'En Vivo',
-    route: () => '/',
-    icon: <path d="M8 5v11l8.5-5.5L8 5z" fill="currentColor" stroke="none" />,
-  },
-  {
     id: 'matches',
     label: 'Partidos',
     route: () => '/?filter=all',
@@ -87,7 +81,7 @@ export function BottomNav() {
   const { competitionId: activeCompId } = useActiveCompetition()
 
   const isActive = (item: NavItem) => {
-    if (item.id === 'live' || item.id === 'matches') return location.pathname === '/'
+    if (item.id === 'matches') return location.pathname === '/'
     if (item.id === 'standings') {
       // Activo tanto en /competiciones como en /competicion/:id/...
       return (

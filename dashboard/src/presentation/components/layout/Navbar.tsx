@@ -7,7 +7,6 @@ import { useActiveCompetition } from '@/presentation/context/ActiveCompetitionCo
 type NavItem = { id: string; label: string; route: (competitionId: number | null) => string }
 
 const NAV_ITEMS: readonly NavItem[] = [
-  { id: 'live', label: 'En Vivo', route: () => '/' },
   { id: 'matches', label: 'Partidos', route: () => '/' },
   { id: 'standings', label: 'Tabla', route: cid => cid ? `/competicion/${cid}/standings` : '/competiciones' },
   { id: 'stats', label: 'Estadísticas', route: () => '/analisis' },
@@ -50,7 +49,7 @@ export function Navbar() {
 
   return (
     <header className="bg-bg-base/80 border-border-card fixed top-0 right-0 left-0 z-50 border-b backdrop-blur-lg">
-      <div className="mx-auto flex h-14 max-w-7xl items-center justify-between gap-2 px-4">
+      <div className="mx-auto flex h-14 max-w-[1400px] items-center justify-between gap-2 px-4">
         <button
           onClick={() => navigate('/')}
           className="focus-visible flex shrink-0 items-center gap-2"
