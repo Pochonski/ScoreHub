@@ -404,6 +404,12 @@ module.exports = {
 async function readThrough(table, queryOpts, fetcher, opts = {}) {
   const { onConflict = 'id', ttlMs = null } = opts;
 
+  // Fase 8.6: incrementar readThroughCalls en cada llamada (no solo write-back).
+  // Así el health endpoint muestra cuántas veces se invocó el patrón cache.
+  try {
+    require('../utils/dbStats').recordReadThroughHit();
+  } catch {}
+
   // 1. Intentar DB
   const { data: row, error } = await query(table, queryOpts);
   if (error) return { data: null, error, source: 'db-error' };

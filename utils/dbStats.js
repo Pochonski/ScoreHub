@@ -40,7 +40,8 @@ function recordPgError() {
  */
 function recordUpsertFromCacheMiss() {
   counters.upsertsFromCacheMiss++;
-  counters.readThroughCalls++;
+  // readThroughCalls se incrementa en cada llamada a readThrough
+  // (en database/db.js), no solo en write-backs.
 }
 function recordReadThroughHit() {
   counters.readThroughCalls++;
