@@ -484,8 +484,31 @@ async function getMatchPredictions(req, res, next) {
     const { id } = req.params;
     const gid = Number(id);
 
-    // DB-first con write-back (Fase 8.4): predictions viven dentro de
-    // game_overviews.data.game.promotedPredictions.predictions[].
+    // Fase 8.6: predictions se guardan en la tabla `predictions` (sincronizadas
+    // por syncPredictions). Estructura: `data` es el game completo de la API
+    // (`getPredictions`), con `promotedPredictions.predictions[]`.
+    // Primero leemos de `predictions` (más actualizado y específico), luego
+    // fallback a `game_overviews` (que también tiene promotedPredictions
+    // dentro de `data.game.promotedPredictions`).
+    const { data: predRow } = await db.readThrough(
+      'predictions',
+      { select: 'data', eq: { game_id: gid }, maybeSingle: true },
+      async () => {
+        const data = await scores365.getPredictions(1);
+        const game = (data?.games ?? []).find(g => Number(g.id) === gid);
+        if (!game) return null;
+        return { game_id: gid, data: JSON.stringify(game) };
+      },
+      { onConflict: 'game_id', ttlMs: 5 * 60 * 1000 },
+    );
+
+    const pp = predRow?.data?.promotedPredictions;
+    if (pp?.predictions?.length) {
+      const mapped = mapPredictions(pp.predictions);
+      if (mapped.length) return res.json(mapped);
+    }
+
+    // Fallback: game_overviews
     const { data: row } = await db.readThrough(
       'game_overviews',
       { select: 'data', eq: { game_id: gid }, maybeSingle: true },
@@ -497,9 +520,9 @@ async function getMatchPredictions(req, res, next) {
       { onConflict: 'game_id', ttlMs: 30 * 60 * 1000 },
     );
 
-    const pp = row?.game?.promotedPredictions;
-    if (pp?.predictions?.length) {
-      const mapped = mapPredictions(pp.predictions);
+    const ovPp = row?.game?.promotedPredictions;
+    if (ovPp?.predictions?.length) {
+      const mapped = mapPredictions(ovPp.predictions);
       if (mapped.length) return res.json(mapped);
     }
 
