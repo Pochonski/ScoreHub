@@ -22,6 +22,8 @@ import { useFeaturedCompetitions } from '@/presentation/hooks/useCompetitions'
 import { useActiveCompetition } from '@/presentation/context/ActiveCompetitionContext'
 import { ErrorState } from '@/presentation/components/ui/ErrorState'
 import { HeroSkeleton, MatchCardSkeleton } from '@/presentation/components/ui/Skeleton'
+import { useTournamentStats } from '@/presentation/hooks/useTournamentStats'
+import { TeamOfWeekPitch } from '@/presentation/components/stats/TeamOfWeekPitch'
 
 type FilterValue = 'all' | 'live' | 'upcoming' | 'finished'
 type CompetitionScope = { kind: 'all' } | { kind: 'one'; id: number }
@@ -248,6 +250,10 @@ export function DashboardPage() {
     return { title: 'Resultados recientes', games: finished.slice(0, 6) }
   }, [dateOffset, filteredGames, allGames])
 
+  // Equipo de la jornada (once ideal) de la competición activa — llena y
+  // balancea el centro en desktop. Comparte el fetch con el rail derecho.
+  const { teamOfWeek } = useTournamentStats(activeCompId ?? null, activeComp?.seasonNum ?? null)
+
   if (gamesError && allGames.length === 0 && liveGames.length === 0) {
     return (
       <div className="mx-auto max-w-[1400px] px-4 py-12">
@@ -410,6 +416,21 @@ export function DashboardPage() {
           </p>
         )}
       </div>
+
+      {/* Equipo de la jornada — cancha con la formación (desktop, si hay data). */}
+      {teamOfWeek && teamOfWeek.players.length > 0 && (
+        <div className="mt-8 hidden lg:block">
+          <div className="mb-3 flex items-center justify-between gap-2">
+            <h2 className="font-display text-text-primary text-lg font-semibold">
+              Equipo de la jornada
+            </h2>
+            <span className="font-body text-text-dim text-xs tracking-wider">
+              {teamOfWeek.formation}
+            </span>
+          </div>
+          <TeamOfWeekPitch formation={teamOfWeek.formation} players={teamOfWeek.players} />
+        </div>
+      )}
     </div>
   )
 
