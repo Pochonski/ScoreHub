@@ -390,9 +390,9 @@ export function CompetitionPage() {
         </div>
       )}
 
-      {/* Tabs: scroll horizontal en mobile si no caben, centrado en desktop. */}
+      {/* Tabs: sticky bajo el navbar, con scroll horizontal en mobile si no caben. */}
       {visibleTabs.length > 0 && (
-        <div className="mb-8 flex justify-center">
+        <div className="bg-bg-base/85 sticky top-14 z-30 -mx-4 mb-8 flex justify-center px-4 py-3 backdrop-blur">
           <div className="no-scrollbar bg-bg-card border-border-card inline-flex max-w-full gap-1 overflow-x-auto rounded-xl border p-1">
             {visibleTabs.map((tab) => (
               <button
