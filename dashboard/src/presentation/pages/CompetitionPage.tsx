@@ -9,10 +9,12 @@ import { BracketsTab } from '@/presentation/components/competition/BracketsTab'
 import { StatsTab } from '@/presentation/components/competition/StatsTab'
 import { HistoryTab } from '@/presentation/components/competition/HistoryTab'
 import { TransfersTab } from '@/presentation/components/competition/TransfersTab'
+import { AnalysisTab } from '@/presentation/components/competition/AnalysisTab'
+import { NewsTab } from '@/presentation/components/competition/NewsTab'
 import { CompetitionHero } from '@/presentation/components/competition/CompetitionHero'
 import { ErrorState } from '@/presentation/components/ui/ErrorState'
 
-type TabId = 'standings' | 'brackets' | 'stats' | 'transfers' | 'history'
+type TabId = 'standings' | 'brackets' | 'stats' | 'transfers' | 'analysis' | 'news' | 'history'
 
 interface TabDef {
   id: TabId
@@ -30,6 +32,8 @@ const ALL_TABS: readonly TabDef[] = [
     showIf: c => c?.hasTransfers === true,
   },
   { id: 'stats', label: 'Estadísticas' },
+  { id: 'analysis', label: 'Análisis' },
+  { id: 'news', label: 'Noticias' },
   { id: 'history', label: 'Historia' },
 ]
 
@@ -428,6 +432,13 @@ export function CompetitionPage() {
             seasonNum={tabSeasonNum === 'all' || tabSeasonNum === null ? undefined : tabSeasonNum}
           />
         )}
+        {activeTab === 'analysis' && (
+          <AnalysisTab
+            competitionId={competitionId}
+            seasonNum={tabSeasonNum === 'all' || tabSeasonNum === null ? undefined : tabSeasonNum}
+          />
+        )}
+        {activeTab === 'news' && <NewsTab competitionId={competitionId} />}
         {activeTab === 'history' && <HistoryTab competitionId={competitionId} />}
       </div>
     </div>

@@ -3,12 +3,11 @@ import { Routes, Route, useLocation, Navigate } from 'react-router-dom'
 import { PageShell } from '@/presentation/components/layout/PageShell'
 import { DashboardPage } from '@/presentation/pages/DashboardPage'
 import { HeroSkeleton } from '@/presentation/components/ui/Skeleton'
-import { ActiveCompetitionProvider } from '@/presentation/context/ActiveCompetitionContext'
+import {
+  ActiveCompetitionProvider,
+  useActiveCompetition,
+} from '@/presentation/context/ActiveCompetitionContext'
 
-const AnalysisPage = lazy(() =>
-  import('@/presentation/pages/AnalysisPage').then((m) => ({ default: m.AnalysisPage }))
-)
-const NewsPage = lazy(() => import('@/presentation/pages/NewsPage').then((m) => ({ default: m.NewsPage })))
 const CompeticionesPage = lazy(() =>
   import('@/presentation/pages/CompeticionesPage').then((m) => ({ default: m.CompeticionesPage }))
 )
@@ -54,6 +53,18 @@ const PRIMARY_COMPETITION_ID = parseInt(
   10
 )
 
+/**
+ * RedirectToActiveCompTab — las antiguas rutas globales `/analisis` y
+ * `/noticias` ahora son tabs por competición. Redirige a la comp activa
+ * (del contexto / URL / localStorage) o al listado si no hay ninguna.
+ */
+function RedirectToActiveCompTab({ tab }: { tab: string }) {
+  const { competitionId } = useActiveCompetition()
+  const target =
+    competitionId != null ? `/competicion/${competitionId}/${tab}` : '/competiciones'
+  return <Navigate to={target} replace />
+}
+
 export default function App() {
   return (
     <ActiveCompetitionProvider>
@@ -62,8 +73,8 @@ export default function App() {
         <Suspense fallback={<PageSkeleton />}>
           <Routes>
             <Route path="/" element={<DashboardPage />} />
-            <Route path="/analisis" element={<AnalysisPage />} />
-            <Route path="/noticias" element={<NewsPage />} />
+            <Route path="/analisis" element={<RedirectToActiveCompTab tab="analysis" />} />
+            <Route path="/noticias" element={<RedirectToActiveCompTab tab="news" />} />
             <Route path="/competiciones" element={<CompeticionesPage />} />
             {/* /competicion (singular, legacy) → redirige a la home de la comp primary */}
             <Route

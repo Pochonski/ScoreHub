@@ -9,8 +9,8 @@ type NavItem = { id: string; label: string; route: (competitionId: number | null
 const NAV_ITEMS: readonly NavItem[] = [
   { id: 'matches', label: 'Partidos', route: () => '/' },
   { id: 'standings', label: 'Tabla', route: cid => cid ? `/competicion/${cid}/standings` : '/competiciones' },
-  { id: 'stats', label: 'Estadísticas', route: () => '/analisis' },
-  { id: 'news', label: 'Noticias', route: () => '/noticias' },
+  { id: 'stats', label: 'Estadísticas', route: cid => cid ? `/competicion/${cid}/stats` : '/competiciones' },
+  { id: 'news', label: 'Noticias', route: cid => cid ? `/competicion/${cid}/news` : '/competiciones' },
 ]
 
 export function Navbar() {
@@ -29,9 +29,8 @@ export function Navbar() {
   const isActive = (item: NavItem) => {
     const route = item.route(activeCompId)
     if (route === '/') return location.pathname === '/'
-    if (route.startsWith('/competicion/')) {
-      return location.pathname.startsWith(route.split('/').slice(0, 3).join('/'))
-    }
+    if (route === '/competiciones') return location.pathname === '/competiciones'
+    // Rutas de competición: comparar el path completo del tab (…/standings, …/stats, …/news).
     return location.pathname.startsWith(route)
   }
 

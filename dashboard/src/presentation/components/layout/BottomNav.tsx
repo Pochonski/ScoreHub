@@ -50,7 +50,7 @@ const NAV_ITEMS: readonly NavItem[] = [
   {
     id: 'stats',
     label: 'Stats',
-    route: () => '/analisis',
+    route: cid => (cid ? `/competicion/${cid}/stats` : '/competiciones'),
     icon: (
       <>
         <line x1="5" y1="20" x2="5" y2="14" />
@@ -63,7 +63,7 @@ const NAV_ITEMS: readonly NavItem[] = [
   {
     id: 'news',
     label: 'Noticias',
-    route: () => '/noticias',
+    route: cid => (cid ? `/competicion/${cid}/news` : '/competiciones'),
     icon: (
       <>
         <rect x="3" y="5" width="18" height="14" rx="2" />
@@ -83,10 +83,10 @@ export function BottomNav() {
   const isActive = (item: NavItem) => {
     if (item.id === 'matches') return location.pathname === '/'
     if (item.id === 'standings') {
-      // Activo tanto en /competiciones como en /competicion/:id/...
+      // Activo en /competiciones o en el tab de posiciones de la comp activa.
       return (
         location.pathname === '/competiciones' ||
-        location.pathname.startsWith('/competicion/')
+        location.pathname.startsWith(item.route(activeCompId))
       )
     }
     const route = item.route(activeCompId)
