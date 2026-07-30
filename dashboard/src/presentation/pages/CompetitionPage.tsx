@@ -9,6 +9,7 @@ import { BracketsTab } from '@/presentation/components/competition/BracketsTab'
 import { StatsTab } from '@/presentation/components/competition/StatsTab'
 import { HistoryTab } from '@/presentation/components/competition/HistoryTab'
 import { TransfersTab } from '@/presentation/components/competition/TransfersTab'
+import { CompetitionHero } from '@/presentation/components/competition/CompetitionHero'
 import { ErrorState } from '@/presentation/components/ui/ErrorState'
 
 type TabId = 'standings' | 'brackets' | 'stats' | 'transfers' | 'history'
@@ -225,7 +226,7 @@ export function CompetitionPage() {
   }, [competitionId, setCompetitionId])
 
   const { detail, loading: detailLoading } = useCompetitionDetail(competitionId)
-  const { info, loading: infoLoading } = useTournamentInfo(competitionId)
+  const { info } = useTournamentInfo(competitionId)
 
   // Temporada activa del context (la "principal" de active_competitions).
   const activeSeasonNum = useMemo(() => {
@@ -309,71 +310,55 @@ export function CompetitionPage() {
   const tabSeasonNum: number | 'all' | null = seasonFilter
 
   const titleText = info?.name || detail.displayName
-  const subtitleParts = [
-    seasonFilter === 'all'
-      ? 'Viendo archivo histórico'
-      : seasonFilter !== activeSeasonNum && seasonFilter !== null
-        ? `Temporada #${seasonFilter} (archivo)`
-        : info?.seasonNum
-          ? `Edición ${info.seasonNum}`
-          : null,
-    info?.countryName || detail.countryName,
-    detail.hasGroups && detail.hasBrackets && 'Grupos + Eliminatorias',
-    detail.hasGroups && !detail.hasBrackets && 'Fase única',
-    detail.hasBrackets && !detail.hasGroups && 'Solo eliminatorias',
-  ].filter(Boolean)
 
   const viewingArchive =
     seasonFilter === 'all' || (seasonFilter !== null && seasonFilter !== activeSeasonNum)
 
+  const editionLabel =
+    seasonFilter === 'all'
+      ? 'Archivo histórico'
+      : seasonFilter !== activeSeasonNum && seasonFilter !== null
+        ? `Temporada #${seasonFilter}`
+        : info?.seasonNum
+          ? `Edición ${info.seasonNum}`
+          : null
+  const formatLabel =
+    detail.hasGroups && detail.hasBrackets
+      ? 'Grupos + Eliminatorias'
+      : detail.hasGroups
+        ? 'Fase única'
+        : detail.hasBrackets
+          ? 'Solo eliminatorias'
+          : null
+
   return (
     <div className="mx-auto max-w-[1400px] px-4 py-8">
-      {/* Hero header */}
-      <div className="mb-8 text-center">
-        <div className="mb-3 flex items-center justify-center gap-3">
-          <div className="via-accent-gold/40 h-px w-12 bg-gradient-to-r from-transparent to-transparent" />
-          <div className="bg-accent-gold/60 h-2 w-2 rounded-full" />
-          <div className="via-accent-gold/40 h-px w-12 bg-gradient-to-r from-transparent to-transparent" />
-        </div>
-
-        {infoLoading ? (
-          <div className="space-y-3">
-            <div className="bg-bg-elevated skeleton mx-auto h-8 w-64 rounded" />
-            <div className="bg-bg-elevated skeleton mx-auto h-4 w-48 rounded" />
-          </div>
-        ) : (
-          <>
-            <h1 className="font-display text-text-primary text-3xl font-bold tracking-wide sm:text-4xl">
-              {titleText}
-            </h1>
-            {subtitleParts.length > 0 && (
-              <p className="font-body text-text-muted mt-2 flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-sm">
-                {subtitleParts.map((s, i) => (
-                  <span key={i} className="flex items-center gap-2">
-                    {i > 0 && <span className="text-text-dim">·</span>}
-                    <span>{s}</span>
-                  </span>
-                ))}
-              </p>
-            )}
-          </>
+      {/* Hero premium */}
+      <CompetitionHero
+        competitionId={competitionId}
+        name={titleText}
+        countryId={info?.countryId}
+        countryName={info?.countryName || detail.countryName}
+        imageVersion={info?.imageVersion}
+        editionLabel={editionLabel}
+        formatLabel={formatLabel}
+        seasonNum={seasonFilter}
+      >
+        {activeSeasonNum != null && (
+          <SeasonSelector competitionId={competitionId} activeSeasonNum={activeSeasonNum} />
         )}
+        <button
+          type="button"
+          onClick={() => navigate('/competiciones')}
+          className="font-body text-text-muted hover:text-accent-gold inline-flex items-center gap-1 text-xs transition-colors"
+        >
+          ← Ver todas las competiciones
+        </button>
+      </CompetitionHero>
 
-        <div className="mt-4 flex flex-wrap items-center justify-center gap-3">
-          {activeSeasonNum != null && (
-            <SeasonSelector competitionId={competitionId} activeSeasonNum={activeSeasonNum} />
-          )}
-          <button
-            type="button"
-            onClick={() => navigate('/competiciones')}
-            className="font-body text-text-muted hover:text-accent-gold inline-flex items-center gap-1 text-xs transition-colors"
-          >
-            ← Ver todas las competiciones
-          </button>
-        </div>
-
-        {viewingArchive && (
-          <div className="mt-4 inline-flex items-center gap-2 rounded-lg border border-accent-gold/30 bg-accent-gold/5 px-3 py-1.5">
+      {viewingArchive && (
+        <div className="-mt-4 mb-6 flex justify-center">
+          <div className="inline-flex items-center gap-2 rounded-lg border border-accent-gold/30 bg-accent-gold/5 px-3 py-1.5">
             <svg
               width="14"
               height="14"
@@ -402,8 +387,8 @@ export function CompetitionPage() {
               Volver a la actual
             </button>
           </div>
-        )}
-      </div>
+        </div>
+      )}
 
       {/* Tabs: scroll horizontal en mobile si no caben, centrado en desktop. */}
       {visibleTabs.length > 0 && (
