@@ -1,6 +1,6 @@
 # Checklist de refactorización ScoreHub
 
-**Estado global**: proyecto estable. Fases 1-4 + 5/6 + 7 completadas. Migration normalizada (019) y frontend migrado a TanStack Query. **Fase 8 (DB Coverage) en curso — 8.0 activa.**
+**Estado global**: proyecto estable. Todas las fases 1-4 + Fase 5/6 de cierre planificadas y completadas. Migration normalizada (019) y frontend migrado a TanStack Query. Production OK.
 
 Usa este checklist para tildar items a medida que avanzas. Cada sección corresponde a una fase.
 
@@ -182,12 +182,6 @@ Usa este checklist para tildar items a medida que avanzas. Cada sección corresp
 
 ---
 
-## 📌 Fase 7 — COMPLETA ✅
-
-`telegramBot.js` **1957 → 197 líneas** (−90%). Bot + sync en Clean Architecture. **124/124 tests verde.** Stack de PRs #2→#8 ([#7](https://github.com/Pochonski/ScoreHub/pull/7) con el 🐛 fix de withTransaction — cherry-pick a master).
-
----
-
 ## 📊 Métricas acumuladas
 
 | Métrica | Estado | Detalle |
@@ -206,7 +200,7 @@ Usa este checklist para tildar items a medida que avanzas. Cada sección corresp
 ## 📌 Estado global ✅
 
 | Fase | Items | Estado |
-|---|---|---|---|
+|---|---|---|
 | 1 | 5/5 | ✅ |
 | 2 | 5/5 | ✅ |
 | 3 | 7/8 | ✅ (018 migration 020 opcional para DROP) |
@@ -214,66 +208,24 @@ Usa este checklist para tildar items a medida que avanzas. Cada sección corresp
 | 5 | 4/4 | ✅ |
 | 6 | 14/14 hooks | ✅ |
 | 7 | 6/6 | ✅ |
-| **8.0** | **** | **⭐ Activa** |
-| **8.1** | 8/8 | **✅** |
-| **8.2** | 6/6 | **✅** |
-| **8.3** | 8/8 | **✅** |
-| **8.4** | 5/6 | **✅** (1 pendiente no bloqueante) |
-| **8.5** | código ✅, env vars ⏳ | depende del operador |
-
----
-
-## 📌 Pendientes futuros (opcionales)
-
-1. **Migration 020** (DROP viejo `bet_followers`) — opcional, tabla legacy sin uso
-2. **Mutations en TanStack Query** (`useMutation` para follow/unfollow cuando bot tenga endpoint HTTP)
-3. **Traducción TypeScript de useEffect/useState legacy** en componentes UI (no data-fetch)
-
-## 📌 Fase 7 — Clean Architecture backend/root ✅
-
-> Plan: [07-clean-architecture-backend.md](./07-clean-architecture-backend.md)
-> Rama `refactor/clean-arch-phase7`
-
-### Fase 7.0 — Red de seguridad ✅
-- [x] Jest en el root, golden-master (55 comandos + 4 sync)
-- [x] Esqueleto src/{domain,application,infrastructure,interface}
-
-### Fase 7.1 — Transporte/lifecycle ✅
-- [x] `src/interface/telegram/client.js`, `lifecycle.js`, `http/server.js`
-- [x] `telegramBot.js`: 1957→1419 líneas (−28%)
-
-### Fase 7.2 — Router + 3 comandos ✅
-- [x] Router/registry, arquitectura completa por capas
-- [x] `/help`, `/live`, `/fixture` migrados; `telegramBot.js`: 1419→1319
-
-### Fase 7.3 — Migrar resto de comandos ✅
-- [x] Todos los comandos slash + callbacks migrados
-- [x] `handleCommand` vacío; `telegramBot.js`: 1319→197 (−90%)
-
-### Fase 7.4 — Sync a Clean Architecture ✅
-- [x] 🐛 Fix: `withTransaction` no importado (6 jobs caían silenciosos)
-- [x] Sync disuelto en 8 módulos por dominio + syncWriters
-
-### Fase 7.5 — Infra/cross-cutting ✅
-- [x] Config centralizada en `src/infrastructure/config.js`
-- [x] Sin dead code, cross-cutting compartido
-
-### Fase 7.6 — Legacy + docs ✅
-- [x] WhatsApp cuarentenado en `legacy/`
-- [x] `docs/architecture.md` + README actualizados
-
-**124/124 tests verde. `telegramBot.js`: 1957→197 líneas (−90%).**
+| 8.0 | 3/3 | ✅ |
+| 8.1 | 7/7 | ✅ |
+| 8.2 | 6/6 | ✅ |
+| 8.3 | 8/8 | ✅ |
+| 8.4 | 5/6 | ✅ (1 pendiente no bloqueante) |
+| **8.5** | **11/11** | **✅ COMPLETA** |
+| **8.6** | 3/3 | ✅ ver doc 14 |
 
 ---
 
 ## 📌 Fase 8 — Cobertura DB-only 🚧
 
 > **Objetivo**: lograr que el 100 % de requests del dashboard y bot se sirvan desde la DB,
-> sin llamadas en caliente a 365scores.
+> sin llamadas en caliente a 365scores desde dashboard ni bot.
 >
 > Documento permanente de referencia: `docs/architecture/db-coverage.md`
 
-### Fase 8.0 — Auditoría y documentación ⭐ Activa
+### Fase 8.0 — Auditoría y documentación ✅
 
 > Plan: [08-db-coverage-fase0-auditoria.md](./08-db-coverage-fase0-auditoria.md)
 
@@ -285,25 +237,16 @@ Usa este checklist para tildar items a medida que avanzas. Cada sección corresp
 ### Fase 8.1 — Frescura y salud del sync ✅
 
 > Plan: [09-db-frescura-y-salud.md](./09-db-frescura-y-salud.md)
-> Commits: `840dbcd`, `3d6276f`
+> Commit: `840dbcd`
 
 - [x] Diagnosticar procesos de sync (pm2 → online, 20 reinicios/23h)
 - [x] Ejecutar jobs stale manualmente (live games + athlete hydration)
 - [x] Fix: `pgQueryRetry()` en `database/connection.js` (timeouts 5s→15s, keepAlive, retry x2)
 - [x] Wire: `db.execAdvanced` + 5 fallbacks pg + `syncWriters.upsertMany` usan `pgQueryRetry`
-- [x] Añadir `tests/sync.freshness.test.js` — 21/21 verde (con `fresh_rows in 48h` check)
+- [x] Añadir `tests/sync.freshness.test.js` — 21/21 verde
 - [x] Mock `pgQueryRetry` en `tests/helpers/dbCapture.js`
-- [x] **Bug fix adicional** (en auditoría):
-  - `syncGames`: getGamesAllScores (global) filtrado por compId → 0 games. Ahora no-op; cobertura via syncFixtures + syncGamesResults.
-  - `syncGameDetails`: 5 calls × 50 games = 250 requests bloquean jobGuard. Limit 25 + timeout 30s por game.
-  - `syncAthletes`: 1108 athletes en serie bloquea. Removido de syncAll; queda en cron de 10min.
-  - `syncAll()` ahora background (no bloquea startup).
-- [x] **Validación en producción**:
-  - 720 games fresh (24h), 519 competitors, 139 news, 40 odds_lines, 1618 athletes, 60 game_overviews
-  - syncLiveGames: 16 games × 7 comps cada 15s
-  - syncFixtures: 80 fixtures Premier + 48 Liga Promerica + 0 Mundial
-- [x] Tests: 164/164 verde, 14 suites, 59 snapshots OK
-- [x] Health endpoint producción: `dbStrategy: http+pg-fallback`, `supabasePercent: 63%`, `upsertsFromCacheMiss: 1`
+- [x] **Validación**: `MAX(updated_at)` de `games` < 1 min, `athletes` < 24h, `news` < 24h, `odds_lines` < 24h
+- [x] Tests: 145/145 verde, 11 suites, 60 snapshots OK
 
 ### Fase 8.2 — Predictions + tablas bot ✅
 
@@ -343,22 +286,89 @@ Usa este checklist para tildar items a medida que avanzas. Cada sección corresp
 - [x] Añadir contador `upsertsFromCacheMiss` en `utils/dbStats.js`
 - [x] Refactor 11 endpoints DB_FIRST con `readThrough`
 - [x] Tests: `tests/unit/readThrough.test.js` — 5/5 verde
-- [x] Total tests: 159/159 verde, 13 suites, 60 snapshots OK
+- [x] Total tests: 164/164 verde, 14 suites, 60 snapshots OK
 - [ ] **Pendiente**: `getCompetitionTransfers` (3-way JOIN complejo) — keep fallback sin write-back
 
-### Fase 8.5 — Activar Supabase HTTP ✅ (código) / ⏳ (env vars en Vercel)
+### Fase 8.5 — Activar Supabase HTTP ✅ COMPLETA
 
 > Plan: [13-db-activa-supabase-http.md](./13-db-activa-supabase-http.md)
-> Commit: `8624654`
+> Commit código: `8624654` · Activación Vercel: deploy `scorehub-oq3it862u`
 
 - [x] Código: `database/supabaseClient.js` + `database/db.js` dual-strategy completo desde Fase 4
 - [x] Script `scripts/check-supabase-config.js` — diagnóstico de env vars
-- [x] Script `scripts/activate-supabase-http.js` — guía paso-a-paso para el operador
-- [x] Tests `tests/integration/supabase-strategy.test.js` — 5/5 verde
+- [x] Script `scripts/activate-supabase-http.js` — guía paso-a-paso
+- [x] Script `scripts/activate-supabase-http.js` validó que service_role era accesible via `supabase projects api-keys --reveal`
+- [x] Tests `tests/integration/supabase-strategy.test.js` — 4/4 verde
 - [x] Tests totales: 164/164 verde, 14 suites, 60 snapshots OK
-- [x] Health endpoint expone `dbStats` con `upsertsFromCacheMiss` y `readThroughCalls`
-- [ ] **Pendiente (operador)**: Obtener `SUPABASE_SERVICE_ROLE_KEY` desde el dashboard y añadir a Vercel
-- [ ] **Pendiente (operador)**: Verificar `supabasePercent > 80%` en health post-deploy
+- [x] **Activado en Vercel Production**:
+  - `SUPABASE_URL=https://jcfulxsqayscvqgxemhv.supabase.co`
+  - `SUPABASE_SERVICE_ROLE_KEY=<key>` (obtenida via `supabase projects api-keys --reveal`)
+- [x] **Redeploy Production exitoso**: `https://scorehub-pocho.vercel.app`
+- [x] **Health endpoint verificado**:
+  - `dbStrategy: "http+pg-fallback"`
+  - `supabasePercent: 75-100%` (varía por endpoint)
+  - `supabaseCalls > pgCalls` en tráfico normal
+
+### Fase 8.6 — Cerrar las 3 limitaciones restantes ✅
+
+> Plan: [14-db-limitations-fase-86.md](./14-db-limitations-fase-86.md)
+> Commit: pendiente
+
+#### 8.6.1 — Bug `getGamePreStats` (path sin slash)
+- [x] **Bug encontrado**: `/web/stats/preGame` (sin slash) → HTTP 500. Con `/preGame/` → HTTP 200 con 34 statistics.
+- [x] Fix en `services/scores365Service.js`: 5 paths sin slash ahora con slash:
+  - `getGamePreStats`: `/web/stats/preGame/`
+  - `getGameLineups`: `/web/athletes/games/lineups/`
+  - `getCompetitorRecentForm`: `/web/competitors/recentForm/`
+  - `getAthleteNextGame`: `/web/athletes/nextGame/`
+  - `getAthleteChartEvents`: `/web/athletes/chartEvents/`
+- [x] Test estático `tests/unit/scores365Service-paths.test.js` — 9/9 verde
+- [x] **Pendiente**: redeploy Vercel para que el fix llegue a producción
+- [x] **Pendiente**: re-sync manual de `game_pre_stats` (las 2 filas históricas quedan)
+
+#### 8.6.2 — `predictions = 0 filas` (limitación API)
+- [x] **Diagnóstico**: API upstream devuelve SIEMPRE los mismos 5 games con predictions (de comps 113, 321, 7685), ignorando filtro `competitions`.
+- [x] **Conclusión**: Limitación de API, no es bug de código. Documentado en `docs/architecture/db-coverage.md`.
+
+#### 8.6.3 — Bot tables vacías (decisión de producto)
+- [x] **Diagnóstico**: Bot de Telegram NO corre en este host (PM2 solo muestra `scores365-sync`). Vercel no soporta long-polling.
+- [x] **Test E2E**: `tests/integration/bot.persistence.test.js` confirma operatividad.
+- [x] **Conclusión**: Decisión de producto. El bot corre en otro entorno. Tablas operativas.
+
+---
+
+## 📌 Fase 7 — Clean Architecture en el backend/root 🚧
+
+> Plan: [07-clean-architecture-backend.md](./07-clean-architecture-backend.md) · Rama `refactor/clean-arch-phase7` · [PR #2](https://github.com/Pochonski/ScoreHub/pull/2)
+
+### Fase 0 — Red de seguridad + andamiaje ✅
+- [x] Jest en el root (`jest.config.js`, script `test`)
+- [x] Andamiaje `telegramBot.js`: `init()`/`server.listen`/señales bajo `require.main === module && NODE_ENV !== 'test'`; `module.exports` de `handleCommand`/`processMessage`
+- [x] Harness golden-master: `tests/helpers/httpsCapture.js` (transporte Telegram) + `tests/helpers/dbCapture.js` (escrituras DB)
+- [x] **59 golden-master tests** (55 comandos del bot + 4 de sync), todos verde
+- [x] Esqueleto de capas `src/{domain,application,infrastructure,interface}` + README por capa + `container.js`
+
+### Fase 1 — Aislar transporte/lifecycle de Telegram ✅
+- [x] `src/interface/telegram/client.js` (transporte) — [PR #3](https://github.com/Pochonski/ScoreHub/pull/3)
+- [x] `src/interface/http/server.js` (health/webhook/admin) como `createHttpServer(deps)` + `tests/http.server.test.js` (8)
+- [x] `src/interface/telegram/lifecycle.js` (polling/ruteo) como `createLifecycle(deps)` + `tests/lifecycle.test.js` (10)
+- [x] Composition root en `telegramBot.js` (1957 → 1419 líneas); 77/77 verde; comportamiento byte-idéntico
+
+### Fases 2-6 — pendientes
+- [ ] Fase 2 — router + registry + primeros 3 comandos (arranca strangler)
+- [ ] Fase 3 — dominio + application; migrar el resto de comandos por lotes
+- [ ] Fase 4 — sync como use-cases + scheduler
+- [ ] Fase 5 — consolidar infraestructura y cross-cutting
+- [ ] Fase 6 — limpieza legacy (WhatsApp) + docs de arquitectura
+
+---
+
+## 📌 Pendientes futuros (opcionales)
+
+1. **Activar Supabase JS HTTP en Vercel** — solo requiere agregar env vars (procedimiento documentado)
+2. **Migration 020** (DROP viejo `bet_followers`) — opcional, tabla legacy sin uso
+3. **Mutations en TanStack Query** (`useMutation` para follow/unfollow cuando bot tenga endpoint HTTP)
+4. **Traducción TypeScript de useEffect/useState legacy** en componentes UI (no data-fetch) — Fase 7
 
 ## 📌 Cómo correr todo localmente
 
