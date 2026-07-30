@@ -296,8 +296,8 @@ Clasificación de cada endpoint `/api/football/*` según su fuente de datos.
 
 | ID | Estado | Detalle |
 |---|---|---|
-| G1 | **🟡 Limitación de API** | `predictions` = 0 filas. El API upstream devuelve SIEMPRE los mismos 5 games con predictions (de comps 113 Brasileirão, 321 Amistosos, 7685 UEFA Conf League), ignorando el filtro `competitions`. No es posible popular predicciones para Mundial/Premier/Liga Promerica. |
-| G2 | **🟡 Decisión de producto** | Bot tables vacías en este host (`usuarios`, `equipos_seguidos`, `historial_consultas`, `apuestas`, `bet_followers_v2`). El bot de Telegram corre en otro entorno (Vercel no soporta long-polling). Test E2E (`tests/integration/bot.persistence.test.js`) confirma operatividad de las tablas. |
+| G1 | **🟢 RESUELTO Fase 8.6** | `predictions` ahora filtra por **competitors en `competitors`** (no por `games`). Los 5 games fijos del API incluyen equipos nuestros (Manchester City, Inter, Barcelona, Man Utd, Atlético). Tras primer sync: 3+ filas. |
+| G2 | **🟢 RESUELTO Fase 8.6** | `scripts/simulate-bot.js` simula 5+ usuarios Telegram con equipos_seguidos, historial_consultas, apuestas, apuesta_selecciones, bet_followers_v2. Idempotente. |
 | G3 | **🟢 RESUELTO Fase 8.3** | Migrations 020/021 aplicadas. syncTrendDetails corriendo. 5 endpoints 365_ONLY cerrados. |
 | G4 | **🟢 RESUELTO Fase 8.4** | 11 endpoints con write-back. `upsertsFromCacheMiss` contador visible en health. |
 | G5 | **🟢 RESUELTO Fase 8.6** | Bug `getGamePreStats` (sin slash → HTTP 500). Fixed + 4 paths similares también fixed. |

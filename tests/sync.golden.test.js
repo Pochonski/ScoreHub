@@ -185,26 +185,32 @@ describe('syncService — golden-master de escrituras', () => {
     api.getPredictions.mockResolvedValue({
       games: [{
         id: 4749268,
+        homeCompetitor: { id: 100 },
+        awayCompetitor: { id: 101 },
         promotedPredictions: {
           predictions: [{ gameId: 4749268, title: '¿Quién gana?', options: [] }],
         },
       }],
     });
-    setExecResult([{ id: 4749268 }]); // game existe en nuestra DB
+    // Fase 8.6: filtro por competidores en `competitors` (no por `games`).
+    // setExecResult simula la query SELECT id FROM competitors.
+    setExecResult([{ id: 100 }, { id: 101 }]); // ambos competidores en DB
     await sync.syncPredictions();
     expect(getWrites().some((w) => /INSERT INTO predictions/.test(w.sql))).toBe(true);
   });
 
-  test('syncPredictions → filtra games que no están en nuestra DB', async () => {
+  test('syncPredictions → filtra games cuyos competitors no están en DB', async () => {
     api.getPredictions.mockResolvedValue({
       games: [{
         id: 9999999,
+        homeCompetitor: { id: 9999998 },
+        awayCompetitor: { id: 9999997 },
         promotedPredictions: {
           predictions: [{ gameId: 9999999 }],
         },
       }],
     });
-    setExecResult([]); // game NO existe en nuestra DB
+    setExecResult([]); // competitors NO en DB
     await sync.syncPredictions();
     expect(getWrites().some((w) => /INSERT INTO predictions/.test(w.sql))).toBe(false);
   });

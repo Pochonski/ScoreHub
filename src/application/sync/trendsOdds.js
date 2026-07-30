@@ -57,10 +57,15 @@ async function syncPredictions() {
   //   data.games[i].promotedPredictions.predictions[]
   // no en un array top-level `data.predictions`.
   //
-  // Filtramos para guardar solo predicciones de games que estén en la
-  // tabla `games` (i.e. competiciones activas en active_competitions) —
-  // así el comando `/predicciones <id>` solo intenta mostrar datos
-  // relevantes para el usuario.
+  // Fase 8.6 — fix: el feed de predictions SIEMPRE devuelve los mismos 5
+  // games de "amistosos pre-temporada" (comp 321). Esos games no están en
+  // nuestra tabla `games` (porque sus competiciones no son activas), pero
+  // muchos de SUS competidores SÍ están en `competitors` (Manchester City,
+  // Inter, Barcelona, etc.). Antes descartábamos todos. Ahora guardamos
+  // predictions de games cuyo home_competitor_id O away_competitor_id
+  // esté en `competitors` — así los usuarios ven predicciones de partidos
+  // relevantes (amistosos de sus equipos) incluso si la competición no
+  // está activa.
   log('Fetching predictions...');
   try {
     const data = await api.getPredictions(1);
@@ -72,37 +77,57 @@ async function syncPredictions() {
 
     // Construir map gameId -> {gameId, data} con las predicciones.
     const rows = [];
+    const candidateCompetitorIds = new Set();
     for (const g of games) {
       const gid = g.id;
       const pp = g.promotedPredictions;
       if (!pp || !Array.isArray(pp.predictions) || !pp.predictions.length) continue;
       rows.push({
         game_id: gid,
-        data: JSON.stringify(g), // guarda el game completo (incluye promotedPredictions)
+        data: JSON.stringify(g),
         updated_at: new Date().toISOString(),
       });
+      const homeId = g.homeCompetitor?.id;
+      const awayId = g.awayCompetitor?.id;
+      if (homeId != null) candidateCompetitorIds.add(Number(homeId));
+      if (awayId != null) candidateCompetitorIds.add(Number(awayId));
     }
     if (!rows.length) {
       log('Synced 0 predictions (none with promotedPredictions)');
       return;
     }
 
-    // Filtrar por games en competiciones activas (no insertar basura
-    // de games que no están en nuestra DB).
-    const gameIds = rows.map(r => r.game_id);
-    const existing = await db.execAdvanced(
-      `SELECT id FROM games WHERE id = ANY($1::bigint[])`,
-      [gameIds]
-    );
-    const existingIds = new Set(existing.map(r => Number(r.id)));
-    const filteredRows = rows.filter(r => existingIds.has(Number(r.game_id)));
+    // Filtrar por games cuyos competidores SÍ estén en `competitors`.
+    // Esto acepta games de competiciones no activas pero con equipos
+    // relevantes (e.g. Manchester City jugando un amistoso).
+    const compIds = Array.from(candidateCompetitorIds);
+    let knownCompetitorIds = new Set();
+    if (compIds.length) {
+      const existing = await db.execAdvanced(
+        `SELECT id FROM competitors WHERE id = ANY($1::bigint[])`,
+        [compIds]
+      );
+      knownCompetitorIds = new Set(existing.map(r => Number(r.id)));
+    }
+
+    const filteredRows = rows.filter(r => {
+      try {
+        const g = JSON.parse(r.data);
+        const homeId = Number(g.homeCompetitor?.id);
+        const awayId = Number(g.awayCompetitor?.id);
+        return knownCompetitorIds.has(homeId) || knownCompetitorIds.has(awayId);
+      } catch (_) {
+        return false;
+      }
+    });
+
     if (!filteredRows.length) {
-      log(`Synced 0 predictions (none of ${rows.length} upstream games are in our DB)`);
+      log(`Synced 0 predictions (none of ${rows.length} upstream games have competitors in our DB)`);
       return;
     }
 
     await upsertMany('predictions', 'game_id', filteredRows);
-    log(`Synced ${filteredRows.length} predictions (${rows.length - filteredRows.length} filtered out)`);
+    log(`Synced ${filteredRows.length} predictions (${rows.length - filteredRows.length} filtered out — competitors not in DB)`);
   } catch (e) {
     logErr(`Error syncing predictions: ${e.message}`);
   }
