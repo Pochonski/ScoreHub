@@ -216,6 +216,32 @@ Usa este checklist para tildar items a medida que avanzas. Cada sección corresp
 | **8.5** | **11/11** | **✅ COMPLETA** |
 | **8.6** | 3/3 | ✅ ver doc 14 |
 
+### Fase 8.6 — Cerrar las 3 limitaciones restantes ✅
+
+> Plan: [14-db-limitations-fase-86.md](./14-db-limitations-fase-86.md)
+> Commit: `ff16aa4`
+
+#### 8.6.1 — Bug `getGamePreStats` (path sin slash)
+- [x] **Bug encontrado**: `/web/stats/preGame` (sin slash) → HTTP 500. Con `/preGame/` → HTTP 200 con 34 statistics.
+- [x] Fix en `services/scores365Service.js`: 5 paths sin slash ahora con slash:
+  - `getGamePreStats`: `/web/stats/preGame/`
+  - `getGameLineups`: `/web/athletes/games/lineups/`
+  - `getCompetitorRecentForm`: `/web/competitors/recentForm/`
+  - `getAthleteNextGame`: `/web/athletes/nextGame/`
+  - `getAthleteChartEvents`: `/web/athletes/chartEvents/`
+- [x] Test `tests/unit/scores365Service-paths.test.js` — 7/7 verde
+- [ ] Pendiente: redeploy Vercel para que el fix llegue a producción
+- [ ] Pendiente: re-sync manual de `game_pre_stats` (las 2 filas históricas quedan)
+
+#### 8.6.2 — `predictions = 0 filas` (limitación API)
+- [x] **Diagnóstico**: API upstream devuelve SIEMPRE los mismos 5 games con predictions (de comps 113, 321, 7685), ignorando filtro `competitions`.
+- [x] **Conclusión**: Limitación de API, no es bug de código. Documentado en `docs/architecture/db-coverage.md`.
+
+#### 8.6.3 — Bot tables vacías (decisión de producto)
+- [x] **Diagnóstico**: Bot de Telegram NO corre en este host (PM2 solo muestra `scores365-sync`). Vercel no soporta long-polling.
+- [x] **Test E2E**: `tests/integration/bot.persistence.test.js` confirma operatividad.
+- [x] **Conclusión**: Decisión de producto. El bot corre en otro entorno. Tablas operativas.
+
 ---
 
 ## 📌 Fase 8 — Cobertura DB-only 🚧

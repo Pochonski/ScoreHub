@@ -292,6 +292,17 @@ Clasificación de cada endpoint `/api/football/*` según su fuente de datos.
 | G5 | 🟡 P2 | **11 endpoints DB_FIRST sin write-back** | Fallback a 365 sin persistencia: cada request repite | Plan 12 |
 | G6 | 🟢 P3 | `game_pre_stats` solo 2 filas | Cobertura de pre-stats casi nula | Plan 09 |
 
+### Estado actual de los gaps (post-Fase 8.6)
+
+| ID | Estado | Detalle |
+|---|---|---|
+| G1 | **🟡 Limitación de API** | `predictions` = 0 filas. El API upstream devuelve SIEMPRE los mismos 5 games con predictions (de comps 113 Brasileirão, 321 Amistosos, 7685 UEFA Conf League), ignorando el filtro `competitions`. No es posible popular predicciones para Mundial/Premier/Liga Promerica. |
+| G2 | **🟡 Decisión de producto** | Bot tables vacías en este host (`usuarios`, `equipos_seguidos`, `historial_consultas`, `apuestas`, `bet_followers_v2`). El bot de Telegram corre en otro entorno (Vercel no soporta long-polling). Test E2E (`tests/integration/bot.persistence.test.js`) confirma operatividad de las tablas. |
+| G3 | **🟢 RESUELTO Fase 8.3** | Migrations 020/021 aplicadas. syncTrendDetails corriendo. 5 endpoints 365_ONLY cerrados. |
+| G4 | **🟢 RESUELTO Fase 8.4** | 11 endpoints con write-back. `upsertsFromCacheMiss` contador visible en health. |
+| G5 | **🟢 RESUELTO Fase 8.6** | Bug `getGamePreStats` (sin slash → HTTP 500). Fixed + 4 paths similares también fixed. |
+| G6 | **🟢 RESUELTO Fase 8.6** | `game_pre_stats` ahora se popula correctamente (el sync de pre-stats ahora llega al upstream). Las 2 filas históricas requieren re-sync manual. |
+
 ---
 
 ## 6. Layout de datos (competencias activas)
@@ -317,6 +328,7 @@ Distribución de `status_group`: 466 upcoming (2), 360 finalizados (4), 0 en viv
 | Fase 0 | `docs/refactor-plans/08-db-coverage-fase0-auditoria.md` | Documentar + planes |
 | Fase 1 | `docs/refactor-plans/09-db-frescura-y-salud.md` | Reactivar sync stale |
 | Fase 2 | `docs/refactor-plans/10-db-predictions-y-bot-tables.md` | Poblar predictions + tablas bot |
-| Fase 3 | `docs/refactor-plans/11-db-coverage-completa.md` | Cerrar 5 endpoints 365_ONLY |
+| Fase 3 | `docs/refactor-plans/11-db-cobertura-completa.md` | Cerrar 5 endpoints 365_ONLY |
 | Fase 4 | `docs/refactor-plans/12-db-write-back-cache.md` | Write-back automático |
 | Fase 5 | `docs/refactor-plans/13-db-activa-supabase-http.md` | Activar ruta HTTP PostgREST |
+| Fase 6 | `docs/refactor-plans/14-db-limitations-fase-86.md` | Cerrar 3 limitaciones restantes |
