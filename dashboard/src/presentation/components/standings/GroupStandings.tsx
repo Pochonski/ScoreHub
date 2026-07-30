@@ -92,11 +92,27 @@ export function GroupStandings({ groups, hideHeader }: GroupStandingsProps) {
                   <tr
                     key={row.position}
                     onClick={() => navigate(`/equipo/${row.team.id}`)}
-                    className="border-border-card/50 hover:bg-bg-elevated/30 cursor-pointer border-b transition-colors"
+                    className={`border-border-card/50 hover:bg-bg-elevated/40 cursor-pointer border-b transition-colors ${
+                      row.position === 1 ? 'bg-accent-gold/[0.05]' : ''
+                    }`}
                   >
-                    <td className="text-text-muted px-3 py-2.5 font-mono text-xs">
+                    <td
+                      className={`px-3 py-2.5 font-mono text-xs border-l-[3px] ${
+                        row.position === 1
+                          ? 'border-l-accent-gold'
+                          : row.position <= 3
+                            ? 'border-l-accent-gold/30'
+                            : 'border-l-transparent'
+                      }`}
+                    >
                       <span className="flex items-center gap-1">
-                        {row.position}
+                        <span
+                          className={
+                            row.position === 1 ? 'text-accent-gold font-bold' : 'text-text-muted'
+                          }
+                        >
+                          {row.position}
+                        </span>
                         {row.trend != null && row.trend !== 0 && (
                           <span
                             className={`font-mono text-[10px] ${
