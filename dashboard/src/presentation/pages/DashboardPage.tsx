@@ -219,6 +219,25 @@ export function DashboardPage() {
   // si ya no quedan próximos. Es una selección curada, no el listado completo
   // (ese vive en el rail izquierdo).
   const highlightGames = useMemo(() => {
+    // Si el usuario eligió un día en el calendario (dateOffset != null), el
+    // centro muestra los partidos de ESE día. Sin día elegido, la selección
+    // curada de siempre (próximos / resultados recientes).
+    if (dateOffset != null) {
+      const d = new Date()
+      d.setDate(d.getDate() + dateOffset)
+      const label =
+        dateOffset === 0
+          ? 'Hoy'
+          : dateOffset === 1
+            ? 'Mañana'
+            : dateOffset === -1
+              ? 'Ayer'
+              : d.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })
+      const dayGames = [...filteredGames].sort(
+        (a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
+      )
+      return { title: `Partidos · ${label}`, games: dayGames }
+    }
     const upcoming = allGames
       .filter((g) => g.status === 'upcoming')
       .sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime())
@@ -227,7 +246,7 @@ export function DashboardPage() {
       .filter((g) => g.status === 'finished')
       .sort((a, b) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime())
     return { title: 'Resultados recientes', games: finished.slice(0, 6) }
-  }, [allGames])
+  }, [dateOffset, filteredGames, allGames])
 
   if (gamesError && allGames.length === 0 && liveGames.length === 0) {
     return (

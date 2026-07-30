@@ -207,6 +207,106 @@ Usa este checklist para tildar items a medida que avanzas. Cada sección corresp
 | 4 | code ✅, activación ⏳ | depende de Vercel env vars |
 | 5 | 4/4 | ✅ |
 | 6 | 14/14 hooks | ✅ |
+| 7 | 6/6 | ✅ |
+| 8.0 | 3/3 | ✅ |
+| 8.1 | 7/7 | ✅ |
+| 8.2 | 6/6 | ✅ |
+| 8.3 | 8/8 | ✅ |
+| 8.4 | 5/6 | ✅ (1 pendiente no bloqueante) |
+| **8.5** | **11/11** | **✅ COMPLETA** |
+
+---
+
+## 📌 Fase 8 — Cobertura DB-only 🚧
+
+> **Objetivo**: lograr que el 100 % de requests del dashboard y bot se sirvan desde la DB,
+> sin llamadas en caliente a 365scores desde dashboard ni bot.
+>
+> Documento permanente de referencia: `docs/architecture/db-coverage.md`
+
+### Fase 8.0 — Auditoría y documentación ✅
+
+> Plan: [08-db-coverage-fase0-auditoria.md](./08-db-coverage-fase0-auditoria.md)
+
+- [x] `docs/architecture/db-coverage.md` creado (mapeo completo DB)
+- [x] Planes 09-13 creados
+- [x] CHECKLIST.md y README.md actualizados
+- [ ] **Validación Fase 8.0**: `git diff --stat` solo muestra `.md` files
+
+### Fase 8.1 — Frescura y salud del sync ✅
+
+> Plan: [09-db-frescura-y-salud.md](./09-db-frescura-y-salud.md)
+> Commit: `840dbcd`
+
+- [x] Diagnosticar procesos de sync (pm2 → online, 20 reinicios/23h)
+- [x] Ejecutar jobs stale manualmente (live games + athlete hydration)
+- [x] Fix: `pgQueryRetry()` en `database/connection.js` (timeouts 5s→15s, keepAlive, retry x2)
+- [x] Wire: `db.execAdvanced` + 5 fallbacks pg + `syncWriters.upsertMany` usan `pgQueryRetry`
+- [x] Añadir `tests/sync.freshness.test.js` — 21/21 verde
+- [x] Mock `pgQueryRetry` en `tests/helpers/dbCapture.js`
+- [x] **Validación**: `MAX(updated_at)` de `games` < 1 min, `athletes` < 24h, `news` < 24h, `odds_lines` < 24h
+- [x] Tests: 145/145 verde, 11 suites, 60 snapshots OK
+
+### Fase 8.2 — Predictions + tablas bot ✅
+
+> Plan: [10-db-predictions-y-bot-tables.md](./10-db-predictions-y-bot-tables.md)
+> Commit: `b0ec8f2`
+
+#### 8.2.1 — Predictions
+- [x] Diagnosticar por qué `predictions` = 0 filas (API devuelve predicciones en `games[i].promotedPredictions.predictions[]`, no top-level)
+- [x] Fix sync: extraer del path correcto + filtrar por games existentes
+- [x] Verificar que dashboard y bot no crashean con predictions vacío
+
+#### 8.2.2 — Tablas bot
+- [x] Determinar si el bot apunta a esta DB: NO — `telegramBot.js` no corre en este host (solo `sync.js` está activo vía PM2)
+- [x] Test E2E `bot.persistence.test.js` — 6/6 verde: INSERT/SELECT/DELETE + FK CASCADE
+- [x] **Conclusión**: las tablas son operativas; el bot corre en otro lado
+
+### Fase 8.3 — Cobertura DB completa ✅
+
+> Plan: [11-db-cobertura-completa.md](./11-db-cobertura-completa.md)
+> Commit: `9a92e6b`
+
+- [x] Migration 020: `trend_details` — aplicada
+- [x] Migration 021: `team_recent_form`, `team_upcoming`, `team_recent_results` — aplicadas
+- [x] Sync job `syncTrendDetails` — 108 trend_details pobladas en primer run
+- [x] Team state tables: hydrate-on-demand en controllers (sin cron)
+- [x] Refactor `trendDetailController` → DB_ONLY con hydrate
+- [x] Refactor `teamEnhancementsController` (3 endpoints) → DB_ONLY con hydrate
+- [x] Invertir `GET /teams/:id/info` → DB_FIRST (era 365_PRIMARY)
+- [x] **0 endpoints 365_ONLY o 365_PRIMARY** restantes
+
+### Fase 8.4 — Write-back cache ✅
+
+> Plan: [12-db-write-back-cache.md](./12-db-write-back-cache.md)
+> Commit: `59e9795`
+
+- [x] Añadir `db.readThrough(table, queryOpts, fetcher, opts)` en `database/db.js`
+- [x] Añadir contador `upsertsFromCacheMiss` en `utils/dbStats.js`
+- [x] Refactor 11 endpoints DB_FIRST con `readThrough`
+- [x] Tests: `tests/unit/readThrough.test.js` — 5/5 verde
+- [x] Total tests: 164/164 verde, 14 suites, 60 snapshots OK
+- [ ] **Pendiente**: `getCompetitionTransfers` (3-way JOIN complejo) — keep fallback sin write-back
+
+### Fase 8.5 — Activar Supabase HTTP ✅ COMPLETA
+
+> Plan: [13-db-activa-supabase-http.md](./13-db-activa-supabase-http.md)
+> Commit código: `8624654` · Activación Vercel: deploy `scorehub-oq3it862u`
+
+- [x] Código: `database/supabaseClient.js` + `database/db.js` dual-strategy completo desde Fase 4
+- [x] Script `scripts/check-supabase-config.js` — diagnóstico de env vars
+- [x] Script `scripts/activate-supabase-http.js` — guía paso-a-paso
+- [x] Script `scripts/activate-supabase-http.js` validó que service_role era accesible via `supabase projects api-keys --reveal`
+- [x] Tests `tests/integration/supabase-strategy.test.js` — 4/4 verde
+- [x] Tests totales: 164/164 verde, 14 suites, 60 snapshots OK
+- [x] **Activado en Vercel Production**:
+  - `SUPABASE_URL=https://jcfulxsqayscvqgxemhv.supabase.co`
+  - `SUPABASE_SERVICE_ROLE_KEY=<key>` (obtenida via `supabase projects api-keys --reveal`)
+- [x] **Redeploy Production exitoso**: `https://scorehub-pocho.vercel.app`
+- [x] **Health endpoint verificado**:
+  - `dbStrategy: "http+pg-fallback"`
+  - `supabasePercent: 75-100%` (varía por endpoint)
+  - `supabaseCalls > pgCalls` en tráfico normal
 
 ---
 
