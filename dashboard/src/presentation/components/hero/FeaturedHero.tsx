@@ -5,6 +5,7 @@ import { LiveIndicator } from '@/presentation/components/ui/LiveIndicator'
 
 interface FeaturedHeroProps {
   game: Game
+  competitionName?: string
 }
 
 function pad(n: number): string {
@@ -49,7 +50,7 @@ const QUICK_LINKS = [
   { key: 'estadisticas', label: 'Estadísticas', hash: '#estadisticas' },
 ] as const
 
-export function FeaturedHero({ game }: FeaturedHeroProps) {
+export function FeaturedHero({ game, competitionName }: FeaturedHeroProps) {
   const navigate = useNavigate()
   const isLive = game.status === 'live'
   const isUpcoming = game.status === 'upcoming'
@@ -92,13 +93,21 @@ export function FeaturedHero({ game }: FeaturedHeroProps) {
       <div className="from-bg-base/60 absolute inset-0 bg-gradient-to-t to-transparent" aria-hidden="true" />
 
       <div className="relative px-6 pt-5 pb-6">
-        {/* Cabecera: competición/etapa + badge destacado */}
+        {/* Cabecera: competición · etapa + badge según estado */}
         <div className="mb-4 flex items-center justify-between gap-2">
           <span className="font-body text-text-muted truncate text-xs font-medium tracking-wider uppercase">
-            {game.stageName || game.stage || 'Partido'}
+            {[competitionName, game.stageName || game.stage].filter(Boolean).join(' · ') || 'Partido'}
           </span>
-          <span className="bg-accent-gold/15 text-accent-gold font-body shrink-0 rounded-full px-2.5 py-0.5 text-[10px] font-semibold tracking-wider uppercase">
-            Partido destacado
+          <span
+            className={`font-body shrink-0 rounded-full px-2.5 py-0.5 text-[10px] font-semibold tracking-wider uppercase ${
+              isLive
+                ? 'bg-accent-live/15 text-accent-live'
+                : isFinished
+                  ? 'bg-bg-elevated text-text-muted'
+                  : 'bg-accent-gold/15 text-accent-gold'
+            }`}
+          >
+            {isLive ? 'En vivo' : isFinished ? 'Último resultado' : 'Partido destacado'}
           </span>
         </div>
 
@@ -136,7 +145,11 @@ export function FeaturedHero({ game }: FeaturedHeroProps) {
             ) : (
               <div className="font-display text-text-dim text-2xl font-bold tracking-widest">VS</div>
             )}
-            {isFinished && <span className="text-text-dim font-body text-[11px] font-semibold uppercase">Final</span>}
+            {isFinished && (
+              <span className="text-text-dim font-body max-w-[11rem] text-center text-[11px] font-semibold capitalize leading-tight">
+                Final{kickoffDate ? ` · ${kickoffDate}` : ''}
+              </span>
+            )}
             {isUpcoming && kickoffDate && (
               <span className="text-text-muted font-body max-w-[10rem] text-center text-[11px] capitalize leading-tight">
                 {kickoffDate}

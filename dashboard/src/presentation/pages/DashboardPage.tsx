@@ -112,6 +112,19 @@ export function DashboardPage() {
   const [heroCompact, setHeroCompact] = useState(false)
   const heroRef = useRef<HTMLDivElement>(null)
 
+  // Partido del hero: prioriza vivo > destacado (si no terminó) > próximo más
+  // cercano > destacado (aunque sea final). Evita quedarse en un final viejo si
+  // hay algo en curso o por venir.
+  const heroGame = useMemo(() => {
+    const live = liveGames[0]
+    if (live) return live
+    if (featuredGame && featuredGame.status !== 'finished') return featuredGame
+    const nextUp = allGames
+      .filter((g) => g.status === 'upcoming')
+      .sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime())[0]
+    return nextUp ?? featuredGame ?? null
+  }, [liveGames, featuredGame, allGames])
+
   useEffect(() => {
     if (liveGames.length === 0) return
     let intervalId: ReturnType<typeof setInterval>
@@ -150,7 +163,7 @@ export function DashboardPage() {
     })
     observer.observe(el)
     return () => observer.disconnect()
-  }, [featuredGame?.id])
+  }, [heroGame?.id])
 
   const gamesByDateOffset = useMemo(() => {
     if (dateOffset == null) return allGames
@@ -267,10 +280,14 @@ export function DashboardPage() {
     <div>
       {/* Hero destacado: desktop = FeaturedHero (365scores), mobile = HeroMatch. */}
       <section aria-label="Partido destacado" className="hidden px-4 pt-1 lg:block lg:px-0 lg:pt-0">
-        {featuredLoading ? <HeroSkeleton /> : featuredGame ? <FeaturedHero game={featuredGame} /> : null}
+        {heroGame ? (
+          <FeaturedHero game={heroGame} competitionName={activeComp?.shortName || activeComp?.displayName} />
+        ) : featuredLoading ? (
+          <HeroSkeleton />
+        ) : null}
       </section>
       <section aria-label="Partido destacado" ref={heroRef} className="lg:hidden">
-        {featuredLoading ? <HeroSkeleton /> : featuredGame ? <HeroMatch game={featuredGame} /> : null}
+        {heroGame ? <HeroMatch game={heroGame} /> : featuredLoading ? <HeroSkeleton /> : null}
       </section>
 
       {liveGames.length > 0 && (
@@ -291,7 +308,7 @@ export function DashboardPage() {
               <span className="text-text-muted font-body ml-2 text-sm font-normal">({liveGames.length})</span>
             </h2>
           </div>
-          <MatchTicker games={liveGames} featuredId={featuredGame?.id} onSelect={handleSelectGame} />
+          <MatchTicker games={liveGames} featuredId={heroGame?.id} onSelect={handleSelectGame} />
         </div>
       )}
 
@@ -379,7 +396,7 @@ export function DashboardPage() {
           <MatchGrid
             games={filteredGames}
             onSelect={handleSelectGame}
-            featuredId={featuredGame?.id}
+            featuredId={heroGame?.id}
             competitionName={competitionHeaderName}
             competitionId={scope.kind === 'one' ? scope.id : undefined}
             dateOrder={gridDateOrder}
@@ -436,9 +453,9 @@ export function DashboardPage() {
 
   return (
     <div className="mx-auto max-w-[1400px]">
-      {heroCompact && featuredGame && (
+      {heroCompact && heroGame && (
         <div className="fixed top-14 right-0 left-0 z-40 lg:hidden">
-          <HeroMatch game={featuredGame} compact />
+          <HeroMatch game={heroGame} compact />
         </div>
       )}
 
