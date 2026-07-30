@@ -436,16 +436,18 @@ export function DashboardPage() {
 
       {/* Equipo de la jornada — cancha con la formación (desktop, si hay data). */}
       {teamOfWeek && teamOfWeek.players.length > 0 && (
-        <div className="mt-8 hidden lg:block">
-          <div className="mb-3 flex items-center justify-between gap-2">
-            <h2 className="font-display text-text-primary text-lg font-semibold">
-              Equipo de la jornada
-            </h2>
-            <span className="font-body text-text-dim text-xs tracking-wider">
-              {teamOfWeek.formation}
-            </span>
+        <div className="mt-6 hidden lg:block">
+          <div className="bg-bg-card border-border-card rounded-2xl border p-4">
+            <div className="mb-3 flex items-center justify-between gap-2">
+              <h2 className="font-display text-text-primary flex items-center gap-1.5 text-lg font-semibold">
+                <span className="text-base">🏆</span> Equipo de la jornada
+              </h2>
+              <span className="bg-bg-elevated text-text-muted font-mono rounded-full px-2 py-0.5 text-[11px] tracking-wider">
+                {teamOfWeek.formation}
+              </span>
+            </div>
+            <TeamOfWeekPitch formation={teamOfWeek.formation} players={teamOfWeek.players} />
           </div>
-          <TeamOfWeekPitch formation={teamOfWeek.formation} players={teamOfWeek.players} />
         </div>
       )}
     </div>
