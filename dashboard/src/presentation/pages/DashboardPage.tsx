@@ -111,6 +111,7 @@ export function DashboardPage() {
     useGames(competitionParam)
   const [heroCompact, setHeroCompact] = useState(false)
   const heroRef = useRef<HTMLDivElement>(null)
+  const tabsRef = useRef<HTMLDivElement>(null)
 
   // Partido del hero: prioriza vivo > destacado (si no terminó) > próximo más
   // cercano > destacado (aunque sea final). Evita quedarse en un final viejo si
@@ -164,6 +165,15 @@ export function DashboardPage() {
     observer.observe(el)
     return () => observer.disconnect()
   }, [heroGame?.id])
+
+  // En mobile, centrar el tab de la competición activa (puede quedar fuera de
+  // pantalla si no es la primera). No-op en desktop (tabs ocultos).
+  const scopeKey = scope.kind === 'one' ? scope.id : 'all'
+  useEffect(() => {
+    const el = tabsRef.current?.querySelector('[data-active="true"]') as HTMLElement | null
+    el?.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' })
+    // featuredSorted.length: re-ejecuta cuando los tabs recién se renderizan.
+  }, [scopeKey, featuredSorted.length])
 
   const gamesByDateOffset = useMemo(() => {
     if (dateOffset == null) return allGames
@@ -340,11 +350,12 @@ export function DashboardPage() {
         {/* Competition tabs + filtros: solo mobile/tablet. En desktop van al rail izquierdo. */}
         <div>
           {featuredSorted.length > 0 && (
-            <div className="no-scrollbar mb-3 flex gap-1 overflow-x-auto">
+            <div className="no-scrollbar mb-3 flex gap-1 overflow-x-auto" ref={tabsRef}>
               {featuredSorted.map(c => (
                 <button
                   key={c.id}
                   type="button"
+                  data-active={scope.kind === 'one' && scope.id === c.id}
                   onClick={() => handleScopeChange({ kind: 'one', id: c.id })}
                   className={`font-body focus-visible shrink-0 rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
                     scope.kind === 'one' && scope.id === c.id
@@ -358,6 +369,7 @@ export function DashboardPage() {
               {featuredSorted.length > 1 && (
                 <button
                   type="button"
+                  data-active={scope.kind === 'all'}
                   onClick={() => handleScopeChange({ kind: 'all' })}
                   className={`font-body focus-visible shrink-0 rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
                     scope.kind === 'all'
