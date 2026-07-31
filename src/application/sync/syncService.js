@@ -38,6 +38,7 @@ async function syncAll() {
     await content.syncCompetitionHistory();
     await content.syncNews();
     await trendsOdds.syncTrends();
+    await trendsOdds.syncGameTrends();
     await trendsOdds.syncTrendDetails();
     await trendsOdds.syncPredictions();
     await trendsOdds.syncOutrights();

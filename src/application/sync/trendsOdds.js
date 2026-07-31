@@ -52,6 +52,73 @@ async function syncTrends() {
   await forEachActive(syncTrendsForComp);
 }
 
+/**
+ * syncGameTrends — trends por PARTIDO (scope='game').
+ *
+ * El feed competition-level (getTrends('competition', id) usa isTop=true) solo
+ * trae el trend "top" por partido — uno, a veces duplicado. El feed game-level
+ * (getTrends('game', gameId)) trae TODOS los tips del partido: ganador,
+ * over/under, ambos marcan, primer gol, resultado del 1er tiempo, etc.
+ *
+ * Poblamos scope='game' para los próximos partidos (status_group 1=live,
+ * 2=upcoming) de las comps activas. El endpoint /matches/:id/tips ya lee
+ * scope IN ('competition','game') y prefiere los game-level.
+ */
+async function syncGameTrends() {
+  log('Fetching per-game trends (upcoming)...');
+  try {
+    const comps = await getActiveCompetitions();
+    const ids = comps.map(c => c.id);
+    const games = await db.execAdvanced(
+      `SELECT id FROM games
+        WHERE competition_id = ANY($1::int[])
+          AND status_group IN (1, 2)
+        ORDER BY start_time ASC
+        LIMIT 60`,
+      [ids]
+    );
+
+    let totalRows = 0;
+    let gamesWithTips = 0;
+    for (const g of games) {
+      const gid = Number(g.id);
+      try {
+        const data = await api.getTrends('game', gid);
+        const items = data?.trends ?? [];
+        const rows = items.map(t => ({
+          scope: 'game',
+          entity_id: gid,
+          game_id: t.gameId ?? gid,
+          line_type_id: t.lineTypeId ?? null,
+          data: JSON.stringify(t),
+        }));
+
+        await withTransaction(async (client) => {
+          await client.query('DELETE FROM trends WHERE scope = $1 AND game_id = $2', ['game', gid]);
+          if (rows.length) {
+            const placeholders = rows.map((_, i) =>
+              `($${i * 5 + 1}, $${i * 5 + 2}, $${i * 5 + 3}, $${i * 5 + 4}, $${i * 5 + 5})`
+            ).join(', ');
+            const values = rows.flatMap(r => [r.scope, r.entity_id, r.game_id, r.line_type_id, r.data]);
+            await client.query(
+              `INSERT INTO trends (scope, entity_id, game_id, line_type_id, data) VALUES ${placeholders}`,
+              values
+            );
+          }
+        });
+
+        if (rows.length) { totalRows += rows.length; gamesWithTips++; }
+      } catch (e) {
+        logErr(`[game=${gid}] Error syncing game trends: ${e.message}`);
+      }
+    }
+
+    log(`Synced ${totalRows} per-game trends across ${gamesWithTips}/${games.length} games`);
+  } catch (e) {
+    logErr(`Error syncing game trends: ${e.message}`);
+  }
+}
+
 async function syncPredictions() {
   // La API de 365scores devuelve las predicciones dentro de cada game:
   //   data.games[i].promotedPredictions.predictions[]
@@ -257,4 +324,4 @@ async function syncTrendDetails() {
 }
 
 
-module.exports = { syncTrends, syncPredictions, syncOdds, syncOutrights, syncTrendDetails };
+module.exports = { syncTrends, syncGameTrends, syncPredictions, syncOdds, syncOutrights, syncTrendDetails };
