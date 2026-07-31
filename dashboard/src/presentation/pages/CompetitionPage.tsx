@@ -435,6 +435,7 @@ export function CompetitionPage() {
         {activeTab === 'analysis' && (
           <AnalysisTab
             competitionId={competitionId}
+            competitionName={titleText}
             seasonNum={tabSeasonNum === 'all' || tabSeasonNum === null ? undefined : tabSeasonNum}
           />
         )}
