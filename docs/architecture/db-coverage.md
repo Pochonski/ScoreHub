@@ -333,3 +333,7 @@ Distribución de `status_group`: 466 upcoming (2), 360 finalizados (4), 0 en viv
 | Fase 4 | `docs/refactor-plans/12-db-write-back-cache.md` | Write-back automático |
 | Fase 5 | `docs/refactor-plans/13-db-activa-supabase-http.md` | Activar ruta HTTP PostgREST |
 | Fase 6 | `docs/refactor-plans/14-db-limitations-fase-86.md` | Cerrar 3 limitaciones restantes |
+
+## Documentos de referencia
+
+- [`docs/architecture/sync-schedule.md`](./sync-schedule.md) — calendario completo de los 23 jobs ETL (frecuencia, fuentes, tablas destino)
