@@ -3,8 +3,37 @@ import { useNavigate, useLocation } from 'react-router-dom'
 import { PlayerSearch } from '@/presentation/components/explorer/PlayerSearch'
 import { useCompetitions } from '@/presentation/hooks/useCompetitions'
 import { useActiveCompetition } from '@/presentation/context/ActiveCompetitionContext'
+import { competitionLogoUrl } from '@/shared/images'
 
 type NavItem = { id: string; label: string; route: (competitionId: number | null) => string }
+
+/** Logo de la competición con fallback a monograma (iniciales). */
+function CompetitionLogo({ id, name }: { id: number; name: string }) {
+  const [failed, setFailed] = useState(false)
+  const initials =
+    name
+      .split(/\s+/)
+      .slice(0, 2)
+      .map((w) => w.charAt(0))
+      .join('')
+      .toUpperCase() || '?'
+  if (failed) {
+    return (
+      <span className="bg-bg-elevated text-accent-gold font-display flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-[11px] font-bold">
+        {initials}
+      </span>
+    )
+  }
+  return (
+    <img
+      src={competitionLogoUrl(id)}
+      alt=""
+      loading="lazy"
+      onError={() => setFailed(true)}
+      className="h-7 w-7 shrink-0 rounded-md object-contain"
+    />
+  )
+}
 
 const NAV_ITEMS: readonly NavItem[] = [
   { id: 'matches', label: 'Partidos', route: () => '/' },
@@ -85,8 +114,63 @@ export function Navbar() {
           {dropdownOpen && (
             <div
               role="menu"
-              className="bg-bg-card border-border-card animate-fade-in-up absolute top-full right-0 left-auto mt-2 w-72 rounded-xl border p-1 shadow-lg"
+              className="bg-bg-card border-border-card animate-fade-in-up absolute top-full left-0 right-auto z-50 mt-2 flex max-h-[70vh] w-80 max-w-[calc(100vw-2rem)] flex-col overflow-hidden rounded-xl border shadow-xl"
             >
+              <div className="overflow-y-auto p-1.5">
+                {competitions.length === 0 && (
+                  <p className="text-text-muted font-body px-3 py-3 text-center text-xs">
+                    Cargando competiciones…
+                  </p>
+                )}
+                {competitions.map(c => {
+                  const active = activeComp?.id === c.id
+                  return (
+                    <button
+                      key={c.id}
+                      type="button"
+                      role="menuitem"
+                      onClick={() => {
+                        navigate(`/competicion/${c.id}/standings`)
+                        setDropdownOpen(false)
+                      }}
+                      className={`font-body focus-visible flex w-full items-center gap-3 rounded-lg px-2.5 py-2 text-left transition-colors ${
+                        active ? 'bg-accent-gold/10' : 'hover:bg-bg-elevated'
+                      }`}
+                    >
+                      <CompetitionLogo id={c.id} name={c.shortName || c.displayName} />
+                      <span className="min-w-0 flex-1">
+                        <span
+                          className={`block truncate text-sm font-medium ${
+                            active ? 'text-accent-gold' : 'text-text-primary'
+                          }`}
+                        >
+                          {c.displayName}
+                        </span>
+                        {c.countryName && (
+                          <span className="text-text-dim block truncate text-[11px]">
+                            {c.countryName}
+                          </span>
+                        )}
+                      </span>
+                      {active && (
+                        <svg
+                          width="14"
+                          height="14"
+                          viewBox="0 0 14 14"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          className="text-accent-gold shrink-0"
+                          aria-hidden="true"
+                        >
+                          <path d="M2.5 7.5l3 3 6-7" strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
+                      )}
+                    </button>
+                  )
+                })}
+              </div>
+
               <button
                 type="button"
                 role="menuitem"
@@ -94,38 +178,11 @@ export function Navbar() {
                   navigate('/competiciones')
                   setDropdownOpen(false)
                 }}
-                className={`font-body hover:bg-bg-elevated focus-visible flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm font-medium ${
-                  location.pathname === '/competiciones' ? 'text-accent-gold' : 'text-text-primary'
-                }`}
+                className="border-border-card font-body hover:bg-bg-elevated focus-visible flex w-full shrink-0 items-center justify-between border-t px-4 py-2.5 text-left text-xs font-medium text-text-muted transition-colors"
               >
                 <span>Ver todas las competiciones</span>
-                <span className="text-text-dim text-xs">→</span>
+                <span aria-hidden="true">→</span>
               </button>
-              <div className="bg-border-card/40 my-1 h-px" />
-              {competitions.length === 0 && (
-                <p className="text-text-muted font-body px-3 py-2 text-xs">
-                  Cargando competiciones…
-                </p>
-              )}
-              {competitions.map(c => (
-                <button
-                  key={c.id}
-                  type="button"
-                  role="menuitem"
-                  onClick={() => {
-                    navigate(`/competicion/${c.id}/standings`)
-                    setDropdownOpen(false)
-                  }}
-                  className={`font-body hover:bg-bg-elevated focus-visible flex w-full items-center justify-between gap-2 rounded-lg px-3 py-2 text-left text-sm ${
-                    activeComp?.id === c.id ? 'bg-accent-gold/10 text-accent-gold' : 'text-text-primary'
-                  }`}
-                >
-                  <span className="truncate">{c.displayName}</span>
-                  <span className="text-text-dim shrink-0 font-mono text-[10px]">
-                    {c.countryName || ''}
-                  </span>
-                </button>
-              ))}
             </div>
           )}
         </div>
