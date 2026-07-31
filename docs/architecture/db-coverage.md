@@ -4,10 +4,10 @@ Documento permanente de cobertura de base de datos. Describe qué datos están p
 con qué frescura, y qué superficie de la aplicación (bot + dashboard) se sirve desde la DB
 vs qué endpoints/commands dependen todavía de la API externa de 365scores.
 
-> **Última actualización:** julio 2026
-> **Cobertura DB Dashboard:** ~85% (36/42 endpoints DB_ONLY o DB_FIRST)
-> **Cobertura DB Bot:** ~97% (33/35 comandos DB_ONLY)
-> **Conexión activa:** pg-only (ruta HTTP desactivada por env vars ausentes)
+> **Última actualización:** Fase 8.6 — 30 julio 2026
+> **Cobertura DB Dashboard:** 100% (42/42 endpoints DB_ONLY o DB_FIRST)
+> **Cobertura DB Bot:** 100% (35/35 comandos DB_ONLY, vía simulador)
+> **Conexión activa:** http+pg-fallback (Supabase JS HTTP activo en Vercel)
 
 ---
 
@@ -15,15 +15,16 @@ vs qué endpoints/commands dependen todavía de la API externa de 365scores.
 
 | Variable | Configurada | Efecto |
 |---|---|---|
-| `SUPABASE_URL` | ❌ No | Ruta HTTP PostgREST desactivada |
-| `SUPABASE_SERVICE_ROLE_KEY` | ❌ No | Idem |
-| `SUPABASE_DB_URL` | ❌ No | Pooler Supavisor no usado |
-| `DB_HOST/USER/PASSWORD/NAME/SSL` | ✅ Sí | Conexión pg directa activa |
+| `SUPABASE_URL` | ✅ Sí (Vercel Production) | Ruta HTTP PostgREST activa |
+| `SUPABASE_SERVICE_ROLE_KEY` | ✅ Sí (Vercel Production) | service_role bypass RLS |
+| `SUPABASE_DB_URL` | ❌ No (opcional) | Pooler Supavisor no usado |
+| `DB_HOST/USER/PASSWORD/NAME/SSL` | ✅ Sí | Conexión pg directa activa (fallback) |
 | `DB_POOL_MAX` | `1` | Solo queries avanzadas van por pg |
 
-**Conclusión**: `database/db.js` opera 100 % en modo fallback (`queryViaPg`, `insertViaPg`, etc.).
-El código `database/supabaseClient.js` está completo y listo (desde Fase 4 del refactor anterior)
-pero requiere env vars para activarse.
+**Conclusión**: `database/db.js` opera en **dual-strategy** (Fase 8.5).
+- Supabase JS HTTP: queries simples (sin JSONB avanzado, sin transacciones multi-row)
+- pg pool: queries con `execAdvanced` (CTEs, multi-JOIN, transacciones)
+- Health endpoint: `dbStrategy: "http+pg-fallback"`, contadores `supabaseCalls` + `pgCalls` en tiempo real.
 
 ---
 

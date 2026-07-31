@@ -240,10 +240,12 @@ Usa este checklist para tildar items a medida que avanzas. Cada sección corresp
 - [x] Test `tests/integration/simulate-bot.test.js` — 4/4 verde.
 
 #### 8.6.4 — Resumen final de Fase 8.6
-- [x] **175/175 tests verde**, 16 suites, 59 snapshots
+- [x] **180/180 tests verde**, 16 suites, 59 snapshots
 - [x] **3 predicciones** en DB tras primer sync (limit A resuelta)
 - [x] **Bot tables** operativas con datos simulados (limit B resuelta)
 - [x] **5 paths de API** corregidos (limit C resuelta)
+- [x] **Audit Fase 8.6**: `readThroughCalls` se incrementa en cada llamada (no solo write-back)
+- [x] Documentación `db-coverage.md` actualizada con cobertura 100% y dual-strategy activo
 
 ---
 
