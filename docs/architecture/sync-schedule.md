@@ -5,8 +5,8 @@ Documento permanente que describe el calendario completo de syncs ETL
 de la API de 365scores. Lista los 23 jobs, su frecuencia, qué hacen y
 de dónde vienen los datos.
 
-> **Última actualización:** Fase 8.6 — 30 julio 2026
-> **Total de jobs:** 23 + 1 inicial
+> **Última actualización:** Fase 8.6+ — 30 julio 2026
+> **Total de jobs:** 24 + 1 inicial
 > **Tecnología:** `node-cron` con `jobGuard` anti-solapamiento
 > **Host:** PM2 (`scores365-sync`) en este server (no Vercel)
 
@@ -18,13 +18,13 @@ de dónde vienen los datos.
 |---|---|---|
 | 15 s | 2 | Live (gaming en vivo) |
 | 60 s | 3 | Games (resultados + fixtures) |
-| 2 m | 2 | Standings + Trends |
+| 2 m | 3 | Standings + Trends + Bet selections |
 | 5 m | 2 | Predictions + Odds |
 | 10 m | 8 | Detalles, athletes, news, etc. |
 | 30 m | 2 | Suggestions + trend details |
 | 6 h | 3 | Transfers, catalog, countries |
 | 24 h | 1 | Competition history |
-| **Total** | **23** | |
+| **Total** | **24** | |
 
 Más 1 `syncAll()` que corre al startup del proceso y re-ejecuta los 22 jobs secuencialmente en background.
 
@@ -55,10 +55,11 @@ Más 1 `syncAll()` que corre al startup del proceso y re-ejecuta los 22 jobs sec
 
 ## 4. Cada 2 minutos
 
-| Job | Fuente (365scores API) | Tabla(s) destino |
+| Job | Fuente | Tabla(s) destino |
 |---|---|---|
 | `syncStandings` | `getStandings(compId, stageNum, seasonNum)` × 7 comps | `standings`, `competition_competitors` |
 | `syncTrends` | `getTrends('competition', compId)` × 7 comps | `trends` (atomic DELETE+INSERT en tx) |
+| `syncBetSelections` | (no API) — evalúa `apuesta_selecciones` cuyo partido terminó | `apuesta_selecciones` (estado, valor_actual) |
 
 ---
 
@@ -276,6 +277,7 @@ Health endpoint en Vercel (`https://scorehub-pocho.vercel.app/api/football/healt
 | 2026-07-29 | Fase 8.5: Supabase HTTP activado en Vercel | Reducir carga en pg pool |
 | 2026-07-29 | Fase 8.6: 5 paths API con slash final, `syncPredictions` por competitors | Cerrar 3 limitaciones |
 | 2026-07-30 | `readThroughCalls` se incrementa en cada llamada (no solo write-back) | Auditoría Fase 8.6 |
+| 2026-07-30 | Añadido `syncBetSelections` (cada 2m) — evalúa selecciones pendientes automáticamente | Fase 8.6+ |
 
 ---
 

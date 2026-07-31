@@ -36,6 +36,7 @@ const FRESHNESS_RULES = [
   { table: 'team_upcoming',      maxAgeHours: 168,  note: 'hydrate-on-demand (Fase 8.3)' },
   { table: 'team_recent_results',maxAgeHours: 168,  note: 'hydrate-on-demand (Fase 8.3)' },
   { table: 'trend_details',      maxAgeHours: 24,   note: 'cron 30min (Fase 8.3)' },
+  { table: 'apuesta_selecciones',maxAgeHours: 0.5,  note: 'cron 2min (Fase 8.6+: syncBetSelections evalúa pendientes)' },
   { table: 'brackets',           maxAgeHours: 24,   note: 'cron 10min' },
   { table: 'competition_history',maxAgeHours: 48,   note: 'cron 24h' },
   { table: 'competitions',       maxAgeHours: 48,   note: 'cron 6h (syncCatalog)' },
@@ -46,6 +47,11 @@ const FRESHNESS_RULES = [
   { table: 'game_lineups',       maxAgeHours: 48,   note: 'cron 10min (syncGameDetails)' },
   { table: 'competition_transfers', maxAgeHours: 48, note: 'cron 6h' },
   { table: 'game_suggestions',   maxAgeHours: 48,   note: 'cron 30min' },
+  { table: 'competitions',       maxAgeHours: 12,   note: 'cron 6h (syncCatalog) — contiene JSONB raw 365scores' },
+  { table: 'apuestas',           maxAgeHours: 168,  note: 'bot-driven (no sync 365scores)' },
+  { table: 'usuarios',           maxAgeHours: 168,  note: 'bot-driven (scripts/simulate-bot.js)' },
+  { table: 'equipos_seguidos',   maxAgeHours: 168,  note: 'bot-driven (scripts/simulate-bot.js)' },
+  { table: 'historial_consultas',maxAgeHours: 168,  note: 'bot-driven (scripts/simulate-bot.js)' },
 ];
 
 describe('sync.freshness — tablas de caché tienen MAX(updated_at) reciente', () => {

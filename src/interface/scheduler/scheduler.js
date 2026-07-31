@@ -54,6 +54,10 @@ async function start() {
   // News — every 10 minutes
   every('*/10 * * * *', 'syncNews', sync.syncNews);
 
+  // Bet selections — every 2 minutes (Fase 8.6+: evalúa selecciones pendientes
+  // de apuestas cuyo partido asociado terminó, actualizando estado y valor_actual)
+  every('*/2 * * * *', 'syncBetSelections', sync.syncBetSelections);
+
   // Suggestions (top upcoming games) — every 30 minutes (cambian poco)
   every('*/30 * * * *', 'syncSuggestions', sync.syncSuggestions);
 

@@ -16,6 +16,7 @@ const details = require('./details');
 const catalog = require('./catalog');
 const athletes = require('./athletes');
 const transfers = require('./transfers');
+const betSelections = require('./betSelections');
 const { newSyncRunId, setSyncRunId, log } = require('./context');
 
 async function syncAll() {
@@ -50,6 +51,7 @@ async function syncAll() {
     await athletes.syncVenues();
     await transfers.syncTransfers();
     await transfers.syncSuggestions();
+    // betSelections no se incluye en syncAll (se ejecuta via cron cada 2min).
     log('Full sync complete');
   } finally {
     setSyncRunId(null);
@@ -65,5 +67,6 @@ module.exports = {
   ...catalog,
   ...athletes,
   ...transfers,
+  ...betSelections,
   syncAll,
 };
