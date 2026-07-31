@@ -1,42 +1,54 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import type { Trend } from '@/domain/entities/BettingTip'
-import { ConfidenceBar } from '@/presentation/components/ui/ConfidenceBar'
+import { BetTrendRow } from './BetTrendRow'
 import { TrendDetailModal } from './TrendDetailModal'
 
 interface BettingTrendsProps {
   trends: Trend[]
+  /** Máximo de tendencias a mostrar. */
+  limit?: number
 }
 
-export function BettingTrends({ trends }: BettingTrendsProps) {
-  const [selected, setSelected] = useState<Trend | null>(null)
+/** Dedup por apuesta (betCTA/text), quedándose con el porcentaje más alto. */
+function dedupe(trends: Trend[]): Trend[] {
+  const best = new Map<string, Trend>()
+  for (const t of trends) {
+    const key = t.betCTA || t.text
+    const cur = best.get(key)
+    if (!cur || t.percentage > cur.percentage) best.set(key, t)
+  }
+  return Array.from(best.values()).sort((a, b) => b.percentage - a.percentage)
+}
 
-  if (trends.length === 0) return null
+/**
+ * BettingTrends — grilla premium de tendencias de la competición. Cada fila es
+ * clickeable y abre el detalle con los partidos que la soportan. El encabezado
+ * de sección lo pone el contenedor.
+ */
+export function BettingTrends({ trends, limit = 8 }: BettingTrendsProps) {
+  const [selected, setSelected] = useState<Trend | null>(null)
+  const rows = useMemo(() => dedupe(trends).slice(0, limit), [trends, limit])
+
+  if (rows.length === 0) return null
 
   return (
     <>
-      <div>
-        <h2 className="font-display text-text-primary mb-3 text-xl font-semibold">Tendencias</h2>
-        <div className="bg-bg-card border-border-card space-y-4 rounded-xl border p-4">
-          {trends.slice(0, 8).map((t, i) => (
-            <button
-              key={i}
-              type="button"
-              onClick={() => setSelected(t)}
-              className="focus-visible hover:bg-bg-elevated/30 -mx-1 w-[calc(100%+0.5rem)] rounded-lg px-1 py-1 text-left transition-colors"
-              aria-label={`Ver detalle: ${t.text || t.betCTA}`}
-            >
-              <ConfidenceBar
-                percentage={t.percentage * 100}
-                label={t.text || t.betCTA}
-                value={`${(t.percentage * 100).toFixed(0)}%`}
-              />
-            </button>
-          ))}
-          <p className="font-body text-text-dim border-border-card border-t pt-1 text-center text-[10px]">
-            Toca una tendencia para ver los partidos que la soportan
-          </p>
-        </div>
+      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+        {rows.map((t, i) => (
+          <button
+            key={i}
+            type="button"
+            onClick={() => setSelected(t)}
+            className="focus-visible hover:ring-border-card block rounded-xl text-left transition hover:ring-1"
+            aria-label={`Ver detalle: ${t.betCTA || t.text}`}
+          >
+            <BetTrendRow trend={t} />
+          </button>
+        ))}
       </div>
+      <p className="font-body text-text-dim mt-2 text-center text-[10px]">
+        Toca una tendencia para ver los partidos que la soportan
+      </p>
       <TrendDetailModal trend={selected} onClose={() => setSelected(null)} />
     </>
   )

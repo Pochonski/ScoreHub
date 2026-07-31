@@ -1,19 +1,15 @@
-import { useState, useEffect } from 'react'
+import { useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
-import type { BettingTip } from '@/domain/entities/BettingTip'
+import type { BettingTip, Trend } from '@/domain/entities/BettingTip'
 import type { Game } from '@/domain/entities/Game'
 import { BettingTrends } from '@/presentation/components/trends/BettingTrends'
-import { MatchTips } from '@/presentation/components/trends/MatchTips'
+import { BetTrendRow } from '@/presentation/components/trends/BetTrendRow'
 import { TeamBadge } from '@/presentation/components/ui/TeamBadge'
-import { useFeaturedGame } from '@/presentation/hooks/useGames'
+import { useGames, useFeaturedGame } from '@/presentation/hooks/useGames'
+import { useMatchTipsForGames } from '@/presentation/hooks/useMatchTips'
 import { useTrends } from '@/presentation/hooks/useTrends'
-import { apiClient } from '@/data/datasources/ApiClient'
-import { ENDPOINTS } from '@/infrastructure/config'
 
-interface PredictionItem {
-  name: string
-  value: number
-}
+const MAX_MATCHES = 6
 
 function formatKickoff(iso?: string): string {
   if (!iso) return ''
@@ -27,153 +23,159 @@ function formatKickoff(iso?: string): string {
   }
 }
 
+/** Dedup por apuesta, quedándose con el porcentaje más alto. */
+function dedupe(trends: Trend[]): Trend[] {
+  const best = new Map<string, Trend>()
+  for (const t of trends) {
+    const key = t.betCTA || t.text
+    const cur = best.get(key)
+    if (!cur || t.percentage > cur.percentage) best.set(key, t)
+  }
+  return Array.from(best.values()).sort((a, b) => b.percentage - a.percentage)
+}
+
 /**
- * MatchAnalysisHeader — cabecera premium que deja claro de qué partido es el
- * análisis. Muestra los equipos con escudo, el estado (próximo / en vivo /
- * finalizado) con marcador o fecha, y enlaza al detalle del partido.
+ * MatchTipCard — tarjeta premium de análisis de un partido: cabecera con los
+ * equipos + estado/fecha (enlaza al detalle) y sus mejores tips de apuestas.
  */
-function MatchAnalysisHeader({
-  game,
-  competitionName,
-}: {
-  game: Game
-  competitionName?: string
-}) {
+function MatchTipCard({ game, tips }: { game: Game; tips: BettingTip | null }) {
   const navigate = useNavigate()
+  const topTips = useMemo(() => dedupe(tips?.topTrends ?? []), [tips])
+  const confidence = tips ? Math.round(tips.confidenceScore * 100) : 0
+
   const isLive = game.status === 'live'
   const isFinished = game.status === 'finished'
   const isUpcoming = !isLive && !isFinished
-
-  const statusLabel = isLive ? 'En vivo' : isFinished ? 'Finalizado' : 'Próximo partido'
-  const context = [competitionName, game.stageName].filter(Boolean).join(' · ')
-
-  const homeScore = game.homeTeam.score
-  const awayScore = game.awayTeam.score
-  const hasScore = homeScore != null && awayScore != null
+  const hasScore = game.homeTeam.score != null && game.awayTeam.score != null
 
   return (
-    <button
-      type="button"
-      onClick={() => navigate(`/partido/${game.id}`)}
-      className="focus-visible group block w-full text-left"
-      aria-label={`Ver detalles: ${game.homeTeam.name} vs ${game.awayTeam.name}`}
-    >
-      <div className="border-border-card from-bg-elevated/50 to-bg-card relative overflow-hidden rounded-2xl border bg-gradient-to-br p-5 transition-colors group-hover:border-accent-gold/30">
-        {/* Contexto + estado */}
-        <div className="mb-4 flex items-center justify-between gap-2">
-          {context && (
-            <span className="font-body text-text-dim truncate text-[11px] font-semibold uppercase tracking-wider">
-              {context}
-            </span>
-          )}
-          <span
-            className={`font-body shrink-0 rounded-full px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${
-              isLive
-                ? 'bg-accent-green/15 text-accent-green'
-                : isFinished
-                  ? 'bg-bg-elevated text-text-muted'
-                  : 'bg-accent-gold/15 text-accent-gold'
-            }`}
-          >
-            {isLive && (
-              <span className="bg-accent-green mr-1 inline-block h-1.5 w-1.5 animate-pulse rounded-full align-middle" />
-            )}
-            {statusLabel}
-          </span>
-        </div>
-
-        {/* Matchup */}
-        <div className="flex items-center justify-between gap-3">
-          <div className="flex min-w-0 flex-1 items-center gap-3">
-            <TeamBadge src={game.homeTeam.badgeUrl ?? null} name={game.homeTeam.name} size="md" />
-            <span className="font-display text-text-primary truncate text-lg font-bold">
+    <div className="bg-bg-card border-border-card flex flex-col overflow-hidden rounded-2xl border">
+      {/* Cabecera del partido */}
+      <button
+        type="button"
+        onClick={() => navigate(`/partido/${game.id}`)}
+        className="focus-visible group block w-full text-left"
+        aria-label={`Ver detalles: ${game.homeTeam.name} vs ${game.awayTeam.name}`}
+      >
+        <div className="from-bg-elevated/40 to-bg-card border-border-card/60 flex items-center gap-2 border-b bg-gradient-to-br px-4 py-3">
+          <div className="flex min-w-0 flex-1 items-center justify-end gap-2 text-right">
+            <span className="font-body text-text-primary group-hover:text-accent-gold truncate text-sm font-semibold transition-colors">
               {game.homeTeam.name}
             </span>
+            <TeamBadge src={game.homeTeam.badgeUrl ?? null} name={game.homeTeam.name} size="sm" />
           </div>
 
-          <div className="shrink-0 px-2 text-center">
+          <div className="shrink-0 px-1 text-center">
             {hasScore ? (
-              <div className="font-display text-text-primary text-2xl font-bold tabular-nums">
-                {homeScore}
-                <span className="text-text-dim mx-1.5">–</span>
-                {awayScore}
+              <div className="font-display text-text-primary text-base font-bold tabular-nums">
+                {game.homeTeam.score}
+                <span className="text-text-dim mx-1">–</span>
+                {game.awayTeam.score}
               </div>
             ) : (
-              <div className="font-display text-text-dim text-lg font-bold">VS</div>
+              <div className="font-display text-text-dim text-sm font-bold">VS</div>
             )}
-            <div className="font-mono text-text-dim mt-0.5 text-[10px]">
-              {isUpcoming ? formatKickoff(game.startTime) : game.statusText || ''}
+            <div className="font-mono text-text-dim mt-0.5 text-[9px] leading-tight">
+              {isLive ? (
+                <span className="text-accent-green">● {game.statusText || 'En vivo'}</span>
+              ) : isUpcoming ? (
+                formatKickoff(game.startTime)
+              ) : (
+                game.statusText || 'Finalizado'
+              )}
             </div>
           </div>
 
-          <div className="flex min-w-0 flex-1 items-center justify-end gap-3">
-            <span className="font-display text-text-primary truncate text-right text-lg font-bold">
+          <div className="flex min-w-0 flex-1 items-center gap-2">
+            <TeamBadge src={game.awayTeam.badgeUrl ?? null} name={game.awayTeam.name} size="sm" />
+            <span className="font-body text-text-primary group-hover:text-accent-gold truncate text-sm font-semibold transition-colors">
               {game.awayTeam.name}
             </span>
-            <TeamBadge src={game.awayTeam.badgeUrl ?? null} name={game.awayTeam.name} size="md" />
           </div>
         </div>
+      </button>
 
-        <div className="font-body text-text-dim group-hover:text-accent-gold mt-3 text-center text-[11px] transition-colors">
-          Ver detalles del partido →
-        </div>
+      {/* Tips */}
+      <div className="flex-1 p-3">
+        {topTips.length > 0 ? (
+          <>
+            <div className="mb-2 flex items-center justify-between px-1">
+              <span className="font-body text-text-muted text-[10px] font-semibold uppercase tracking-wider">
+                Tips del partido
+              </span>
+              <span className="font-mono text-accent-gold text-[11px]">{confidence}% confianza</span>
+            </div>
+            <div className="space-y-1.5">
+              {topTips.slice(0, 3).map((t, i) => (
+                <BetTrendRow key={i} trend={t} />
+              ))}
+            </div>
+          </>
+        ) : (
+          <p className="font-body text-text-muted px-1 py-4 text-center text-xs">
+            Sin tips para este partido
+          </p>
+        )}
       </div>
-    </button>
+    </div>
   )
 }
 
 /**
- * AnalysisTab — análisis de apuestas por competición. Se enfoca en el partido
- * destacado (predicciones + tips) y las tendencias de la competición. Las
- * estadísticas del torneo y el once ideal viven en el tab «Estadísticas».
+ * AnalysisTab — análisis de apuestas por competición. Muestra los próximos
+ * partidos con sus tips (varios a la vez) y las tendencias de la competición.
+ * Las estadísticas del torneo y el once ideal viven en el tab «Estadísticas».
  */
-export function AnalysisTab({
-  competitionId,
-  competitionName,
-}: {
-  competitionId?: number
-  competitionName?: string
-  seasonNum?: number
-}) {
+export function AnalysisTab({ competitionId }: { competitionId?: number; competitionName?: string; seasonNum?: number }) {
+  const { games, loading: gamesLoading } = useGames({ competitionId })
   const { game: featured, loading: featuredLoading } = useFeaturedGame(competitionId)
   const { trends, loading: trendsLoading } = useTrends(competitionId)
-  const [featuredTips, setFeaturedTips] = useState<BettingTip | null>(null)
-  const [featuredPredictions, setFeaturedPredictions] = useState<PredictionItem[]>([])
 
-  const hasTips = featuredTips != null && featuredTips.topTrends.length > 0
+  // Próximos partidos (en vivo o por jugar), ordenados por fecha; tope MAX_MATCHES.
+  const upcoming = useMemo(() => {
+    return games
+      .filter((g) => g.status === 'upcoming' || g.status === 'live')
+      .sort((a, b) => +new Date(a.startTime) - +new Date(b.startTime))
+      .slice(0, MAX_MATCHES)
+  }, [games])
 
-  useEffect(() => {
-    if (!featured?.id) {
-      setFeaturedPredictions([])
-      setFeaturedTips(null)
-      return
-    }
-    Promise.all([
-      apiClient.get<PredictionItem[]>(ENDPOINTS.matchPredictions(featured.id)).catch(() => []),
-      apiClient.get<BettingTip | null>(ENDPOINTS.matchTips(featured.id)).catch(() => null),
-    ]).then(([preds, tips]) => {
-      setFeaturedPredictions(preds)
-      setFeaturedTips(tips)
-    })
-  }, [featured?.id])
+  // Si no hay próximos (ej. torneo terminado), caemos al partido destacado.
+  const analysisGames = useMemo(
+    () => (upcoming.length > 0 ? upcoming : featured ? [featured] : []),
+    [upcoming, featured]
+  )
 
-  const hasPredictions = featuredPredictions.length > 0
+  const gameIds = useMemo(() => analysisGames.map((g) => g.id), [analysisGames])
+  const { tipsByGame, loading: tipsLoading } = useMatchTipsForGames(gameIds)
+
+  const matchesWithTips = useMemo(
+    () => analysisGames.filter((g) => dedupe(tipsByGame.get(g.id)?.topTrends ?? []).length > 0),
+    [analysisGames, tipsByGame]
+  )
+
+  // Cards a mostrar: los partidos con tips; si ninguno tiene, un card único
+  // (el más próximo / destacado) para dejar claro de qué partido hablamos.
+  const cards = matchesWithTips.length > 0 ? matchesWithTips : analysisGames.slice(0, 1)
+
   const hasTrends = !trendsLoading && trends.length > 0
-  const hasMatchBetting = hasPredictions || hasTips
+  const initialLoading =
+    gamesLoading ||
+    featuredLoading ||
+    (analysisGames.length > 0 && tipsLoading && matchesWithTips.length === 0)
 
-  if (featuredLoading || trendsLoading) {
+  if (initialLoading) {
     return (
-      <div className="space-y-6">
-        <div className="bg-bg-card border-border-card skeleton h-32 rounded-2xl border" />
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_360px]">
-          <div className="bg-bg-card border-border-card skeleton h-64 rounded-xl border" />
-          <div className="bg-bg-card border-border-card skeleton h-64 rounded-xl border" />
+      <div className="space-y-8">
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+          {Array.from({ length: 2 }).map((_, i) => (
+            <div key={i} className="bg-bg-card border-border-card skeleton h-48 rounded-2xl border" />
+          ))}
         </div>
       </div>
     )
   }
 
-  if (!featured && !hasTrends) {
+  if (cards.length === 0 && !hasTrends) {
     return (
       <div className="bg-bg-card rounded-xl p-6 text-center">
         <p className="font-body text-text-muted text-sm">
@@ -184,54 +186,37 @@ export function AnalysisTab({
   }
 
   return (
-    <div className="space-y-6">
-      {featured && <MatchAnalysisHeader game={featured} competitionName={competitionName} />}
+    <div className="space-y-8">
+      {cards.length > 0 && (
+        <section>
+          <div className="mb-3 flex items-baseline justify-between gap-2">
+            <h2 className="font-display text-text-primary text-lg font-semibold">
+              {matchesWithTips.length > 1 ? 'Análisis de próximos partidos' : 'Análisis del partido'}
+            </h2>
+            {matchesWithTips.length > 0 && (
+              <span className="font-body text-text-dim text-xs">
+                {matchesWithTips.length} {matchesWithTips.length === 1 ? 'partido' : 'partidos'} con tips
+              </span>
+            )}
+          </div>
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+            {cards.map((g) => (
+              <MatchTipCard key={g.id} game={g} tips={tipsByGame.get(g.id) ?? null} />
+            ))}
+          </div>
+        </section>
+      )}
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_360px]">
-        <div className="min-w-0 space-y-6">
-          {hasPredictions && (
-            <section>
-              <h2 className="font-display text-text-primary mb-3 text-lg font-semibold">Predicciones</h2>
-              <div className="bg-bg-card border-border-card rounded-xl border p-4">
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                  {featuredPredictions.map((p, i) => (
-                    <div
-                      key={i}
-                      className="bg-bg-elevated/50 flex items-center justify-between rounded-lg p-2"
-                    >
-                      <span className="font-body text-text-primary text-sm">{p.name}</span>
-                      <span className="font-display text-accent-gold text-base font-bold">{p.value}%</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </section>
-          )}
-
-          {hasTips && (
-            <section>
-              <h2 className="font-display text-text-primary mb-3 text-lg font-semibold">Tips del partido</h2>
-              <div className="bg-bg-card border-border-card rounded-xl border p-4">
-                <MatchTips tips={featuredTips} />
-              </div>
-            </section>
-          )}
-
-          {!hasMatchBetting && (
-            <div className="bg-bg-card border-border-card rounded-xl border p-6 text-center">
-              <p className="font-body text-text-muted text-sm">
-                {!featured
-                  ? 'Sin partido destacado para analizar'
-                  : featured.status === 'finished'
-                    ? 'Sin análisis de apuestas para este partido'
-                    : 'Sin predicciones ni tips para este partido todavía'}
-              </p>
-            </div>
-          )}
-        </div>
-
-        <aside className="min-w-0 space-y-6">{hasTrends && <BettingTrends trends={trends} />}</aside>
-      </div>
+      {hasTrends && (
+        <section>
+          <h2 className="font-display text-text-primary mb-3 text-lg font-semibold">
+            Tendencias de la competición
+          </h2>
+          <div className="bg-bg-card border-border-card rounded-2xl border p-4">
+            <BettingTrends trends={trends} />
+          </div>
+        </section>
+      )}
     </div>
   )
 }
