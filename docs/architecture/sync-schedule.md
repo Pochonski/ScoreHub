@@ -280,6 +280,9 @@ Health endpoint en Vercel (`https://scorehub-pocho.vercel.app/api/football/healt
 | 2026-07-30 | Añadido `syncBetSelections` (cada 2m) — evalúa selecciones pendientes automáticamente | Fase 8.6+ |
 | 2026-07-31 | Migration 022: 3 nuevas competiciones (Eurocopa 6316, Copa América 595, CONCACAF Centroamericana 7954). Excluida: CONCACAF Copa de Campeones (171) | Fase 8.7+ |
 | 2026-07-31 | Migration 023: 3 nuevas competiciones Américas (Liga MX 141, MLS 104, Liga Argentina 72). Total: 13 active competitions | Fase 8.7+ |
+| 2026-07-31 | Fix TeamDetailPage.tsx:181: "← Ver en {mainCompName}" — resuelve nombre de competición dinámicamente en lugar de hardcodear Mundial/Liga Promerica | Fase 8.7+ |
+| 2026-07-31 | Tests del dashboard: 27 tests verdes (8 selector + 19 standings) verificando las 6 nuevas competiciones en producción | Fase 8.7+ |
+| 2026-07-31 | Documentación: `db-coverage.md` actualizada con tabla de estado de integración del dashboard | Fase 8.7+ |
 
 ---
 

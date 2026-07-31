@@ -127,7 +127,7 @@ El frontend usa **parámetros distintos** a los que teníamos en `scores365Servi
 - Excluida: CONCACAF Copa de Campeones (171) por decisión de producto
 
 **Resultado de `syncCatalog` ejecutado manualmente**:
-- 10 competitions sincronizadas
+- 10 competiciones sincronizadas
 - 350 competitors canónicos
 
 **Tests nuevos**: `tests/integration/active-competitions.test.js` (8/8 verde)
@@ -139,5 +139,60 @@ El frontend usa **parámetros distintos** a los que teníamos en `scores365Servi
 
 **Doc actualizado**:
 - `docs/architecture/db-coverage.md` — sección "Layout de datos" con 10 competiciones
-- `docs/architecture/sync-schedule.md` — entrada histórica con la migration 022
+- `docs/architecture/sync-schedule.md` — entrada histórica
 - `docs/refactor-plans/16-har-endpoints-validation.md` — este archivo
+
+---
+
+## 9. Migration 023 y 6 nuevas competiciones (Américas)
+
+**Fecha**: 2026-07-31
+
+**Migration aplicada**: `023_add_more_competitions_americas.sql`
+- 3 competiciones añadidas: Liga MX (141), MLS (104), Liga Profesional Argentina (72)
+- Display_order reordenado: 6 (CopaAm), 7 (LigaArg), 8 (CONCACAF Centro), 9 (MLS), 10 (Mundial), 11 (Liga MX)
+- Cambio estructural: `ALTER COLUMN display_order TYPE NUMERIC` (era INTEGER)
+- Excluida: 171 (CONCACAF Copa de Campeones, mismo que migration 022)
+
+**Resultado de `syncCatalog` ejecutado manualmente**:
+- 13 competiciones sincronizadas (10 + 3 nuevas)
+- 387 competitors canónicos (+37 desde migration 022)
+- 77 competidores nuevos para las Américas:
+  - Liga MX: 18
+  - MLS: 29
+  - Liga Argentina: 30
+
+**Integración completa del dashboard** (verificada en `https://scorehub-pocho.vercel.app`):
+
+| Aspecto | Estado |
+|---|---|
+| `/api/football/competitions` (selector) | ✅ 13 comps en orden correcto |
+| `/api/football/competitions/{id}` (detail) | ✅ 6/6 nuevas retornan data |
+| `/api/football/standings?competitionId=X` | ✅ 6/6 nuevas retornan groups |
+| `/api/football/standings/seasons?competitionId=X` | ✅ 6/6 nuevas retornan seasons |
+| `/api/football/news?competitionId=X` | ✅ 6/6 nuevas retornan news |
+| `/api/football/stats/scorers?competitionId=X` | ✅ 6/6 nuevas retornan scorers |
+| `/api/football/competitions/{id}/transfers` | ⚠️ 3/6 (141, 104, 72 — las copas no tienen transfers) |
+| `/api/football/trends?competitionId=X` | ✅ 4/6 (141, 104, 72, 7954) |
+| `/api/football/competitions/{id}/insights` | ✅ 6/6 nuevas |
+
+**Fix frontend (Fase 8.7+)**:
+- `dashboard/src/presentation/pages/TeamDetailPage.tsx:181` — el botón "← Ver en [competición]" ahora resuelve el nombre dinámicamente desde la lista de competitions (en lugar de hardcodear solo Mundial 5930 y Liga Promerica 5056).
+
+**Tests nuevos del dashboard** (27 tests verdes):
+- `dashboard/tests/integration/competitions-selector.test.ts` (8 tests): valida 13 comps, orden por displayOrder, has_brackets, has_groups, has_history
+- `dashboard/tests/integration/standings-new-comps.test.ts` (19 tests): valida endpoints /standings, /standings/seasons, /competitions/:id para las 6 nuevas
+
+**Total tests**:
+- Backend (Jest): 203/203 verde, 18 suites
+- Frontend (Vitest): 27/27 verde, 2 suites nuevas
+- **Total combinado**: 230 tests verdes
+
+**Commits**:
+- `2e4cfd9` — feat(migrations): añadir 3 nuevas competiciones Américas
+- `5747b2f` — chore(phase8.7): deploy Vercel
+- (este commit) — fix(dashboard) + tests + docs
+
+**Pendiente para integración 100% completa**:
+- Esperar a que inicien las temporadas 2026/2027 de las nuevas comps para que `syncGames`/`syncFixtures` traigan games
+- Las transfers de las copas (595, 6316, 7954) son 0 porque las copas no tienen transfers de clubes (esperado)

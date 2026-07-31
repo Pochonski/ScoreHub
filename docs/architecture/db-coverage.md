@@ -331,6 +331,22 @@ Clasificación de cada endpoint `/api/football/*` según su fuente de datos.
 > **Fase 8.6+**: añadidas 3 competiciones — **6316 Eurocopa, 595 Copa América, 7954 CONCACAF Copa Centroamericana**.
 >
 > **Excluida por decisión de producto**: **171 CONCACAF Copa de Campeones**.
+
+### 6.1 — Estado de integración del dashboard (Fase 8.7+)
+
+**Verificado en producción** (`https://scorehub-pocho.vercel.app`):
+
+| Endpoint | 13 comps | Selector | Detail | Standings | News | Stats | Transfers | Brackets |
+|---|---|---|---|---|---|---|---|---|
+| Resultado | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ⚠️ parcial | ✅ parcial |
+| Detalle | 13/13 | orden 5-70 | 6/6 nuevas | 6/6 nuevas | 6/6 nuevas | 6/6 nuevas | 3/6 nuevas (595/6316/7954 son copas sin transfers de clubes) | 1/6 (solo 595) |
+
+**Tests añadidos (Fase 8.7+)**:
+- `dashboard/tests/integration/competitions-selector.test.ts` (8 tests): valida 13 comps, orden, has_brackets, has_groups, has_history
+- `dashboard/tests/integration/standings-new-comps.test.ts` (19 tests): valida endpoints /standings, /standings/seasons, /competitions/:id para las 6 nuevas
+
+**Fix frontend (Fase 8.7+)**:
+- `dashboard/src/presentation/pages/TeamDetailPage.tsx`: el botón "← Ver en [competición]" ahora resuelve el nombre dinámicamente desde la lista de competitions, en lugar de hardcodear solo 2 valores (Mundial, Liga Promerica)
 >
 > **Comportamiento**: las 6 nuevas NO traerán games este año porque sus temporadas 2024/2025/2026 finalizaron, pero los `competitors` y `competition_history` sí se están populando — los games 2026/2027 vendrán cuando las temporadas inicien.
 

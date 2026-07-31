@@ -215,7 +215,7 @@ Usa este checklist para tildar items a medida que avanzas. Cada sección corresp
 | 8.4 | 5/6 | ✅ (1 pendiente no bloqueante) |
 | **8.5** | **11/11** | **✅ COMPLETA** |
 | **8.6** | 3/3 | ✅ ver doc 14 |
-| **8.7** | 9/9 | ✅ ver doc 16 |
+| **8.7** | 9/9 + 27 dashboard | ✅ ver doc 16 |
 
 ### Fase 8.6 — Cerrar las 3 limitaciones restantes ✅
 
