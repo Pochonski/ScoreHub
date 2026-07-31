@@ -23,15 +23,21 @@ function formatKickoff(iso?: string): string {
   }
 }
 
-/** Dedup por apuesta, quedándose con el porcentaje más alto. */
+/** Dedup por apuesta (betCTA+categoría), quedándose con el porcentaje más alto. */
 function dedupe(trends: Trend[]): Trend[] {
   const best = new Map<string, Trend>()
   for (const t of trends) {
-    const key = t.betCTA || t.text
+    const key = `${t.betCTA || t.text}|${t.lineTypeId}`
     const cur = best.get(key)
     if (!cur || t.percentage > cur.percentage) best.set(key, t)
   }
   return Array.from(best.values()).sort((a, b) => b.percentage - a.percentage)
+}
+
+/** Tips distintos de un partido — usa el set completo (allTrends). */
+function tipsOf(tip: BettingTip | null): Trend[] {
+  if (!tip) return []
+  return dedupe(tip.allTrends?.length ? tip.allTrends : tip.topTrends ?? [])
 }
 
 /**
@@ -40,8 +46,13 @@ function dedupe(trends: Trend[]): Trend[] {
  */
 function MatchTipCard({ game, tips }: { game: Game; tips: BettingTip | null }) {
   const navigate = useNavigate()
-  const topTips = useMemo(() => dedupe(tips?.topTrends ?? []), [tips])
-  const confidence = tips ? Math.round(tips.confidenceScore * 100) : 0
+  const allTips = useMemo(() => tipsOf(tips), [tips])
+  const topTips = allTips.slice(0, 5)
+  // Confianza = promedio de los tips mostrados (el confidenceScore del backend
+  // venía redondeado a 0/1 por un bug; lo calculamos aquí de forma robusta).
+  const confidence = topTips.length
+    ? Math.round((topTips.reduce((s, t) => s + (t.percentage || 0), 0) / topTips.length) * 100)
+    : 0
 
   const isLive = game.status === 'live'
   const isFinished = game.status === 'finished'
@@ -149,7 +160,7 @@ export function AnalysisTab({ competitionId }: { competitionId?: number; competi
   const { tipsByGame, loading: tipsLoading } = useMatchTipsForGames(gameIds)
 
   const matchesWithTips = useMemo(
-    () => analysisGames.filter((g) => dedupe(tipsByGame.get(g.id)?.topTrends ?? []).length > 0),
+    () => analysisGames.filter((g) => tipsOf(tipsByGame.get(g.id) ?? null).length > 0),
     [analysisGames, tipsByGame]
   )
 
