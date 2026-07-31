@@ -114,3 +114,30 @@ El frontend usa **parámetros distintos** a los que teníamos en `scores365Servi
 - `docs/architecture/db-coverage.md` — cobertura de datos
 - `docs/architecture/sync-schedule.md` — calendario de syncs
 - `docs/refactor-plans/15-add-more-competitions.md` — plan de competiciones (próximo)
+
+---
+
+## 8. Commit final (Fase 8.7+)
+
+**Fecha**: 2026-07-31
+
+**Migration aplicada**: `022_add_more_competitions.sql`
+- 3 competiciones añadidas: Eurocopa (6316), Copa América (595), CONCACAF Copa Centroamericana (7954)
+- Display_order 5-7 (debajo de Mundial que está en 10)
+- Excluida: CONCACAF Copa de Campeones (171) por decisión de producto
+
+**Resultado de `syncCatalog` ejecutado manualmente**:
+- 10 competitions sincronizadas
+- 350 competitors canónicos
+
+**Tests nuevos**: `tests/integration/active-competitions.test.js` (8/8 verde)
+- Verifica 10 competiciones activas
+- Verifica 4 tests uno por comp (Eurocopa, CopaAm, Copa Centroamericana, display_order)
+- Verifica competitors y competitions actualizados
+
+**Tests totales**: 200/200 verde, 18 suites, 59 snapshots OK
+
+**Doc actualizado**:
+- `docs/architecture/db-coverage.md` — sección "Layout de datos" con 10 competiciones
+- `docs/architecture/sync-schedule.md` — entrada histórica con la migration 022
+- `docs/refactor-plans/16-har-endpoints-validation.md` — este archivo

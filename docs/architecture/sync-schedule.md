@@ -278,6 +278,7 @@ Health endpoint en Vercel (`https://scorehub-pocho.vercel.app/api/football/healt
 | 2026-07-29 | Fase 8.6: 5 paths API con slash final, `syncPredictions` por competitors | Cerrar 3 limitaciones |
 | 2026-07-30 | `readThroughCalls` se incrementa en cada llamada (no solo write-back) | Auditoría Fase 8.6 |
 | 2026-07-30 | Añadido `syncBetSelections` (cada 2m) — evalúa selecciones pendientes automáticamente | Fase 8.6+ |
+| 2026-07-31 | Migration 022: 3 nuevas competiciones (Eurocopa 6316, Copa América 595, CONCACAF Centroamericana 7954). Excluida: CONCACAF Copa de Campeones (171) | Fase 8.7+ |
 
 ---
 

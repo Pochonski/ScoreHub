@@ -310,13 +310,20 @@ Clasificación de cada endpoint `/api/football/*` según su fuente de datos.
 
 | Comp ID | Nombre | Partidos en DB | Estado |
 |---|---|---|---|
-| 5930 | Mundial 2026 (Mundial) | 100 | ✅ |
+| 5930 | Copa Mundial de la FIFA 2026 | 100 | ✅ |
+| 6316 | Eurocopa | 0 (season 17 / 2024 Alemania, terminó) | ✅ (history) |
+| 595 | Copa América | 0 (season 52 / 2024, terminó) | ✅ (history) |
+| 7954 | CONCACAF Copa Centroamericana | 0 (season 4 / 2024, terminó) | ✅ (history) |
 | 5056 | Liga Promerica CR | 81 | ✅ |
 | 7 | Premier League | 128 | ✅ |
 | 11 | LaLiga | 163 | ✅ |
 | 17 | Serie A | 140 | ✅ |
 | 25 | Bundesliga | 101 | ✅ |
 | 35 | Ligue 1 | 113 | ✅ |
+
+**Total**: 10 competiciones activas (7 originales + 3 añadidas en Fase 8.6+).
+
+> **Nota**: Las 3 nuevas (Eurocopa, Copa América, CONCACAF Copa Centroamericana) NO incluyeron la CONCACAF Copa de Campeones (id 171) por decisión de producto. Sus temporadas 2024 finalizaron, pero los `competitors` y `competition_history` sí se están populando — los games 2026 vendrán cuando las temporadas inicien.
 
 Distribución de `status_group`: 466 upcoming (2), 360 finalizados (4), 0 en vivo (1).
 
