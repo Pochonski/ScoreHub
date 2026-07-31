@@ -10,7 +10,7 @@ process.env.NODE_ENV = 'test';
 
 const { pool } = require('../../database/connection');
 
-describe('integration/active-competitions — nuevas competiciones Fase 8.6+', () => {
+describe('integration/active-competitions — nuevas competiciones Fase 8.6+/8.7+', () => {
   let connected = false;
 
   beforeAll(async () => {
@@ -28,10 +28,10 @@ describe('integration/active-competitions — nuevas competiciones Fase 8.6+', (
     }
   });
 
-  test('hay 10 competiciones activas (7 originales + 3 nuevas)', async () => {
+  test('hay 13 competiciones activas (10 Fase 8.6+ + 3 Fase 8.7+)', async () => {
     if (!connected) return;
     const result = await pool.query('SELECT count(*) FROM active_competitions');
-    expect(Number(result.rows[0].count)).toBe(10);
+    expect(Number(result.rows[0].count)).toBe(13);
   });
 
   test('Eurocopa (id 6316) está activa', async () => {
@@ -80,35 +80,78 @@ describe('integration/active-competitions — nuevas competiciones Fase 8.6+', (
     expect(r.has_history).toBe(true);
   });
 
-  test('display_order: nuevas abajo de Mundial', async () => {
+  test('Liga MX (id 141) está activa', async () => {
+    if (!connected) return;
+    const result = await pool.query(
+      `SELECT id, display_name, season_num, has_history
+       FROM active_competitions WHERE id = 141`
+    );
+    expect(result.rows.length).toBe(1);
+    const r = result.rows[0];
+    expect(r.id).toBe(141);
+    expect(r.display_name.toLowerCase()).toContain('liga mx');
+    expect(r.season_num).toBe(152);
+    expect(r.has_history).toBe(true);
+  });
+
+  test('MLS (id 104) está activa', async () => {
+    if (!connected) return;
+    const result = await pool.query(
+      `SELECT id, display_name, season_num, has_history
+       FROM active_competitions WHERE id = 104`
+    );
+    expect(result.rows.length).toBe(1);
+    const r = result.rows[0];
+    expect(r.id).toBe(104);
+    expect(r.display_name.toLowerCase()).toContain('mls');
+    expect(r.season_num).toBe(32);
+    expect(r.has_history).toBe(true);
+  });
+
+  test('Liga Profesional Argentina (id 72) está activa', async () => {
+    if (!connected) return;
+    const result = await pool.query(
+      `SELECT id, display_name, season_num, has_groups, has_history
+       FROM active_competitions WHERE id = 72`
+    );
+    expect(result.rows.length).toBe(1);
+    const r = result.rows[0];
+    expect(r.id).toBe(72);
+    expect(r.display_name.toLowerCase()).toContain('liga profesional');
+    expect(r.season_num).toBe(228);
+    expect(r.has_groups).toBe(true);
+    expect(r.has_history).toBe(true);
+  });
+
+  test('display_order: nuevas abajo de Mundial, 6 nuevas en 5-11', async () => {
     if (!connected) return;
     const result = await pool.query(`
       SELECT id, display_name, display_order
       FROM active_competitions
-      WHERE id IN (5930, 6316, 595, 7954)
+      WHERE id IN (5930, 6316, 595, 7954, 141, 104, 72)
       ORDER BY display_order
     `);
-    const orders = result.rows.map(r => r.display_order);
-    expect(orders).toEqual([5, 6, 7, 10]); // nuevas 5,6,7; Mundial 10
+    const orders = result.rows.map(r => Number(r.display_order));
+    expect(orders).toEqual([5, 6, 7, 8, 9, 10, 11]);
   });
 
-  test('competitors de Copa Centroamericana (7954) en DB', async () => {
+  test('competitors de las Américas (595, 6316, 7954, 141, 104, 72) en DB', async () => {
     if (!connected) return;
     const result = await pool.query(
       `SELECT count(*) FROM competitors
-       WHERE (data->'mainCompetitionId')::int IN (595, 6316, 7954)`
+       WHERE (data->'mainCompetitionId')::int IN (595, 6316, 7954, 141, 104, 72)`
     );
-    expect(Number(result.rows[0].count)).toBeGreaterThan(10);
+    expect(Number(result.rows[0].count)).toBeGreaterThan(50);
   });
 
-  test('competitions table tiene data de las 3 nuevas', async () => {
+  test('competitions table tiene data de las 6 nuevas', async () => {
     if (!connected) return;
     const result = await pool.query(
       `SELECT id, jsonb_typeof(data) as data_type, age(now(), updated_at) as age
-       FROM competitions WHERE id IN (595, 6316, 7954)
+       FROM competitions WHERE id IN (595, 6316, 7954, 141, 104, 72)
        ORDER BY id`
     );
-    expect(result.rows.length).toBe(3);
+    expect(result.rows.length).toBe(6);
     for (const r of result.rows) {
       expect(r.data_type).toBe('object');
     }

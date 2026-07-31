@@ -313,7 +313,10 @@ Clasificación de cada endpoint `/api/football/*` según su fuente de datos.
 | 5930 | Copa Mundial de la FIFA 2026 | 100 | ✅ |
 | 6316 | Eurocopa | 0 (season 17 / 2024 Alemania, terminó) | ✅ (history) |
 | 595 | Copa América | 0 (season 52 / 2024, terminó) | ✅ (history) |
+| 72 | Liga Profesional Argentina | 0 (season 228 / 2026) | ✅ (history) |
 | 7954 | CONCACAF Copa Centroamericana | 0 (season 4 / 2024, terminó) | ✅ (history) |
+| 104 | MLS | 0 (season 32 / 2026) | ✅ (history) |
+| 141 | Liga MX | 0 (season 152 / 2026/2027) | ✅ (history) |
 | 5056 | Liga Promerica CR | 81 | ✅ |
 | 7 | Premier League | 128 | ✅ |
 | 11 | LaLiga | 163 | ✅ |
@@ -321,9 +324,15 @@ Clasificación de cada endpoint `/api/football/*` según su fuente de datos.
 | 25 | Bundesliga | 101 | ✅ |
 | 35 | Ligue 1 | 113 | ✅ |
 
-**Total**: 10 competiciones activas (7 originales + 3 añadidas en Fase 8.6+).
+**Total**: 13 competiciones activas (7 originales + 3 añadidas en Fase 8.6+ + 3 añadidas en Fase 8.7+).
 
-> **Nota**: Las 3 nuevas (Eurocopa, Copa América, CONCACAF Copa Centroamericana) NO incluyeron la CONCACAF Copa de Campeones (id 171) por decisión de producto. Sus temporadas 2024 finalizaron, pero los `competitors` y `competition_history` sí se están populando — los games 2026 vendrán cuando las temporadas inicien.
+> **Fase 8.7+**: añadidas 3 nuevas competiciones de las Américas — **141 Liga MX, 104 MLS, 72 Liga Profesional Argentina**.
+>
+> **Fase 8.6+**: añadidas 3 competiciones — **6316 Eurocopa, 595 Copa América, 7954 CONCACAF Copa Centroamericana**.
+>
+> **Excluida por decisión de producto**: **171 CONCACAF Copa de Campeones**.
+>
+> **Comportamiento**: las 6 nuevas NO traerán games este año porque sus temporadas 2024/2025/2026 finalizaron, pero los `competitors` y `competition_history` sí se están populando — los games 2026/2027 vendrán cuando las temporadas inicien.
 
 Distribución de `status_group`: 466 upcoming (2), 360 finalizados (4), 0 en vivo (1).
 
