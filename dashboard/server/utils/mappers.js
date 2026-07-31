@@ -4,6 +4,7 @@ const images = require(path.join(__dirname, '..', '..', '..', 'services', 'image
 const LINE_TYPE_LABELS = {
   1: 'Ganador',
   3: 'Over/Under',
+  5: '1er tiempo',
   7: 'Primer gol',
   12: 'Ambos marcan',
   14: 'Doble oportunidad',

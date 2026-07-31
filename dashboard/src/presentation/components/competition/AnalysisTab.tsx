@@ -117,7 +117,7 @@ function MatchTipCard({ game, tips }: { game: Game; tips: BettingTip | null }) {
               <span className="font-mono text-accent-gold text-[11px]">{confidence}% confianza</span>
             </div>
             <div className="space-y-1.5">
-              {topTips.slice(0, 3).map((t, i) => (
+              {topTips.map((t, i) => (
                 <BetTrendRow key={i} trend={t} />
               ))}
             </div>
