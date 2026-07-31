@@ -34,6 +34,10 @@ async function main() {
   every('*/2 * * * *', 'syncStandings', sync.syncStandings);
   every('*/2 * * * *', 'syncTrends', sync.syncTrends);
 
+  // Tips por partido (feed game-level): más pesado (1 call por partido), los
+  // tips cambian lento → cada 10 minutos.
+  every('*/10 * * * *', 'syncGameTrends', sync.syncGameTrends);
+
   // Predictions, odds — every 5 minutes
   every('*/5 * * * *', 'syncPredictions', sync.syncPredictions);
   every('*/5 * * * *', 'syncOdds', sync.syncOdds);

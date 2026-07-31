@@ -387,26 +387,42 @@ async function getMatchTips(req, res, next) {
     const { id } = req.params;
     const gid = Number(id);
 
-    // Los trends del upstream 365scores están guardados con scope='competition'
-    // (vinculados a la comp, no al game), pero cada trend trae su `gameId`.
-    // Leemos tanto los competition-level trends del partido como los game-level
-    // (legacy) para cubrir todas las fuentes.
+    // Los trends de 365scores se guardan con dos scopes:
+    //  - 'game': feed por partido (games=<id>) → TODOS los tips del partido
+    //    (ganador, over/under, ambos marcan, primer gol…). Es el rico.
+    //  - 'competition': feed de la comp con isTop=true → solo el trend "top"
+    //    por partido (uno, a veces duplicado). Fallback.
+    // Preferimos game-level; si no hay, usamos competition-level.
     const rows = await db.execAdvanced(
-      `SELECT data FROM trends
+      `SELECT data, scope FROM trends
         WHERE game_id = $1
           AND scope IN ('competition', 'game')
         ORDER BY (data->>'percentage')::numeric DESC NULLS LAST
         LIMIT 50`,
       [gid]
     );
-    const allTrends = rows.map(r => enrichTrend(r.data));
-    const topTrends = allTrends.slice(0, 5);
+    const gameRows = rows.filter(r => r.scope === 'game');
+    const source = gameRows.length ? gameRows : rows;
+
+    // Dedup por apuesta (betCTA/text + lineTypeId), quedándose con el % más alto.
+    const byBet = new Map();
+    for (const r of source.map(x => enrichTrend(x.data))) {
+      const key = `${r.betCTA || r.text}|${r.lineTypeId}`;
+      const cur = byBet.get(key);
+      if (!cur || (r.percentage || 0) > (cur.percentage || 0)) byBet.set(key, r);
+    }
+    const allTrends = Array.from(byBet.values()).sort(
+      (a, b) => (b.percentage || 0) - (a.percentage || 0)
+    );
+    const topTrends = allTrends.slice(0, 6);
 
     const tip = {
       gameId: gid,
+      // Fracción 0-1 (el frontend la multiplica por 100). No redondear a
+      // entero aquí — colapsaba a 0/1 (bug: "100% confianza" siempre).
       confidenceScore:
         topTrends.length > 0
-          ? Math.round(topTrends.reduce((s, t) => s + (t.percentage || 0), 0) / topTrends.length)
+          ? topTrends.reduce((s, t) => s + (t.percentage || 0), 0) / topTrends.length
           : 0,
       generatedAt: new Date().toISOString(),
       topTrends,
