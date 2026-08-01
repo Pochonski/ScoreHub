@@ -6,6 +6,8 @@ export interface Trend {
   cause?: string
   isTop?: boolean
   lineTypeId: number
+  /** Categoría legible de la apuesta (ej. "Ambos marcan", "Over/Under"). */
+  lineTypeLabel?: string
   gameId?: number
   competitionId?: number
 }

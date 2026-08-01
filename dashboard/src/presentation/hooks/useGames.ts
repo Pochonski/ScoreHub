@@ -1,4 +1,5 @@
-import { useQuery } from '@tanstack/react-query'
+import { useMemo } from 'react'
+import { useQuery, useQueries } from '@tanstack/react-query'
 import type { Game } from '@/domain/entities/Game'
 import { DiContainer } from '@/infrastructure/di/DiContainer'
 import type { GetGamesParams } from '@/domain/repositories/GameRepository'
@@ -58,6 +59,38 @@ export function useLiveGames(params?: { competitionId?: number; all?: boolean })
     error: errMsg,
     refetch: () => refetch(),
   }
+}
+
+/**
+ * Featured game de varias competiciones en paralelo. Comparte queryKey con
+ * useFeaturedGame para deduplicar. Devuelve un Map competitionId → Game|null.
+ */
+export function useFeaturedGamesByComp(competitionIds: number[]) {
+  const results = useQueries({
+    queries: competitionIds.map((id) => ({
+      queryKey: ['featured-game', id] as const,
+      queryFn: async () => {
+        const d = await DiContainer.getInstance().getGameRepository().getFeaturedGame(id)
+        return d ?? null
+      },
+      staleTime: 60 * 1000,
+    })),
+  })
+
+  // Serializar por ids + los ids de los games cargados evita recomputar en cada
+  // render (results es un array nuevo por render).
+  const signature = competitionIds
+    .map((id, i) => `${id}:${results[i]?.data?.id ?? ''}`)
+    .join('|')
+
+  return useMemo(() => {
+    const map = new Map<number, Game | null>()
+    competitionIds.forEach((id, i) => {
+      map.set(id, results[i]?.data ?? null)
+    })
+    return map
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [signature])
 }
 
 export function useFeaturedGame(competitionId?: number | null) {

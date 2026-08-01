@@ -3,10 +3,11 @@ import { memo, useState } from 'react'
 interface TeamBadgeProps {
   src?: string | null
   name?: string
-  size?: 'sm' | 'md' | 'lg'
+  size?: 'xs' | 'sm' | 'md' | 'lg'
 }
 
 const sizeMap = {
+  xs: 'w-5 h-5',
   sm: 'w-8 h-8',
   md: 'w-12 h-12',
   lg: 'w-20 h-20',
@@ -30,7 +31,9 @@ export const TeamBadge = memo(function TeamBadge({ src, name = '', size = 'md' }
           loading="lazy"
         />
       ) : (
-        <span className="font-display text-text-muted text-lg font-bold">{initial}</span>
+        <span className={`font-display text-text-muted font-bold ${size === 'xs' ? 'text-[10px]' : 'text-lg'}`}>
+          {initial}
+        </span>
       )}
     </div>
   )

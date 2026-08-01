@@ -2,15 +2,28 @@ import { useState, useCallback, useEffect, useRef, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import type { Game } from '@/domain/entities/Game'
 import { HeroMatch } from '@/presentation/components/hero/HeroMatch'
+import { FeaturedHero } from '@/presentation/components/hero/FeaturedHero'
 import { MatchTicker } from '@/presentation/components/matches/MatchTicker'
 import { MatchGrid } from '@/presentation/components/matches/MatchGrid'
+import { MatchCard } from '@/presentation/components/matches/MatchCard'
 import { CompetitionInfoCard } from '@/presentation/components/competition/CompetitionInfoCard'
 import { MatchFilterBar } from '@/presentation/components/matches/MatchFilterBar'
-import { useFeaturedGame, useLiveGames, useGames } from '@/presentation/hooks/useGames'
+import { LeaguesRail } from '@/presentation/components/dashboard/LeaguesRail'
+import { StatsRail } from '@/presentation/components/dashboard/StatsRail'
+import { StandingsRail } from '@/presentation/components/dashboard/StandingsRail'
+import { NewsRail } from '@/presentation/components/dashboard/NewsRail'
+import {
+  useFeaturedGame,
+  useLiveGames,
+  useGames,
+  useFeaturedGamesByComp,
+} from '@/presentation/hooks/useGames'
 import { useFeaturedCompetitions } from '@/presentation/hooks/useCompetitions'
 import { useActiveCompetition } from '@/presentation/context/ActiveCompetitionContext'
 import { ErrorState } from '@/presentation/components/ui/ErrorState'
 import { HeroSkeleton, MatchCardSkeleton } from '@/presentation/components/ui/Skeleton'
+import { useTournamentStats } from '@/presentation/hooks/useTournamentStats'
+import { TeamOfWeekPitch } from '@/presentation/components/stats/TeamOfWeekPitch'
 
 type FilterValue = 'all' | 'live' | 'upcoming' | 'finished'
 type CompetitionScope = { kind: 'all' } | { kind: 'one'; id: number }
@@ -41,13 +54,52 @@ export function DashboardPage() {
     }
   }
   const { competitions: featured } = useFeaturedCompetitions()
+  const featuredIds = useMemo(() => featured.map((c) => c.id), [featured])
+  // Partido destacado de cada competición → para ordenar por "partido más
+  // próximo" y elegir el default.
+  const featuredGamesByComp = useFeaturedGamesByComp(featuredIds)
 
-  // Si el backend aún no tiene featured y el default es primary, mantenemos.
-  // Si hay varias featured, dejamos la primary fija y "Todas" como alternativa.
-  const featuredSorted = useMemo(
-    () => [...featured].sort((a, b) => a.displayOrder - b.displayOrder),
-    [featured]
-  )
+  // Orden de las competiciones según su partido destacado:
+  //  - en vivo / próximo → primero (el más próximo antes)
+  //  - terminado / sin dato → después, por displayOrder
+  //  - el Mundial ya terminado (flagship sin próximos) → siempre al final
+  const featuredSorted = useMemo(() => {
+    const now = Date.now()
+    const rank = (c: (typeof featured)[number]): [number, number] => {
+      const g = featuredGamesByComp.get(c.id)
+      if (g && g.status === 'live') return [0, now]
+      if (g && g.status === 'upcoming') {
+        const t = new Date(g.startTime).getTime()
+        return [0, Number.isNaN(t) ? now : t]
+      }
+      if (c.id === PRIMARY_COMPETITION_ID) return [2, c.displayOrder]
+      return [1, c.displayOrder]
+    }
+    return [...featured].sort((a, b) => {
+      const [ga, ka] = rank(a)
+      const [gb, kb] = rank(b)
+      return ga !== gb ? ga - gb : ka - kb
+    })
+  }, [featured, featuredGamesByComp])
+
+  // Default: seleccionar la competición con el partido más próximo — solo si el
+  // usuario no eligió una explícitamente (URL / localStorage / click).
+  const autoSelectedRef = useRef(false)
+  useEffect(() => {
+    if (autoSelectedRef.current) return
+    if (activeCompIdFromCtx != null) {
+      autoSelectedRef.current = true
+      return
+    }
+    if (featuredSorted.length === 0) return
+    autoSelectedRef.current = true
+    const first = featuredSorted[0]
+    if (first && !(scope.kind === 'one' && scope.id === first.id)) {
+      setScope({ kind: 'one', id: first.id })
+    }
+    // setScope y scope quedan fuera de deps a propósito: el ref evita re-ejecución.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeCompIdFromCtx, featuredSorted])
 
   const competitionParam = scope.kind === 'all' ? { all: true } : { competitionId: scope.id }
   const liveParams = scope.kind === 'all' ? { all: true } : { competitionId: scope.id }
@@ -59,6 +111,20 @@ export function DashboardPage() {
     useGames(competitionParam)
   const [heroCompact, setHeroCompact] = useState(false)
   const heroRef = useRef<HTMLDivElement>(null)
+  const tabsRef = useRef<HTMLDivElement>(null)
+
+  // Partido del hero: prioriza vivo > destacado (si no terminó) > próximo más
+  // cercano > destacado (aunque sea final). Evita quedarse en un final viejo si
+  // hay algo en curso o por venir.
+  const heroGame = useMemo(() => {
+    const live = liveGames[0]
+    if (live) return live
+    if (featuredGame && featuredGame.status !== 'finished') return featuredGame
+    const nextUp = allGames
+      .filter((g) => g.status === 'upcoming')
+      .sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime())[0]
+    return nextUp ?? featuredGame ?? null
+  }, [liveGames, featuredGame, allGames])
 
   useEffect(() => {
     if (liveGames.length === 0) return
@@ -98,7 +164,16 @@ export function DashboardPage() {
     })
     observer.observe(el)
     return () => observer.disconnect()
-  }, [featuredGame?.id])
+  }, [heroGame?.id])
+
+  // En mobile, centrar el tab de la competición activa (puede quedar fuera de
+  // pantalla si no es la primera). No-op en desktop (tabs ocultos).
+  const scopeKey = scope.kind === 'one' ? scope.id : 'all'
+  useEffect(() => {
+    const el = tabsRef.current?.querySelector('[data-active="true"]') as HTMLElement | null
+    el?.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' })
+    // featuredSorted.length: re-ejecuta cuando los tabs recién se renderizan.
+  }, [scopeKey, featuredSorted.length])
 
   const gamesByDateOffset = useMemo(() => {
     if (dateOffset == null) return allGames
@@ -161,28 +236,72 @@ export function DashboardPage() {
     setDateOffset(null)
   }
 
+  const activeCompId = scope.kind === 'one' ? scope.id : undefined
+  const activeComp =
+    activeCompId != null ? featuredSorted.find((c) => c.id === activeCompId) : undefined
+
+  // Highlights del centro (desktop): próximos partidos, o resultados recientes
+  // si ya no quedan próximos. Es una selección curada, no el listado completo
+  // (ese vive en el rail izquierdo).
+  const highlightGames = useMemo(() => {
+    // Si el usuario eligió un día en el calendario (dateOffset != null), el
+    // centro muestra los partidos de ESE día. Sin día elegido, la selección
+    // curada de siempre (próximos / resultados recientes).
+    if (dateOffset != null) {
+      const d = new Date()
+      d.setDate(d.getDate() + dateOffset)
+      const label =
+        dateOffset === 0
+          ? 'Hoy'
+          : dateOffset === 1
+            ? 'Mañana'
+            : dateOffset === -1
+              ? 'Ayer'
+              : d.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })
+      const dayGames = [...filteredGames].sort(
+        (a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
+      )
+      return { title: `Partidos · ${label}`, games: dayGames }
+    }
+    const upcoming = allGames
+      .filter((g) => g.status === 'upcoming')
+      .sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime())
+    if (upcoming.length > 0) return { title: 'Próximos partidos', games: upcoming.slice(0, 6) }
+    const finished = allGames
+      .filter((g) => g.status === 'finished')
+      .sort((a, b) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime())
+    return { title: 'Resultados recientes', games: finished.slice(0, 6) }
+  }, [dateOffset, filteredGames, allGames])
+
+  // Equipo de la jornada (once ideal) de la competición activa — llena y
+  // balancea el centro en desktop. Comparte el fetch con el rail derecho.
+  const { teamOfWeek } = useTournamentStats(activeCompId ?? null, activeComp?.seasonNum ?? null)
+
   if (gamesError && allGames.length === 0 && liveGames.length === 0) {
     return (
-      <div className="mx-auto max-w-7xl px-4 py-12">
+      <div className="mx-auto max-w-[1400px] px-4 py-12">
         <ErrorState message={gamesError} onRetry={refetchGames} fullPage />
       </div>
     )
   }
 
-  return (
-    <div className="mx-auto max-w-7xl">
-      {heroCompact && featuredGame && (
-        <div className="fixed top-14 right-0 left-0 z-40 lg:hidden">
-          <HeroMatch game={featuredGame} compact />
-        </div>
-      )}
-
-      <section aria-label="Partido destacado" ref={heroRef}>
-        {featuredLoading ? <HeroSkeleton /> : featuredGame ? <HeroMatch game={featuredGame} /> : null}
+  // ----- Bloque central: hero + grid (compartido entre mobile y desktop) -----
+  const centerColumn = (
+    <div>
+      {/* Hero destacado: desktop = FeaturedHero (365scores), mobile = HeroMatch. */}
+      <section aria-label="Partido destacado" className="hidden px-4 pt-1 lg:block lg:px-0 lg:pt-0">
+        {heroGame ? (
+          <FeaturedHero game={heroGame} competitionName={activeComp?.shortName || activeComp?.displayName} />
+        ) : featuredLoading ? (
+          <HeroSkeleton />
+        ) : null}
+      </section>
+      <section aria-label="Partido destacado" ref={heroRef} className="lg:hidden">
+        {heroGame ? <HeroMatch game={heroGame} /> : featuredLoading ? <HeroSkeleton /> : null}
       </section>
 
       {liveGames.length > 0 && (
-        <div className="mt-1 flex justify-end px-4" aria-live="polite" aria-atomic="true" role="status">
+        <div className="mt-1 flex justify-end px-4 lg:px-0" aria-live="polite" aria-atomic="true" role="status">
           <span className="text-text-dim flex items-center gap-1.5 font-mono text-[10px]">
             <span className="bg-accent-live/60 h-1.5 w-1.5 animate-pulse rounded-full" />
             Actualizando cada 30s
@@ -192,32 +311,32 @@ export function DashboardPage() {
 
       {/* Live ticker */}
       {liveGames.length > 0 && (
-        <div className="mt-4 px-4">
+        <div className="mt-4 px-4 lg:px-0">
           <div className="mb-3 flex items-center gap-4">
             <h2 className="font-display text-text-primary text-lg font-semibold">
               En Vivo
               <span className="text-text-muted font-body ml-2 text-sm font-normal">({liveGames.length})</span>
             </h2>
           </div>
-          <MatchTicker games={liveGames} featuredId={featuredGame?.id} onSelect={handleSelectGame} />
+          <MatchTicker games={liveGames} featuredId={heroGame?.id} onSelect={handleSelectGame} />
         </div>
       )}
 
       {/* Competition info card (cabecera "tournament info" de la comp activa) */}
       {scope.kind === 'one' && scope.id && (
-        <div className="px-4">
+        <div className="mt-4 px-4 lg:px-0">
           <CompetitionInfoCard competitionId={scope.id} />
         </div>
       )}
 
       {liveError && (
-        <div className="mt-2 px-4">
+        <div className="mt-2 px-4 lg:px-0">
           <p className="text-accent-red font-mono text-[10px]">{liveError}</p>
         </div>
       )}
 
-      {/* Match Grid */}
-      <div className="mt-6 px-4">
+      {/* Match Grid — solo mobile/tablet. En desktop la lista vive en el rail izquierdo. */}
+      <div className="mt-6 px-4 lg:hidden">
         <div className="mb-3 flex items-center justify-between gap-2">
           <h2 className="font-display text-text-primary text-lg font-semibold">Partidos</h2>
           <button
@@ -228,28 +347,15 @@ export function DashboardPage() {
           </button>
         </div>
 
-        {/* Competition tabs */}
-        {featuredSorted.length > 0 && (
-          <div className="no-scrollbar mb-3 flex gap-1 overflow-x-auto">
-            <button
-              type="button"
-              onClick={() => handleScopeChange({ kind: 'one', id: PRIMARY_COMPETITION_ID })}
-              className={`font-body focus-visible shrink-0 rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
-                scope.kind === 'one' && scope.id === PRIMARY_COMPETITION_ID
-                  ? 'bg-accent-gold/10 text-accent-gold'
-                  : 'bg-bg-card text-text-muted hover:text-text-primary'
-              }`}
-            >
-              {featuredSorted.find(c => c.id === PRIMARY_COMPETITION_ID)?.shortName ||
-                featuredSorted[0]?.shortName ||
-                'Principal'}
-            </button>
-            {featuredSorted
-              .filter(c => c.id !== PRIMARY_COMPETITION_ID)
-              .map(c => (
+        {/* Competition tabs + filtros: solo mobile/tablet. En desktop van al rail izquierdo. */}
+        <div>
+          {featuredSorted.length > 0 && (
+            <div className="no-scrollbar mb-3 flex gap-1 overflow-x-auto" ref={tabsRef}>
+              {featuredSorted.map(c => (
                 <button
                   key={c.id}
                   type="button"
+                  data-active={scope.kind === 'one' && scope.id === c.id}
                   onClick={() => handleScopeChange({ kind: 'one', id: c.id })}
                   className={`font-body focus-visible shrink-0 rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
                     scope.kind === 'one' && scope.id === c.id
@@ -260,34 +366,36 @@ export function DashboardPage() {
                   {c.shortName || c.displayName}
                 </button>
               ))}
-            {featuredSorted.length > 1 && (
-              <button
-                type="button"
-                onClick={() => handleScopeChange({ kind: 'all' })}
-                className={`font-body focus-visible shrink-0 rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
-                  scope.kind === 'all'
-                    ? 'bg-accent-gold/10 text-accent-gold'
-                    : 'bg-bg-card text-text-muted hover:text-text-primary'
-                }`}
-              >
-                Todas
-              </button>
-            )}
-          </div>
-        )}
+              {featuredSorted.length > 1 && (
+                <button
+                  type="button"
+                  data-active={scope.kind === 'all'}
+                  onClick={() => handleScopeChange({ kind: 'all' })}
+                  className={`font-body focus-visible shrink-0 rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
+                    scope.kind === 'all'
+                      ? 'bg-accent-gold/10 text-accent-gold'
+                      : 'bg-bg-card text-text-muted hover:text-text-primary'
+                  }`}
+                >
+                  Todas
+                </button>
+              )}
+            </div>
+          )}
 
-        <div className="mb-4">
-          <MatchFilterBar
-            active={filter}
-            counts={filterCounts}
-            onChange={setFilter}
-            dateOffset={dateOffset}
-            onDateChange={setDateOffset}
-          />
+          <div className="mb-4">
+            <MatchFilterBar
+              active={filter}
+              counts={filterCounts}
+              onChange={setFilter}
+              dateOffset={dateOffset}
+              onDateChange={setDateOffset}
+            />
+          </div>
         </div>
 
         {gamesLoading ? (
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
             {Array.from({ length: 6 }).map((_, i) => (
               <MatchCardSkeleton key={i} />
             ))}
@@ -300,12 +408,102 @@ export function DashboardPage() {
           <MatchGrid
             games={filteredGames}
             onSelect={handleSelectGame}
-            featuredId={featuredGame?.id}
+            featuredId={heroGame?.id}
             competitionName={competitionHeaderName}
             competitionId={scope.kind === 'one' ? scope.id : undefined}
             dateOrder={gridDateOrder}
           />
         )}
+      </div>
+
+      {/* Highlights desktop: selección curada (próximos o resultados recientes). */}
+      <div className="mt-6 hidden lg:block">
+        <div className="mb-3 flex items-center justify-between gap-2">
+          <h2 className="font-display text-text-primary text-lg font-semibold">{highlightGames.title}</h2>
+          <button
+            onClick={() => navigate('/analisis')}
+            className="font-body text-accent-blue hover:text-accent-blue/80 focus-visible rounded px-1 py-0.5 text-xs transition-colors"
+          >
+            Análisis →
+          </button>
+        </div>
+        {gamesLoading ? (
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <MatchCardSkeleton key={i} />
+            ))}
+          </div>
+        ) : highlightGames.games.length > 0 ? (
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            {highlightGames.games.map((g) => (
+              <MatchCard key={g.id} game={g} onSelect={handleSelectGame} />
+            ))}
+          </div>
+        ) : (
+          <p className="text-text-muted font-body py-8 text-center text-sm">
+            No hay partidos para mostrar
+          </p>
+        )}
+      </div>
+
+      {/* Equipo de la jornada — cancha con la formación (desktop, si hay data). */}
+      {teamOfWeek && teamOfWeek.players.length > 0 && (
+        <div className="mt-6 hidden lg:block">
+          <div className="bg-bg-card border-border-card rounded-2xl border p-4">
+            <div className="mb-3 flex items-center justify-between gap-2">
+              <h2 className="font-display text-text-primary flex items-center gap-1.5 text-lg font-semibold">
+                <span className="text-base">🏆</span> Equipo de la jornada
+              </h2>
+              <span className="bg-bg-elevated text-text-muted font-mono rounded-full px-2 py-0.5 text-[11px] tracking-wider">
+                {teamOfWeek.formation}
+              </span>
+            </div>
+            <TeamOfWeekPitch formation={teamOfWeek.formation} players={teamOfWeek.players} />
+          </div>
+        </div>
+      )}
+    </div>
+  )
+
+  return (
+    <div className="mx-auto max-w-[1400px]">
+      {heroCompact && heroGame && (
+        <div className="fixed top-14 right-0 left-0 z-40 lg:hidden">
+          <HeroMatch game={heroGame} compact />
+        </div>
+      )}
+
+      {/* Desktop: 3 columnas (rail izq · centro · rail der). Mobile: solo centro. */}
+      <div className="lg:grid lg:grid-cols-[280px_minmax(0,1fr)_320px] lg:gap-5 lg:px-4 lg:pt-4">
+        {/* Rail izquierdo — ligas + partidos compactos */}
+        <aside className="hidden lg:block" aria-label="Ligas y partidos">
+          <div className="sticky top-[72px] pb-4">
+            <LeaguesRail
+              competitions={featuredSorted}
+              scope={scope}
+              onScopeChange={handleScopeChange}
+              games={filteredGames}
+              liveCount={liveGames.length}
+              onSelectGame={handleSelectGame}
+              filter={filter}
+              onFilterChange={setFilter}
+              dateOffset={dateOffset}
+              onDateChange={setDateOffset}
+            />
+          </div>
+        </aside>
+
+        {/* Centro */}
+        {centerColumn}
+
+        {/* Rail derecho — goleadores · tabla · noticias */}
+        <aside className="hidden lg:block" aria-label="Estadísticas">
+          <div className="sticky top-[72px] space-y-4 pb-4">
+            <StatsRail competitionId={activeCompId} seasonNum={activeComp?.seasonNum} />
+            <StandingsRail competitionId={activeCompId} seasonNum={activeComp?.seasonNum} />
+            <NewsRail competitionId={activeCompId} />
+          </div>
+        </aside>
       </div>
     </div>
   )

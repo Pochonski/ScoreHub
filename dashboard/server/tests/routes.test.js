@@ -92,6 +92,11 @@ function setupSmartMock() {
     if (typeof sql === 'string' && sql.includes('FROM active_competitions')) {
       return Promise.resolve({ rows: ACTIVE_COMPETITIONS_SEED });
     }
+    // Health check hace `SELECT NOW() as now`; sin esta rama r.rows[0] es
+    // undefined y el endpoint devuelve 500.
+    if (typeof sql === 'string' && /\bNOW\(\)/i.test(sql)) {
+      return Promise.resolve({ rows: [{ now: new Date().toISOString() }] });
+    }
     return Promise.resolve({ rows: [] });
   });
 }

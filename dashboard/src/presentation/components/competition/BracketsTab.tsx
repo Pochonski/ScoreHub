@@ -140,38 +140,52 @@ export function BracketsTab({ competitionId }: { competitionId?: number }) {
                   <p className="font-body text-text-muted text-xs">Partidos aún no definidos</p>
                 </div>
               ) : (
-                stage.games.map((game) => (
-                  <div
-                    key={game.id}
-                    className="odd:bg-bg-elevated/20 flex items-center justify-between gap-4 px-4 py-3"
-                  >
-                    <div className="flex min-w-0 flex-1 items-center gap-2">
-                      <TeamBadge src={game.homeTeam?.badgeUrl} name={game.homeTeam?.name || '?'} size="sm" />
-                      <span className="font-body text-text-primary truncate text-sm">
-                        {game.homeTeam?.name || 'Por definir'}
-                      </span>
-                    </div>
-                    <div className="flex shrink-0 items-center gap-2">
-                      {game.score ? (
-                        <span className="font-display text-text-primary text-lg font-bold">
-                          {game.score.home}–{game.score.away}
+                stage.games.map((game) => {
+                  const homeWon = !!game.score && game.score.home > game.score.away
+                  const awayWon = !!game.score && game.score.away > game.score.home
+                  return (
+                    <div
+                      key={game.id}
+                      className="odd:bg-bg-elevated/20 flex items-center justify-between gap-4 px-4 py-3"
+                    >
+                      <div className="flex min-w-0 flex-1 items-center gap-2">
+                        <TeamBadge src={game.homeTeam?.badgeUrl} name={game.homeTeam?.name || '?'} size="sm" />
+                        <span
+                          className={`font-body truncate text-sm ${awayWon ? 'text-text-muted' : 'text-text-primary'} ${homeWon ? 'font-semibold' : ''}`}
+                        >
+                          {game.homeTeam?.name || 'Por definir'}
                         </span>
-                      ) : game.startTime ? (
-                        <span className="text-text-dim text-right font-mono text-[11px] leading-tight">
-                          {formatTime(game.startTime)}
+                      </div>
+                      <div className="flex shrink-0 items-center gap-2">
+                        {game.score ? (
+                          <span className="font-display text-lg font-bold tabular-nums">
+                            <span className={awayWon ? 'text-text-muted' : 'text-text-primary'}>
+                              {game.score.home}
+                            </span>
+                            <span className="text-text-dim">–</span>
+                            <span className={homeWon ? 'text-text-muted' : 'text-text-primary'}>
+                              {game.score.away}
+                            </span>
+                          </span>
+                        ) : game.startTime ? (
+                          <span className="text-text-dim text-right font-mono text-[11px] leading-tight">
+                            {formatTime(game.startTime)}
+                          </span>
+                        ) : (
+                          <span className="text-text-dim font-mono text-[11px]">VS</span>
+                        )}
+                      </div>
+                      <div className="flex min-w-0 flex-1 items-center justify-end gap-2">
+                        <span
+                          className={`font-body truncate text-sm ${homeWon ? 'text-text-muted' : 'text-text-primary'} ${awayWon ? 'font-semibold' : ''}`}
+                        >
+                          {game.awayTeam?.name || 'Por definir'}
                         </span>
-                      ) : (
-                        <span className="text-text-dim font-mono text-[11px]">VS</span>
-                      )}
+                        <TeamBadge src={game.awayTeam?.badgeUrl} name={game.awayTeam?.name || '?'} size="sm" />
+                      </div>
                     </div>
-                    <div className="flex min-w-0 flex-1 items-center justify-end gap-2">
-                      <span className="font-body text-text-primary truncate text-sm">
-                        {game.awayTeam?.name || 'Por definir'}
-                      </span>
-                      <TeamBadge src={game.awayTeam?.badgeUrl} name={game.awayTeam?.name || '?'} size="sm" />
-                    </div>
-                  </div>
-                ))
+                  )
+                })
               )}
             </AccordionSection>
           ))}

@@ -36,8 +36,27 @@ export function TransfersTab({ competitionId }: Props) {
     )
   }
 
+  const totalArrivals = summary.reduce((s, t) => s + t.arrivals, 0)
+  const totalDepartures = summary.reduce((s, t) => s + t.departures, 0)
+
   return (
     <div className="space-y-4">
+      {/* Resumen del mercado */}
+      <div className="grid grid-cols-3 gap-3">
+        <div className="bg-bg-card border-border-card rounded-2xl border p-4">
+          <p className="font-body text-text-dim text-[10px] font-semibold uppercase tracking-wider">Equipos</p>
+          <p className="font-display text-text-primary mt-1 text-2xl font-bold">{summary.length}</p>
+        </div>
+        <div className="bg-bg-card border-border-card rounded-2xl border p-4">
+          <p className="font-body text-text-dim text-[10px] font-semibold uppercase tracking-wider">Llegadas</p>
+          <p className="font-display text-accent-green mt-1 text-2xl font-bold">+{totalArrivals}</p>
+        </div>
+        <div className="bg-bg-card border-border-card rounded-2xl border p-4">
+          <p className="font-body text-text-dim text-[10px] font-semibold uppercase tracking-wider">Salidas</p>
+          <p className="font-display text-accent-red mt-1 text-2xl font-bold">−{totalDepartures}</p>
+        </div>
+      </div>
+
       {/* Resumen por equipo — expandible */}
       <div className="bg-bg-card border-border-card rounded-xl border">
         <div className="border-border-card/50 border-b px-4 py-3">
@@ -66,12 +85,11 @@ export function TransfersTab({ competitionId }: Props) {
                       {team.name}
                     </span>
                   </div>
-                  <div className="flex items-center gap-3 font-mono text-xs">
-                    <span className="text-accent-green">
+                  <div className="flex items-center gap-1.5">
+                    <span className="bg-accent-green/10 text-accent-green font-mono rounded-full px-2 py-0.5 text-[11px] font-semibold">
                       +{team.arrivals}
                     </span>
-                    <span className="text-text-dim">·</span>
-                    <span className="text-accent-red">
+                    <span className="bg-accent-red/10 text-accent-red font-mono rounded-full px-2 py-0.5 text-[11px] font-semibold">
                       −{team.departures}
                     </span>
                   </div>

@@ -18,6 +18,7 @@ function mapTrend(raw: Record<string, unknown>): Trend {
     isTop: Boolean(raw.isTop),
     percentage: typeof raw.percentage === 'number' ? raw.percentage : 0,
     lineTypeId: typeof raw.lineTypeId === 'number' ? raw.lineTypeId : 0,
+    lineTypeLabel: typeof raw.lineTypeLabel === 'string' ? raw.lineTypeLabel : undefined,
     gameId: typeof raw.gameId === 'number' ? raw.gameId : undefined,
     competitionId: typeof raw.competitionId === 'number' ? raw.competitionId : undefined,
   }

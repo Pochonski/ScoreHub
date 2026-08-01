@@ -247,7 +247,6 @@ Usa este checklist para tildar items a medida que avanzas. Cada sección corresp
 - [x] **5 paths de API** corregidos (limit C resuelta)
 - [x] **Audit Fase 8.6**: `readThroughCalls` se incrementa en cada llamada (no solo write-back)
 - [x] Documentación `db-coverage.md` actualizada con cobertura 100% y dual-strategy activo
-
 ---
 
 ## 📌 Fase 8 — Cobertura DB-only 🚧

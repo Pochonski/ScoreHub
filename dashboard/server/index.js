@@ -50,7 +50,7 @@ app.get('/api/football/health', async (req, res) => {
       datasource: '365scores',
       cache: 'supabase',
       db: 'connected',
-      dbTime: r.rows[0].now,
+      dbTime: r.rows[0]?.now,
       dbStrategy: supabaseEnabled ? 'http+pg-fallback' : 'pg-only',
       uptime: process.uptime(),
       dbStats: dbStats.getStats(),
