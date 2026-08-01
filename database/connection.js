@@ -9,13 +9,29 @@ const { Pool } = require('pg');
  *
  * Phase 4 of the refactor plan: most queries now use Supabase HTTP instead.
  * This pool stays for queries like the CTE in transfers summary or the
- * multi-row INSERTs in syncService. max=1 keeps us safe against Supavisor's
- * 15-connection limit even when multiple Vercel serverless instances are
- * hot concurrently (15 instances × 1 connection each = within budget).
+ * multi-row INSERTs of the sync jobs.
+ *
+ * IMPORTANTE (incidente de saturación de sesión): cuando la ruta HTTP de
+ * Supabase NO está configurada (faltan SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY),
+ * el 100% del tráfico cae a este pool. Si además SUPABASE_DB_URL apunta al
+ * pooler de Supavisor en modo *sesión* (puerto 5432), el límite es de 15
+ * clientes y el fan-out del dashboard (~11 requests en paralelo por carga, cada
+ * uno una lambda que retiene su conexión durante `idleTimeoutMillis`) lo agota
+ * → "max clients reached in session mode".
+ *
+ * Fixes de raíz (env de Vercel): usar el pooler en modo *transacción*
+ * (puerto 6543) o activar la ruta HTTP. Mitigaciones aquí:
+ *   - idleTimeoutMillis bajo → cada lambda suelta el slot rápido, no lo
+ *     retiene entre requests.
+ *   - pgQueryRetry reintenta ante EMAXCONNSESSION / "too many clients" con
+ *     backoff, convirtiendo picos momentáneos en latencia en vez de 500.
+ * Ambos son configurables por env para poder ajustarlos sin redeploy de código.
  */
 const poolConfig = {
   max: parseInt(process.env.DB_POOL_MAX || '1', 10),
-  idleTimeoutMillis: 60000,
+  // Bajado de 60s: en serverless retener la conexión de sesión 60s tras cada
+  // request mantiene ocupados los 15 slots de Supavisor. 10s libera pronto.
+  idleTimeoutMillis: parseInt(process.env.DB_POOL_IDLE_TIMEOUT_MS || '10000', 10),
   maxUses: 100,
   // 5s era muy agresivo para Supabase/Supavisor (red intermitente);
   // subido a 15s y añadido retry en pgQueryRetry() abajo.
@@ -63,7 +79,10 @@ pool.on('error', (err) => {
  * (cualquier cosa que no sea de red).
  */
 async function pgQueryRetry(sql, params, opts = {}) {
-  const { retries = 2, baseDelayMs = 250 } = opts;
+  // Los reintentos ante saturación del pool (EMAXCONNSESSION) necesitan más
+  // vueltas que un timeout de red puntual: bajo un pico de ~11 requests, los
+  // slots se liberan en ms pero hay que esperar el turno. Configurable por env.
+  const { retries = parseInt(process.env.DB_QUERY_RETRIES || '4', 10), baseDelayMs = 200 } = opts;
   const retryableCodes = new Set([
     'ETIMEDOUT',
     'ECONNRESET',
@@ -71,6 +90,8 @@ async function pgQueryRetry(sql, params, opts = {}) {
     'EHOSTUNREACH',
     'ENETUNREACH',
     'EPIPE',
+    '53300', // too_many_connections (SQLSTATE) — pool/Supavisor lleno
+    '53400', // configuration_limit_exceeded
   ]);
   const retryableMessages = [
     'timeout exceeded when trying to connect',
@@ -79,6 +100,12 @@ async function pgQueryRetry(sql, params, opts = {}) {
     'Connection terminated',
     'server closed the connection unexpectedly',
     'Connection ended',
+    // Saturación del pooler de Supavisor / Postgres en modo sesión:
+    'max clients reached',
+    'Max client connections reached',
+    'EMAXCONNSESSION',
+    'too many clients',
+    'remaining connection slots',
   ];
 
   let attempt = 0;
@@ -90,9 +117,11 @@ async function pgQueryRetry(sql, params, opts = {}) {
       lastErr = err;
       const isRetryable =
         retryableCodes.has(err.code) ||
-        retryableMessages.some(m => err.message?.includes(m));
+        retryableMessages.some(m => err.message?.toLowerCase().includes(m.toLowerCase()));
       if (!isRetryable || attempt === retries) throw err;
-      const delay = baseDelayMs * Math.pow(3, attempt);
+      // Backoff exponencial + jitter: sin jitter, los ~11 requests que fallan
+      // a la vez reintentarían sincronizados y volverían a chocar.
+      const delay = baseDelayMs * Math.pow(2, attempt) + Math.floor(Math.random() * 150);
       await new Promise(r => setTimeout(r, delay));
       attempt++;
     }
