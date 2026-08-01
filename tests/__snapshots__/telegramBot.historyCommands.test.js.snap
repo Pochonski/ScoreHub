@@ -193,18 +193,14 @@ exports[`handleCommand — Historial/Jugadores (golden-master) /jugador mbappe (
 ]
 `;
 
-exports[`handleCommand — Historial/Jugadores (golden-master) /jugador sin argumento (usage) 1`] = `
+exports[`handleCommand — Historial/Jugadores (golden-master) /jugador sin nombre → busca el literal "/jugador" 1`] = `
 [
   {
-    "method": "sendPhoto",
+    "method": "sendMessage",
     "params": {
-      "caption": "⚽ *Kylian Mbappé*
-📌 Delantero, 26 años
-🆔 ID: 12994
-📈 *Últimos eventos:* ⚽ 🟨 ⚽",
       "chat_id": 12345,
       "parse_mode": "Markdown",
-      "photo": "https://img.test/athlete.png",
+      "text": "⚠️ No encontré al jugador "/jugador".",
     },
   },
 ]

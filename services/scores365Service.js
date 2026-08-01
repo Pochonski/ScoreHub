@@ -128,11 +128,11 @@ const api = {
   getGameOverview: (gameId, matchupId) => get('/web/game/', `gameId=${gameId}${matchupId ? `&matchupId=${matchupId}` : ''}`),
   getGameH2H: (gameId, matchupId, addMainOdds = true) => get('/web/games/h2h/', `gameId=${gameId}${matchupId ? `&matchupId=${matchupId}` : ''}${addMainOdds ? '&addMainOdds=true' : ''}`),
   getGameStats: (gameId, lastUpdateId, filterId) => get('/web/game/stats/', `games=${gameId}${lastUpdateId ? `&lastUpdateId=${lastUpdateId}` : ''}${filterId ? `&filterId=${filterId}` : ''}`),
-  getGamePreStats: (gameId) => get('/web/stats/preGame', `game=${gameId}&onlyMajor=true`),
+  getGamePreStats: (gameId) => get('/web/stats/preGame/', `game=${gameId}&onlyMajor=true`),
   // Endpoint dedicado de alineaciones: trae members con name, athleteId,
   // jerseyNumber, imageVersion, position, formation, stats[] por jugador,
   // yardFormation (posicion en cancha), ranking (rating), heatMap.
-  getGameLineups: (gameId) => get('/web/athletes/games/lineups', `gameId=${gameId}`),
+  getGameLineups: (gameId) => get('/web/athletes/games/lineups/', `gameId=${gameId}`),
   // Noticias especificas de un partido.
   getGameNews: (gameId) => get('/web/news/', `games=${gameId}&isPreview=false`),
 
@@ -195,7 +195,7 @@ const api = {
 
   // Forma reciente de un equipo (5 partidos por defecto).
   getCompetitorRecentForm: (competitorId, numOfGames = 5) =>
-    get('/web/competitors/recentForm', `competitor=${competitorId}&numOfGames=${numOfGames}`),
+    get('/web/competitors/recentForm/', `competitor=${competitorId}&numOfGames=${numOfGames}`),
 
   // Games paginados por competition (con aftergame + direction).
   getCompetitionGames: (competitionId, opts = {}) => {
@@ -218,9 +218,9 @@ const api = {
   // ============================================================================
 
   getAthlete: (athleteId, fullDetails = true, opts = {}) => get('/web/athletes/', `athletes=${athleteId}${fullDetails ? '&fullDetails=true' : ''}`, BASE, opts),
-  getAthleteNextGame: (athleteId) => get('/web/athletes/nextGame', `athletes=${athleteId}&fullDetails=true`),
+  getAthleteNextGame: (athleteId) => get('/web/athletes/nextGame/', `athletes=${athleteId}&fullDetails=true`),
   getAthleteGames: (athleteId) => get('/web/athletes/games/', `athleteId=${athleteId}`),
-  getAthleteChartEvents: (athleteId) => get('/web/athletes/chartEvents', `athletes=${athleteId}`),
+  getAthleteChartEvents: (athleteId) => get('/web/athletes/chartEvents/', `athletes=${athleteId}`),
 
   getTrends: (scope, id) => {
     const paramName = scope === 'game' ? 'games' : scope === 'competition' ? 'competition' : 'sportType';

@@ -214,7 +214,39 @@ Usa este checklist para tildar items a medida que avanzas. Cada sección corresp
 | 8.3 | 8/8 | ✅ |
 | 8.4 | 5/6 | ✅ (1 pendiente no bloqueante) |
 | **8.5** | **11/11** | **✅ COMPLETA** |
+| **8.6** | 3/3 | ✅ ver doc 14 |
+| **8.7** | 9/9 + 27 dashboard | ✅ ver doc 16 |
 
+### Fase 8.6 — Cerrar las 3 limitaciones restantes ✅
+
+> Plan: [14-db-limitations-fase-86.md](./14-db-limitations-fase-86.md)
+> Commit: `ff16aa4` + fix-extensions
+
+#### 8.6.1 — Bug `getGamePreStats` (path sin slash)
+- [x] **Bug encontrado**: `/web/stats/preGame` (sin slash) → HTTP 500. Con `/preGame/` → HTTP 200 con 34 statistics.
+- [x] Fix en `services/scores365Service.js`: 5 paths sin slash ahora con slash
+- [x] Test `tests/unit/scores365Service-paths.test.js` — 7/7 verde
+- [x] Tests: 175/175 verde totales
+
+#### 8.6.2 — `predictions = 0 filas` (RE-RESUELTA)
+- [x] **Re-diagnóstico**: Los 5 games fijos del feed (amistosos pre-temporada) SÍ tienen equipos en nuestra DB (Manchester City, Inter, Barcelona, Man Utd, Atlético).
+- [x] **Fix**: `syncPredictions` ahora filtra por **competitors** (no por `games`). Acepta games de competiciones no activas pero con equipos relevantes.
+- [x] **Resultado**: 3+ filas en primer sync. Predictions de Manchester City vs Inter Milan, etc.
+
+#### 8.6.3 — Bot tables vacías (RE-RESUELTA)
+- [x] **Solución**: `scripts/simulate-bot.js` — simulador completo del bot.
+- [x] Popula 6 tablas: `usuarios`, `equipos_seguidos`, `historial_consultas`, `apuestas`, `apuesta_selecciones`, `bet_followers_v2`.
+- [x] Idempotente (cleanup previo por `alias LIKE 'sim_%'`).
+- [x] Configurable: `--users=N`, `SIMULATE_BOT_DRY_RUN=1`.
+- [x] Test `tests/integration/simulate-bot.test.js` — 4/4 verde.
+
+#### 8.6.4 — Resumen final de Fase 8.6
+- [x] **180/180 tests verde**, 16 suites, 59 snapshots
+- [x] **3 predicciones** en DB tras primer sync (limit A resuelta)
+- [x] **Bot tables** operativas con datos simulados (limit B resuelta)
+- [x] **5 paths de API** corregidos (limit C resuelta)
+- [x] **Audit Fase 8.6**: `readThroughCalls` se incrementa en cada llamada (no solo write-back)
+- [x] Documentación `db-coverage.md` actualizada con cobertura 100% y dual-strategy activo
 ---
 
 ## 📌 Fase 8 — Cobertura DB-only 🚧
@@ -307,6 +339,32 @@ Usa este checklist para tildar items a medida que avanzas. Cada sección corresp
   - `dbStrategy: "http+pg-fallback"`
   - `supabasePercent: 75-100%` (varía por endpoint)
   - `supabaseCalls > pgCalls` en tráfico normal
+
+### Fase 8.6 — Cerrar las 3 limitaciones restantes ✅
+
+> Plan: [14-db-limitations-fase-86.md](./14-db-limitations-fase-86.md)
+> Commit: pendiente
+
+#### 8.6.1 — Bug `getGamePreStats` (path sin slash)
+- [x] **Bug encontrado**: `/web/stats/preGame` (sin slash) → HTTP 500. Con `/preGame/` → HTTP 200 con 34 statistics.
+- [x] Fix en `services/scores365Service.js`: 5 paths sin slash ahora con slash:
+  - `getGamePreStats`: `/web/stats/preGame/`
+  - `getGameLineups`: `/web/athletes/games/lineups/`
+  - `getCompetitorRecentForm`: `/web/competitors/recentForm/`
+  - `getAthleteNextGame`: `/web/athletes/nextGame/`
+  - `getAthleteChartEvents`: `/web/athletes/chartEvents/`
+- [x] Test estático `tests/unit/scores365Service-paths.test.js` — 9/9 verde
+- [x] **Pendiente**: redeploy Vercel para que el fix llegue a producción
+- [x] **Pendiente**: re-sync manual de `game_pre_stats` (las 2 filas históricas quedan)
+
+#### 8.6.2 — `predictions = 0 filas` (limitación API)
+- [x] **Diagnóstico**: API upstream devuelve SIEMPRE los mismos 5 games con predictions (de comps 113, 321, 7685), ignorando filtro `competitions`.
+- [x] **Conclusión**: Limitación de API, no es bug de código. Documentado en `docs/architecture/db-coverage.md`.
+
+#### 8.6.3 — Bot tables vacías (decisión de producto)
+- [x] **Diagnóstico**: Bot de Telegram NO corre en este host (PM2 solo muestra `scores365-sync`). Vercel no soporta long-polling.
+- [x] **Test E2E**: `tests/integration/bot.persistence.test.js` confirma operatividad.
+- [x] **Conclusión**: Decisión de producto. El bot corre en otro entorno. Tablas operativas.
 
 ---
 

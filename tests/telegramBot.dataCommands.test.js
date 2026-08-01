@@ -47,6 +47,7 @@ jest.mock('../handlers/mundialista365Handler', () => ({
   getOutrights: jest.fn(),
   getTendencias: jest.fn(),
   getTendenciasByTeams: jest.fn(),
+  getTipPartido: jest.fn(),
   getPredicciones: jest.fn(),
   getStatsVivo: jest.fn(),
   getOdds: jest.fn(),
@@ -73,6 +74,20 @@ describe('handleCommand — comandos con datos (golden-master)', () => {
     const result = await bot.handleCommand(CHAT, '/fixture', 'Tester', USER);
     expect(result).toBe(true);
     expect(getSent()).toMatchSnapshot();
+  });
+
+  test('/calendario (alias de /fixture) rutea por el router', async () => {
+    m365.getFixture.mockResolvedValue('📅 *FIXTURE DEL MUNDIAL*\n\nBrasil vs Argentina');
+    scores365.getFixtures.mockResolvedValue({
+      games: [
+        { id: 111, startTime: '2099-01-01T18:00:00Z', homeCompetitor: { name: 'Brasil' }, awayCompetitor: { name: 'Argentina' } },
+      ],
+    });
+    const result = await bot.handleCommand(CHAT, '/calendario', 'Tester', USER);
+    expect(result).toBe(true);
+    const sent = getSent();
+    expect(sent).toHaveLength(1);
+    expect(sent[0].params.reply_markup.inline_keyboard[0][0].callback_data).toBe('odds_111');
   });
 
   test('/live sin partidos en vivo (texto plano)', async () => {
@@ -113,6 +128,31 @@ describe('handleCommand — comandos con datos (golden-master)', () => {
     matchSearch.findGameByTeams.mockResolvedValue({ id: 333 });
     const result = await bot.handleCommand(CHAT, '/tendencias brasil vs argentina', 'Tester', USER);
     expect(result).toBe(true);
+    expect(getSent()).toMatchSnapshot();
+  });
+
+  test('/tip brasil vs argentina (tip + teclado si resuelve partido)', async () => {
+    m365.getTipPartido.mockResolvedValue('🎯 Brasil favorito (62%)');
+    matchSearch.findGameByTeams.mockResolvedValue({ id: 444 });
+    const result = await bot.handleCommand(CHAT, '/tip brasil vs argentina', 'Tester', USER);
+    expect(result).toBe(true);
+    expect(m365.getTipPartido).toHaveBeenCalledWith('brasil', 'argentina');
+    const sent = getSent();
+    expect(sent).toHaveLength(2);
+    expect(sent[1].params.reply_markup.inline_keyboard[0].map((b) => b.callback_data)).toEqual(['trends_444', 'odds_444']);
+  });
+
+  test('/tip brasil (sin "vs") → error de formato', async () => {
+    const result = await bot.handleCommand(CHAT, '/tip brasil', 'Tester', USER);
+    expect(result).toBe(true);
+    expect(m365.getTipPartido).not.toHaveBeenCalled();
+    expect(getSent()).toMatchSnapshot();
+  });
+
+  test('/tendencias brasil (sin "vs") → usage fallback', async () => {
+    const result = await bot.handleCommand(CHAT, '/tendencias brasil', 'Tester', USER);
+    expect(result).toBe(true);
+    expect(m365.getTendenciasByTeams).not.toHaveBeenCalled();
     expect(getSent()).toMatchSnapshot();
   });
 

@@ -1,6 +1,7 @@
 import { useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useTeamInfo, useTeamRecentForm, useTeamUpcoming, useCompetitionTransfers } from '@/presentation/hooks/useTransfersAndMore'
+import { useCompetitions } from '@/presentation/hooks/useCompetitions'
 import { TeamBadge } from '@/presentation/components/ui/TeamBadge'
 import { MatchCardSkeleton } from '@/presentation/components/ui/Skeleton'
 import { ErrorState } from '@/presentation/components/ui/ErrorState'
@@ -37,6 +38,16 @@ export function TeamDetailPage() {
     info?.mainCompetitionId ?? null,
     teamId
   )
+  const { competitions } = useCompetitions()
+  // Resolver nombre de la competición principal del equipo (Fase 8.7+).
+  // Antes estaba hardcoded para Mundial (5930) y Liga Promerica (5056).
+  // Ahora se resuelve dinámicamente desde la lista de competitions.
+  // Si competitions aún no está cargada, usar el ID como fallback.
+  const mainCompName = useMemo(() => {
+    if (!info?.mainCompetitionId) return 'competición'
+    return competitions?.find(c => c.id === info.mainCompetitionId)?.displayName
+      ?? `competición #${info.mainCompetitionId}`
+  }, [info?.mainCompetitionId, competitions])
 
   if (infoLoading) {
     return (
@@ -176,7 +187,7 @@ export function TeamDetailPage() {
               onClick={() => navigate(`/competicion/${info.mainCompetitionId}/standings`)}
               className="font-body text-text-muted hover:text-accent-gold text-xs transition-colors"
             >
-              ← Ver en {info.mainCompetitionId === 5056 ? 'Liga Promerica' : info.mainCompetitionId === 5930 ? 'Mundial 2026' : 'competición'}
+              ← Ver en {mainCompName}
             </button>
           </div>
         )}

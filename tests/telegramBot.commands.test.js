@@ -66,6 +66,18 @@ describe('handleCommand — comandos de solo-texto (golden-master)', () => {
     expect(getSent()).toMatchSnapshot();
   });
 
+  // Fase 7: el router normaliza @botmundialistabot de forma uniforme, así que
+  // /help@botmundialistabot rutea igual que /help (el legacy no lo atendía).
+  test('/help@botmundialistabot rutea idéntico a /help', async () => {
+    await bot.handleCommand(CHAT, '/help@botmundialistabot', 'Tester', USER);
+    const withSuffix = getSent();
+    reset();
+    await bot.handleCommand(CHAT, '/help', 'Tester', USER);
+    const plain = getSent();
+    expect(withSuffix).toEqual(plain);
+    expect(withSuffix.length).toBe(1);
+  });
+
   // Usage prompts (sin argumento): texto puro, sin dependencias de datos.
   test.each([
     ['/tip'],

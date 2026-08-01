@@ -50,7 +50,7 @@ Asistente de fútbol y apuestas multi-competición, con tres interfaces integrad
 ## Stack
 
 - **Runtime**: Node.js 18+ (CommonJS en raíz, ESM en dashboard).
-- **Bot**: `node-telegram-bot-api`, WhatsApp legacy (inactivo por defecto).
+- **Bot**: API HTTP de Telegram directa (`https`). WhatsApp cuarentenado en `legacy/` (deps removidas).
 - **Frontend**: React 19, React Router 7, Vite 6, TypeScript, Tailwind 4, Zod 4, **TanStack Query 5** (data fetching, cache, mutations).
 - **DB**: Supabase PostgreSQL, `pg`, sin ORM.
 - **Logs**: `pino` + `pino-http` + `pino-pretty`.
@@ -61,22 +61,26 @@ Asistente de fútbol y apuestas multi-competición, con tres interfaces integrad
 
 ```
 .
-├── telegramBot.js          # Bot de Telegram (entrada principal)
-├── bot.js                  # Bot de WhatsApp (legacy, inactivo)
-├── sync.js                 # Servicio ETL con 20 crons
+├── telegramBot.js          # Bot de Telegram: composition root (entrada principal)
+├── sync.js                 # Entry del servicio ETL → src/interface/scheduler
+├── src/                    # Clean Architecture del backend (Fase 7)
+│   ├── domain/             #   ports (contratos)
+│   ├── application/        #   use-cases (matches, content) + sync (agregador + dominios)
+│   ├── infrastructure/     #   gateways/adapters, persistence, config, container
+│   └── interface/          #   telegram (client/lifecycle/router/commands/presenters), http, scheduler
 ├── api/index.js            # Entry serverless para Vercel
-├── handlers/               # Ruteo de mensajes (match, team, betting, OCR…)
-├── services/               # Lógica de negocio (scores365, sync, bet evaluator…)
-├── database/               # Conexión pg, schema.sql, migraciones
-├── utils/                  # logger, processGuard, jobGuard, adminAuth, constants…
+├── handlers/               # Handlers legacy envueltos por los gateways (scores365, stats, OCR…)
+├── services/               # Servicios legacy envueltos (scores365, mundialCache, bet…)
+├── database/               # Conexión pg, db wrapper, schema.sql, migraciones
+├── utils/                  # Cross-cutting compartido: logger, dbStats, processGuard…
 ├── dashboard/              # SPA React (src/) + API Express (server/)
-│   ├── server/             # Express API (/api/football/*)
-│   ├── src/                # Clean Architecture (domain/data/infrastructure/presentation)
-│   └── docs/               # Bitácora de las fases del dashboard
 ├── admin/                  # Panel admin (Express)
-├── docs/                   # Documentación del proyecto
+├── legacy/                 # WhatsApp bot cuarentenado (inactivo)
+├── docs/                   # Documentación (ver docs/architecture.md)
 └── scripts/                # Herramientas one-off
 ```
+
+> Arquitectura del backend en detalle: **[docs/architecture.md](./docs/architecture.md)**.
 
 ## Setup rápido
 
@@ -115,7 +119,8 @@ cd dashboard && npm run dev # frontend Vite (puerto 5173, proxy /api → 3002)
 
 ## Estado
 
-- WhatsApp: **legacy, inactivo** (se mantiene el código, no se invierte).
+- WhatsApp: **cuarentenado** en `legacy/whatsapp-bot.js` (Fase 7). El código se conserva; las deps `whatsapp-web.js` + `qrcode-terminal` (pesadas) se removieron de `package.json`. Para reactivar: reinstalarlas. Ver [legacy/README.md](./legacy/README.md).
+- Backend/root: **Clean Architecture** (Fase 7) — bot y sync en `src/{domain,application,infrastructure,interface}`. Ver [docs/architecture.md](./docs/architecture.md).
 - Cosmos DB: **eliminado** (migrado a Supabase).
 - Azure App Service: **eliminado** (migrado a Vercel).
 - Supabase JS HTTP wrapper: **code completo**, **activación pendiente en Vercel** (agregar `SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY` como env vars — ver `docs/migration-supabase-vercel.md § 11`).

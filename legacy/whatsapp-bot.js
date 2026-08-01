@@ -1,3 +1,13 @@
+/**
+ * legacy/whatsapp-bot.js — Bot de WhatsApp (LEGACY, INACTIVO).
+ *
+ * Cuarentenado en la Fase 7 (Clean Architecture). El producto activo es el bot
+ * de Telegram (telegramBot.js). Este código se conserva para referencia pero:
+ *   - Las dependencias `whatsapp-web.js` y `qrcode-terminal` fueron removidas de
+ *     package.json (eran pesadas — Puppeteer/Chromium — y solo las usaba este
+ *     archivo). Para reactivarlo hay que reinstalarlas.
+ *   - `messageHandler` es platform-agnostic y sigue vivo (lo usa Telegram).
+ */
 require('dotenv').config();
 
 if (!process.env.ENABLE_WHATSAPP || process.env.ENABLE_WHATSAPP !== 'true') {
@@ -8,12 +18,12 @@ if (!process.env.ENABLE_WHATSAPP || process.env.ENABLE_WHATSAPP !== 'true') {
 
 const { Client, LocalAuth } = require('whatsapp-web.js');
 const qrcode = require('qrcode-terminal');
-const messageHandler = require('./handlers/messageHandler');
-const followHandler = require('./handlers/followHandler');
-const conversationalHandler = require('./handlers/conversationalHandler');
-const notificationService = require('./services/notificationService');
-const telegramNotifier = require('./services/telegramNotifier');
-const { testConnection } = require('./database/connection');
+const messageHandler = require('../handlers/messageHandler');
+const followHandler = require('../handlers/followHandler');
+const conversationalHandler = require('../handlers/conversationalHandler');
+const notificationService = require('../services/notificationService');
+const telegramNotifier = require('../services/telegramNotifier');
+const { testConnection } = require('../database/connection');
 
 const client = new Client({
   authStrategy: new LocalAuth({

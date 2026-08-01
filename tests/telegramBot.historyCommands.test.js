@@ -148,8 +148,14 @@ describe('handleCommand — Historial/Jugadores (golden-master)', () => {
     expect(getSent()).toMatchSnapshot();
   });
 
-  test('/jugador sin argumento (usage)', async () => {
+  // Quirk legacy preservado: `/jugador` pelado NO muestra usage — el regex de
+  // extracción solo strippea si hay espacio, así que name='/jugador' y se busca
+  // ese literal. (El usage solo aparece con `/jugador ` + espacio → name='').
+  test('/jugador sin nombre → busca el literal "/jugador"', async () => {
+    cache.searchAthletes.mockReset();
+    cache.searchAthletes.mockResolvedValue([]);
     expect(await bot.handleCommand(CHAT, '/jugador', 'Tester', USER)).toBe(true);
+    expect(cache.searchAthletes).toHaveBeenCalledWith('/jugador');
     expect(getSent()).toMatchSnapshot();
   });
 

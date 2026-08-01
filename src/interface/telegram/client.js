@@ -15,9 +15,9 @@
  */
 
 const https = require('https');
+const { telegramToken } = require('../../infrastructure/config');
 
-const TELEGRAM_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
-const API_URL = `https://api.telegram.org/bot${TELEGRAM_TOKEN}`;
+const API_URL = `https://api.telegram.org/bot${telegramToken}`;
 
 /**
  * Errores que la API de Telegram puede devolver cuando parse_mode=Markdown

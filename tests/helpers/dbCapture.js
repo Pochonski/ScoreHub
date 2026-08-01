@@ -13,15 +13,40 @@
 
 const writes = [];
 
+function recordSql(via, sql, params) {
+  const s = String(sql).replace(/\s+/g, ' ').trim();
+  if (/^(INSERT|UPDATE|DELETE)/i.test(s)) writes.push({ via, sql: s, params });
+}
+
 const pool = {
   query: async (sql, params) => {
-    const s = String(sql).replace(/\s+/g, ' ').trim();
-    if (/^(INSERT|UPDATE|DELETE)/i.test(s)) {
-      writes.push({ via: 'pool', sql: s, params });
-    }
+    recordSql('pool', sql, params);
     return { rows: [], rowCount: 0 };
   },
+  // Para withTransaction: un client que captura writes (BEGIN/COMMIT se ignoran).
+  connect: async () => ({
+    query: async (sql, params) => {
+      recordSql('tx', sql, params);
+      return { rows: [], rowCount: 0 };
+    },
+    release: () => {},
+  }),
 };
+
+// Réplica de pgQueryRetry del connection.js real — Fase 8.1: tras conectar
+// pgQueryRetry al wrapper db.js, todas las escrituras pg pasan por aquí.
+// Para los golden-master, basta con delegar en pool.query (que captura).
+const pgQueryRetry = async (sql, params) => pool.query(sql, params);
+
+// Réplica del withTransaction real (database/connection.js) contra el pool mock.
+async function withTransaction(fn) {
+  const client = await pool.connect();
+  await client.query('BEGIN');
+  const r = await fn(client);
+  await client.query('COMMIT');
+  client.release();
+  return r;
+}
 
 function recordDb(op) {
   return async (table, ...args) => {
@@ -29,6 +54,15 @@ function recordDb(op) {
     return { data: [], error: null };
   };
 }
+
+// Resultado que devuelven las lecturas por db.execAdvanced (SELECT). Los jobs
+// per-game leen ids de games así; setExecResult() lo configura por test.
+// Algunos jobs (syncAthletes) hacen varias lecturas distintas → setExecResults
+// permite una secuencia (una por llamada; se agota a []).
+let execResult = [];
+let execQueue = null;
+function setExecResult(r) { execResult = r; execQueue = null; }
+function setExecResults(seq) { execQueue = [...seq]; }
 
 const db = {
   query: async () => ({ data: [], error: null }),
@@ -38,13 +72,17 @@ const db = {
   remove: recordDb('remove'),
   execAdvanced: async (sql, params) => {
     const s = String(sql).replace(/\s+/g, ' ').trim();
-    if (/^(INSERT|UPDATE|DELETE)/i.test(s)) writes.push({ via: 'execAdvanced', sql: s, params });
-    return [];
+    if (/^(INSERT|UPDATE|DELETE)/i.test(s)) {
+      writes.push({ via: 'execAdvanced', sql: s, params });
+      return []; // db.execAdvanced real devuelve result.rows (array)
+    }
+    if (execQueue) return execQueue.length ? execQueue.shift() : [];
+    return execResult;
   },
-  execAdvancedFull: async () => ({ rows: [], rowCount: 0 }),
+  execAdvancedFull: async () => ({ rows: execResult, rowCount: execResult.length }),
 };
 
-function reset() { writes.length = 0; }
+function reset() { writes.length = 0; execResult = []; execQueue = null; }
 function getWrites() { return writes.map((w) => ({ ...w })); }
 
-module.exports = { pool, db, reset, getWrites };
+module.exports = { pool, db, withTransaction, pgQueryRetry, reset, getWrites, setExecResult, setExecResults };

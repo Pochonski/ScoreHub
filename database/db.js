@@ -22,7 +22,7 @@
  */
 
 const { getClient, isEnabled } = require('./supabaseClient');
-const { pool } = require('./connection');
+const { pool, pgQueryRetry } = require('./connection');
 const logger = require('../utils/logger');
 const { recordSupabaseCall, recordSupabaseError, recordPgCall, recordPgError } = require('../utils/dbStats');
 
@@ -192,11 +192,16 @@ async function remove(table, filter) {
 /**
  * Run a raw SQL statement via the (now size-1) pg pool.
  * Reserved for queries PostgREST can't do (CTEs, multi-row INSERTs, etc).
+ *
+ * Uses `pgQueryRetry` from connection.js to absorb transient connection
+ * failures (timeout, ECONNRESET) before propagating. The retry only fires
+ * on errors tagged as network/connection — constraint violations surface
+ * immediately.
  */
 async function execAdvanced(sql, params = []) {
   try {
     recordPgCall();
-    const result = await pool.query(sql, params);
+    const result = await pgQueryRetry(sql, params);
     return result.rows;
   } catch (err) {
     recordPgError();
@@ -212,7 +217,7 @@ async function execAdvanced(sql, params = []) {
 async function execAdvancedFull(sql, params = []) {
   try {
     recordPgCall();
-    const result = await pool.query(sql, params);
+    const result = await pgQueryRetry(sql, params);
     return result;
   } catch (err) {
     recordPgError();
@@ -296,7 +301,7 @@ async function queryViaPg(table, options) {
       params.push(options.limit || to - from + 1);
       sql += ` LIMIT $${params.length}`;
     }
-    const result = await pool.query(sql, params);
+    const result = await pgQueryRetry(sql, params);
     const rows = result.rows;
     if (options.single && rows.length === 0) {
       return { data: null, error: { code: 'PGRST116', message: 'no rows' } };
@@ -331,8 +336,8 @@ async function insertViaPg(table, rows, { onConflict, select }) {
     if (conflictCols) {
       sql += ` ON CONFLICT (${conflictCols.join(', ')}) DO NOTHING`;
     }
-    if (select) sql += ` RETURNING ${assertSelectList(select)}`;
-    const result = await pool.query(sql, values);
+    if (select) sql += ` RETURNING ${select}`;
+    const result = await pgQueryRetry(sql, values);
     return { data: result.rows, error: null };
   } catch (err) {
     recordPgError();
@@ -361,8 +366,8 @@ async function upsertViaPg(table, rows, onConflict, { select } = {}) {
       .join(', ');
     let sql = `INSERT INTO ${table} (${keys.join(', ')}) VALUES ${placeholders}
                ON CONFLICT (${conflictClause}) DO UPDATE SET ${updates}`;
-    if (select) sql += ` RETURNING ${assertSelectList(select)}`;
-    const result = await pool.query(sql, values);
+    if (select) sql += ` RETURNING ${select}`;
+    const result = await pgQueryRetry(sql, values);
     return { data: result.rows, error: null };
   } catch (err) {
     recordPgError();
@@ -386,7 +391,7 @@ async function updateViaPg(table, updates, filter) {
         .map((c, i) => c.replace(/\$(\d+)/g, (_, n) => `$${parseInt(n, 10) + keys.length}`))
         .join(' AND ');
     }
-    const result = await pool.query(sql, params);
+    const result = await pgQueryRetry(sql, params);
     return { data: result.rows, error: null };
   } catch (err) {
     recordPgError();
@@ -403,7 +408,7 @@ async function removeViaPg(table, filter) {
     if (whereFromFilters.conds.length) {
       sql += ' WHERE ' + whereFromFilters.conds.join(' AND ');
     }
-    const result = await pool.query(sql, whereFromFilters.params);
+    const result = await pgQueryRetry(sql, whereFromFilters.params);
     return { data: result.rows, error: null };
   } catch (err) {
     recordPgError();
@@ -419,4 +424,88 @@ module.exports = {
   remove,
   execAdvanced,
   execAdvancedFull,
+  readThrough,
 };
+
+/**
+ * Read-through cache pattern (Fase 8.4):
+ *
+ *  1. Lee de DB usando los `queryOpts` (mismo shape que `db.query`).
+ *  2. Si encuentra datos → los devuelve con `source: 'db'`.
+ *  3. Si NO encuentra (cache miss) → llama a `fetcher()`.
+ *  4. Si `fetcher` devuelve datos → los persiste en DB con `upsert`.
+ *  5. Devuelve los datos con `source: '365+writeback'`.
+ *
+ * Si la fila de DB está stale (edad > `ttlMs`), también se considera
+ * cache miss para forzar refresh.
+ *
+ * @param {string} table
+ * @param {object} queryOpts - mismo shape que db.query (eq, select, single, etc.)
+ * @param {() => any} fetcher - función que trae datos de 365scores.
+ *                             Puede devolver cualquier shape; se persiste como JSONB.
+ * @param {object} [opts]
+ * @param {string|string[]} [opts.onConflict='id'] - columnas de conflict para upsert.
+ * @param {number} [opts.ttlMs] - si la fila de DB es más vieja que esto, se rehidrata.
+ * @returns {Promise<{ data, error, source: 'db'|'365+writeback'|'365-error' }>}
+ */
+async function readThrough(table, queryOpts, fetcher, opts = {}) {
+  const { onConflict = 'id', ttlMs = null } = opts;
+
+  // Fase 8.6: incrementar readThroughCalls en cada llamada (no solo write-back).
+  // Así el health endpoint muestra cuántas veces se invocó el patrón cache.
+  try {
+    require('../utils/dbStats').recordReadThroughHit();
+  } catch {}
+
+  // 1. Intentar DB
+  const { data: row, error } = await query(table, queryOpts);
+  if (error) return { data: null, error, source: 'db-error' };
+
+  const hasData = row && (Array.isArray(row) ? row.length > 0 : true);
+  if (hasData) {
+    const single = Array.isArray(row) ? row[0] : row;
+    const updatedAt = single?.updated_at;
+    const isStale =
+      ttlMs != null &&
+      updatedAt != null &&
+      Date.now() - new Date(updatedAt).getTime() > ttlMs;
+    if (!isStale) {
+      return { data: row, error: null, source: 'db' };
+    }
+  }
+
+  // 2. Cache miss / stale: fetcher
+  let fresh = null;
+  let upstreamError = null;
+  try {
+    fresh = await fetcher();
+  } catch (err) {
+    upstreamError = err;
+  }
+
+  if (fresh != null && !upstreamError) {
+    try {
+      const rows = Array.isArray(fresh) ? fresh : [fresh];
+      await upsert(table, rows.map(r => {
+        if (typeof r === 'object' && r !== null && !Array.isArray(r)) return r;
+        return { data: r };
+      }), onConflict);
+      try {
+        require('../utils/dbStats').recordUpsertFromCacheMiss();
+      } catch {}
+    } catch (persistErr) {
+      const logger = require('../utils/logger');
+      logger.warn({ err: persistErr.message, table }, 'readThrough write-back failed');
+    }
+    return { data: fresh, error: null, source: '365+writeback' };
+  }
+
+  if (hasData) {
+    return { data: row, error: null, source: 'db-stale' };
+  }
+  return {
+    data: null,
+    error: upstreamError || { message: 'no data from DB or upstream' },
+    source: '365-error',
+  };
+}

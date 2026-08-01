@@ -174,26 +174,36 @@ async function getGameSuggestions(req, res, next) {
     if (!resolved) return;
     const { competitionId } = resolved;
 
-    const { data, error } = await db.query('game_suggestions', {
-      select: 'data',
-      eq: { competition_id: competitionId },
-      order: [
-        { column: 'rank', asc: true },
-        { column: 'game_id', asc: true },
-      ],
-    });
-    if (error) throw error;
+    // DB-first con write-back (Fase 8.4). game_suggestions tiene una
+    // fila por game sugerido; ordenamos por rank.
+    const { data: rows } = await db.readThrough(
+      'game_suggestions',
+      {
+        select: 'data',
+        eq: { competition_id: competitionId },
+        order: [
+          { column: 'rank', asc: true },
+          { column: 'game_id', asc: true },
+        ],
+      },
+      async () => {
+        const live = await scores365.getGameSuggestions(competitionId);
+        const games = live?.suggestedGames ?? [];
+        if (!games.length) return null;
+        // Persistir cada game sugerido como fila (con rank).
+        return games.map((g, idx) => ({
+          competition_id: competitionId,
+          game_id: Number(g.gameId ?? g.id),
+          rank: idx,
+          data: JSON.stringify(g),
+        }));
+      },
+      { onConflict: 'competition_id,game_id', ttlMs: 30 * 60 * 1000 }, // 30min
+    );
 
-    if (!data || !data.length) {
-      try {
-        const fallback = await scores365.getGameSuggestions(competitionId);
-        return res.json((fallback?.suggestedGames ?? []).map(g => g));
-      } catch (_) {
-        return res.json([]);
-      }
-    }
-
-    res.json(data.map(r => r.data));
+    const arr = Array.isArray(rows) ? rows : (rows ? [rows] : []);
+    if (arr.length === 0) return res.json([]);
+    return res.json(arr.map(r => r.data));
   } catch (err) {
     next(err);
   }

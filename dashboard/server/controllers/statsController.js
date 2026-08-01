@@ -8,23 +8,27 @@ const STAT_TYPE_MAP = { 1: 1, 3: 2, 7: 36 };
 async function fetchFromCache(competitionId, seasonNum, statCategoryId, startDate, compSeasonNum) {
   if (seasonNum === compSeasonNum && startDate && new Date(startDate) > new Date()) return [];
 
-  const { data, error } = await db.query('tournament_stats', {
-    select: 'data',
-    eq: { competition_id: competitionId, season_num: seasonNum },
-    maybeSingle: true,
-  });
-  if (error) throw error;
-
-  let payload;
-  if (data) {
-    payload = data.data?.stats?.athletesStats;
-  } else {
-    try {
+  // DB-first con write-back (Fase 8.4).
+  const { data: row } = await db.readThrough(
+    'tournament_stats',
+    {
+      select: 'data',
+      eq: { competition_id: competitionId, season_num: seasonNum },
+      maybeSingle: true,
+    },
+    async () => {
       const live = await scores365.getTournamentStats(competitionId, seasonNum);
-      payload = live?.stats?.athletesStats;
-    } catch (_) { /* fallthrough */ }
-  }
+      if (!live) return null;
+      return {
+        competition_id: competitionId,
+        season_num: seasonNum,
+        data: JSON.stringify(live),
+      };
+    },
+    { onConflict: 'competition_id,season_num', ttlMs: 6 * 60 * 60 * 1000 }, // 6h
+  );
 
+  const payload = row?.data?.stats?.athletesStats;
   if (!payload) return [];
 
   const categories = Array.isArray(payload) ? payload : Object.values(payload);

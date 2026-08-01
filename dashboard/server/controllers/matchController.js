@@ -269,18 +269,25 @@ async function getMatchStats(req, res, next) {
     const homeId = gameData?.homeCompetitor?.id ?? gameData?.homeCompetitorId;
     const awayId = gameData?.awayCompetitor?.id ?? gameData?.awayCompetitorId;
 
-    const statsRow = await getGameDetailBy('game_stats', gid);
-    const flat = statsRow?.statistics || statsRow?.stats || [];
-    if (flat.length) {
-      const stats = pivotStats(flat, homeId, awayId);
-      if (stats.length) return res.json(stats);
-    }
+    // DB-first con write-back (Fase 8.4).
+    const { data: statsRow, source } = await db.readThrough(
+      'game_stats',
+      { select: 'data', eq: { game_id: gid }, maybeSingle: true },
+      async () => {
+        const live = await scores365.getGameStats(gid);
+        if (!live?.statistics?.length) return null;
+        return { game_id: gid, data: JSON.stringify(live) };
+      },
+      { onConflict: 'game_id', ttlMs: 30 * 1000 },
+    );
 
-    try {
-      const live = await scores365.getGameStats(gid);
-      const liveFlat = live?.statistics || [];
-      if (liveFlat.length) return res.json(pivotStats(liveFlat, homeId, awayId));
-    } catch (_) { /* fallthrough */ }
+    if (source !== '365-error' && statsRow) {
+      const flat = statsRow?.statistics || statsRow?.stats || [];
+      if (flat.length) {
+        const stats = pivotStats(flat, homeId, awayId);
+        if (stats.length) return res.json(stats);
+      }
+    }
 
     res.json([]);
   } catch (err) {
@@ -323,18 +330,24 @@ async function getMatchLineups(req, res, next) {
     const homeId = gameData?.homeCompetitor?.id ?? gameData?.homeCompetitorId;
     const awayId = gameData?.awayCompetitor?.id ?? gameData?.awayCompetitorId;
 
-    const lineupsRow = await getGameDetailBy('game_lineups', gid);
+    // DB-first con write-back (Fase 8.4).
+    const { data: lineupsRow } = await db.readThrough(
+      'game_lineups',
+      { select: 'data', eq: { game_id: gid }, maybeSingle: true },
+      async () => {
+        const live = await scores365.getGameLineups(gid);
+        if (!live) return null;
+        return { game_id: gid, data: JSON.stringify(live) };
+      },
+      { onConflict: 'game_id', ttlMs: 60 * 60 * 1000 },
+    );
+
     if (lineupsRow?.data) {
       const built = buildLineups(lineupsRow.data, homeId, awayId);
       if (built) return res.json(built);
     }
 
-    try {
-      const live = await scores365.getGameLineups(gid);
-      const built = buildLineups(live, homeId, awayId);
-      if (built) return res.json(built);
-    } catch (_) { /* fallthrough */ }
-
+    // Fallback: extraer de game_overviews (que ya está cacheado).
     const ovRow = await getGameDetailBy('game_overviews', gid);
     const game = ovRow?.game;
     if (game) {
@@ -487,21 +500,47 @@ async function getMatchPredictions(req, res, next) {
     const { id } = req.params;
     const gid = Number(id);
 
-    const row = await getGameDetailBy('game_overviews', gid);
-    const pp = row?.game?.promotedPredictions;
+    // Fase 8.6: predictions se guardan en la tabla `predictions` (sincronizadas
+    // por syncPredictions). Estructura: `data` es el game completo de la API
+    // (`getPredictions`), con `promotedPredictions.predictions[]`.
+    // Primero leemos de `predictions` (más actualizado y específico), luego
+    // fallback a `game_overviews` (que también tiene promotedPredictions
+    // dentro de `data.game.promotedPredictions`).
+    const { data: predRow } = await db.readThrough(
+      'predictions',
+      { select: 'data', eq: { game_id: gid }, maybeSingle: true },
+      async () => {
+        const data = await scores365.getPredictions(1);
+        const game = (data?.games ?? []).find(g => Number(g.id) === gid);
+        if (!game) return null;
+        return { game_id: gid, data: JSON.stringify(game) };
+      },
+      { onConflict: 'game_id', ttlMs: 5 * 60 * 1000 },
+    );
+
+    const pp = predRow?.data?.promotedPredictions;
     if (pp?.predictions?.length) {
       const mapped = mapPredictions(pp.predictions);
       if (mapped.length) return res.json(mapped);
     }
 
-    try {
-      const overview = await scores365.getGameOverview(gid);
-      const livePp = overview?.game?.promotedPredictions;
-      if (livePp?.predictions?.length) {
-        const mapped = mapPredictions(livePp.predictions);
-        if (mapped.length) return res.json(mapped);
-      }
-    } catch (_) { /* fallthrough */ }
+    // Fallback: game_overviews
+    const { data: row } = await db.readThrough(
+      'game_overviews',
+      { select: 'data', eq: { game_id: gid }, maybeSingle: true },
+      async () => {
+        const overview = await scores365.getGameOverview(gid);
+        if (!overview) return null;
+        return { game_id: gid, data: JSON.stringify(overview) };
+      },
+      { onConflict: 'game_id', ttlMs: 30 * 60 * 1000 },
+    );
+
+    const ovPp = row?.game?.promotedPredictions;
+    if (ovPp?.predictions?.length) {
+      const mapped = mapPredictions(ovPp.predictions);
+      if (mapped.length) return res.json(mapped);
+    }
 
     res.json([]);
   } catch (err) {
@@ -521,16 +560,19 @@ async function getMatchTimeline(req, res, next) {
     const { id } = req.params;
     const gid = Number(id);
 
-    const ovRow = await getGameDetailBy('game_overviews', gid);
-    let rawEvents = ovRow?.game?.events || [];
-
-    if (!rawEvents.length) {
-      try {
+    // DB-first con write-back (Fase 8.4).
+    const { data: ovRow } = await db.readThrough(
+      'game_overviews',
+      { select: 'data', eq: { game_id: gid }, maybeSingle: true },
+      async () => {
         const overview = await scores365.getGameOverview(gid);
-        rawEvents = overview?.game?.events || [];
-      } catch (_) { /* fallthrough */ }
-    }
+        if (!overview) return null;
+        return { game_id: gid, data: JSON.stringify(overview) };
+      },
+      { onConflict: 'game_id', ttlMs: 30 * 1000 },
+    );
 
+    const rawEvents = ovRow?.game?.events || [];
     if (!rawEvents.length) return res.json([]);
 
     const playerIds = [...new Set(rawEvents.flatMap(e => [e.playerId, ...(e.extraPlayers || [])]).filter(Boolean))];
