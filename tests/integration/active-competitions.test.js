@@ -123,7 +123,7 @@ describe('integration/active-competitions — nuevas competiciones Fase 8.6+/8.7
     expect(r.has_history).toBe(true);
   });
 
-  test('display_order: nuevas abajo de Mundial, 6 nuevas en 5-11', async () => {
+  test('display_order: 6 nuevas + Mundial en 5-10 (Liga MX en 8.5 por migración 024)', async () => {
     if (!connected) return;
     const result = await pool.query(`
       SELECT id, display_name, display_order
@@ -132,7 +132,9 @@ describe('integration/active-competitions — nuevas competiciones Fase 8.6+/8.7
       ORDER BY display_order
     `);
     const orders = result.rows.map(r => Number(r.display_order));
-    expect(orders).toEqual([5, 6, 7, 8, 9, 10, 11]);
+    // Liga MX (141) quedó en 8.5 tras la migración 024 para ubicarla entre
+    // CONCACAF (8) y MLS (9). Coincide con standings-new-comps.test.ts y prod.
+    expect(orders).toEqual([5, 6, 7, 8, 8.5, 9, 10]);
   });
 
   test('competitors de las Américas (595, 6316, 7954, 141, 104, 72) en DB', async () => {
