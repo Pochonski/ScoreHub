@@ -63,19 +63,28 @@ async function syncTrends() {
  * Poblamos scope='game' para los próximos partidos (status_group 1=live,
  * 2=upcoming) de las comps activas. El endpoint /matches/:id/tips ya lee
  * scope IN ('competition','game') y prefiere los game-level.
+ *
+ * Cobertura POR COMPETICIÓN: tomamos los próximos GAMES_PER_COMP partidos de
+ * CADA comp (no un top-N global). Con un LIMIT global las ligas cuyos partidos
+ * están más lejos (ej. las europeas fuera de temporada) quedaban sin tips.
  */
+const GAMES_PER_COMP = 8;
+
 async function syncGameTrends() {
   log('Fetching per-game trends (upcoming)...');
   try {
     const comps = await getActiveCompetitions();
     const ids = comps.map(c => c.id);
     const games = await db.execAdvanced(
-      `SELECT id FROM games
-        WHERE competition_id = ANY($1::int[])
-          AND status_group IN (1, 2)
-        ORDER BY start_time ASC
-        LIMIT 60`,
-      [ids]
+      `SELECT id FROM (
+         SELECT id,
+                row_number() OVER (PARTITION BY competition_id ORDER BY start_time ASC) AS rn
+           FROM games
+          WHERE competition_id = ANY($1::int[])
+            AND status_group IN (1, 2)
+       ) q
+       WHERE rn <= $2`,
+      [ids, GAMES_PER_COMP]
     );
 
     let totalRows = 0;
