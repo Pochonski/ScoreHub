@@ -64,13 +64,15 @@ export function DashboardPage() {
   //  - terminado / sin dato → después, por displayOrder
   //  - el Mundial ya terminado (flagship sin próximos) → siempre al final
   const featuredSorted = useMemo(() => {
-    const now = Date.now()
+    // Clave de orden dentro del grupo 0 (live/upcoming): los partidos en vivo
+    // usan 0 → van antes que los próximos, que ordenan por su startTime (ms).
+    // Evitamos Date.now() en render (regla react-hooks/purity).
     const rank = (c: (typeof featured)[number]): [number, number] => {
       const g = featuredGamesByComp.get(c.id)
-      if (g && g.status === 'live') return [0, now]
+      if (g && g.status === 'live') return [0, 0]
       if (g && g.status === 'upcoming') {
         const t = new Date(g.startTime).getTime()
-        return [0, Number.isNaN(t) ? now : t]
+        return [0, Number.isNaN(t) ? 0 : t]
       }
       if (c.id === PRIMARY_COMPETITION_ID) return [2, c.displayOrder]
       return [1, c.displayOrder]

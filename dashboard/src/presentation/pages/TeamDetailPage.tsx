@@ -43,11 +43,12 @@ export function TeamDetailPage() {
   // Antes estaba hardcoded para Mundial (5930) y Liga Promerica (5056).
   // Ahora se resuelve dinámicamente desde la lista de competitions.
   // Si competitions aún no está cargada, usar el ID como fallback.
+  const mainCompetitionId = info?.mainCompetitionId
   const mainCompName = useMemo(() => {
-    if (!info?.mainCompetitionId) return 'competición'
-    return competitions?.find(c => c.id === info.mainCompetitionId)?.displayName
-      ?? `competición #${info.mainCompetitionId}`
-  }, [info?.mainCompetitionId, competitions])
+    if (!mainCompetitionId) return 'competición'
+    return competitions?.find(c => c.id === mainCompetitionId)?.displayName
+      ?? `competición #${mainCompetitionId}`
+  }, [mainCompetitionId, competitions])
 
   if (infoLoading) {
     return (
