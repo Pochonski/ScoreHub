@@ -18,7 +18,7 @@ const BASE_URL = 'https://scorehub-pocho.vercel.app/api/football'
 
 // 6 nuevas competiciones (3 de Fase 8.6+ + 3 de Fase 8.7+)
 const NEW_COMPS = [
-  { id: 141, name: 'Liga MX', shortName: 'Liga MX', expectedSeason: 152, expectedDisplayOrder: 11 },
+  { id: 141, name: 'Liga MX', shortName: 'Liga MX', expectedSeason: 152, expectedDisplayOrder: 8.5 },
   { id: 104, name: 'MLS', shortName: 'MLS', expectedSeason: 32, expectedDisplayOrder: 9 },
   { id: 72, name: 'Liga Profesional Argentina', shortName: 'Liga Argentina', expectedSeason: 228, expectedDisplayOrder: 7 },
   { id: 595, name: 'Copa América', shortName: 'Copa América', expectedSeason: 52, expectedDisplayOrder: 6 },

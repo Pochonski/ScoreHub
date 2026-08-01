@@ -67,10 +67,11 @@ export function TeamOfWeekPitch({ formation, players }: TeamOfWeekPitchProps) {
   if (players.length === 0) return null
 
   const rows = formationRows[formation] || formationRows['4-4-2']
-  let idx = 0
+  // Offset de inicio de cada fila (suma de las anteriores) — sin mutar
+  // variables en render (regla react-hooks/purity).
+  const starts = rows.map((_, i) => rows.slice(0, i).reduce((a, b) => a + b, 0))
   const rowNodes = rows.map((count, rowIndex) => {
-    const rowPlayers = players.slice(idx, idx + count)
-    idx += count
+    const rowPlayers = players.slice(starts[rowIndex], starts[rowIndex] + count)
     return (
       <div key={rowIndex} className="flex items-center justify-around px-2">
         {rowPlayers.map((p, i) => (
