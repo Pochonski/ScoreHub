@@ -18,7 +18,7 @@ import {
   useGames,
   useFeaturedGamesByComp,
 } from '@/presentation/hooks/useGames'
-import { useFeaturedCompetitions } from '@/presentation/hooks/useCompetitions'
+import { useCompetitions } from '@/presentation/hooks/useCompetitions'
 import { useActiveCompetition } from '@/presentation/context/ActiveCompetitionContext'
 import { ErrorState } from '@/presentation/components/ui/ErrorState'
 import { HeroSkeleton, MatchCardSkeleton } from '@/presentation/components/ui/Skeleton'
@@ -32,6 +32,11 @@ const PRIMARY_COMPETITION_ID = parseInt(
   import.meta.env.VITE_PRIMARY_COMPETITION_ID || '5930',
   10
 )
+
+// Competiciones excluidas del rail "Ligas populares" y de los tabs de la home:
+// torneos de selecciones sin temporada en curso (entre ediciones).
+//   595  Copa América · 5930 Copa Mundial · 6316 Eurocopa
+const RAIL_EXCLUDED_IDS = new Set([595, 5930, 6316])
 
 export function DashboardPage() {
   const navigate = useNavigate()
@@ -53,7 +58,11 @@ export function DashboardPage() {
       setActiveCompId(next.id)
     }
   }
-  const { competitions: featured } = useFeaturedCompetitions()
+  const { competitions: allCompetitions } = useCompetitions()
+  const featured = useMemo(
+    () => allCompetitions.filter((c) => !RAIL_EXCLUDED_IDS.has(c.id)),
+    [allCompetitions]
+  )
   const featuredIds = useMemo(() => featured.map((c) => c.id), [featured])
   // Partido destacado de cada competición → para ordenar por "partido más
   // próximo" y elegir el default.

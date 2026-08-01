@@ -1,7 +1,8 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useMemo } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { PlayerSearch } from '@/presentation/components/explorer/PlayerSearch'
 import { useCompetitions } from '@/presentation/hooks/useCompetitions'
+import { useFeaturedGamesByComp } from '@/presentation/hooks/useGames'
 import { useActiveCompetition } from '@/presentation/context/ActiveCompetitionContext'
 import { competitionLogoUrl } from '@/shared/images'
 
@@ -50,6 +51,28 @@ export function Navbar() {
   const dropdownRef = useRef<HTMLDivElement>(null)
   const { competitions } = useCompetitions()
   const { competitionId: activeCompId } = useActiveCompetition()
+
+  // Ordenar el selector por próximo partido: las que tienen partido en
+  // vivo/próximo primero (por fecha), y las que NO tienen (torneos
+  // terminados: Copa América, Eurocopa, Mundial) al final por displayOrder.
+  const compIds = useMemo(() => competitions.map(c => c.id), [competitions])
+  const featuredGamesByComp = useFeaturedGamesByComp(compIds)
+  const sortedCompetitions = useMemo(() => {
+    const rank = (c: (typeof competitions)[number]): [number, number] => {
+      const g = featuredGamesByComp.get(c.id)
+      if (g && g.status === 'live') return [0, 0]
+      if (g && g.status === 'upcoming') {
+        const t = new Date(g.startTime).getTime()
+        return [0, Number.isNaN(t) ? Infinity : t]
+      }
+      return [1, c.displayOrder]
+    }
+    return [...competitions].sort((a, b) => {
+      const [ga, ka] = rank(a)
+      const [gb, kb] = rank(b)
+      return ga !== gb ? ga - gb : ka - kb
+    })
+  }, [competitions, featuredGamesByComp])
 
   const activeComp = activeCompId
     ? competitions.find(c => c.id === activeCompId) ?? null
@@ -122,7 +145,7 @@ export function Navbar() {
                     Cargando competiciones…
                   </p>
                 )}
-                {competitions.map(c => {
+                {sortedCompetitions.map(c => {
                   const active = activeComp?.id === c.id
                   return (
                     <button
