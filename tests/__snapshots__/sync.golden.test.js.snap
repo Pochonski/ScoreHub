@@ -32,43 +32,6 @@ exports[`syncService — golden-master de escrituras syncStandings escribe stand
       5930,
       1,
       25,
-      "{"standings":[{"num":1,"rows":[{"competitor":{"id":100}},{"competitor":{"id":101}}]}]}",
-      "2026-07-27T12:00:00.000Z",
-    ],
-    "sql": "INSERT INTO standings (competition_id, stage_num, season_num, data, updated_at) VALUES ($1, $2, $3, $4, $5) ON CONFLICT (competition_id, stage_num, season_num) DO UPDATE SET data = EXCLUDED.data, updated_at = EXCLUDED.updated_at",
-    "via": "pool",
-  },
-  {
-    "params": [
-      [
-        5930,
-        5930,
-      ],
-      [
-        100,
-        101,
-      ],
-      [
-        25,
-        25,
-      ],
-      [
-        "standings",
-        "standings",
-      ],
-      [
-        "2026-07-27T12:00:00.000Z",
-        "2026-07-27T12:00:00.000Z",
-      ],
-    ],
-    "sql": "INSERT INTO competition_competitors (competition_id, competitor_id, season_num, source, last_seen_at) SELECT * FROM UNNEST($1::int[], $2::int[], $3::int[], $4::text[], $5::timestamptz[]) ON CONFLICT (competition_id, competitor_id, season_num) DO UPDATE SET last_seen_at = EXCLUDED.last_seen_at",
-    "via": "pool",
-  },
-  {
-    "params": [
-      5930,
-      1,
-      25,
       "{"seasonsFilter":{"seasons":[{"num":25}]},"standings":[]}",
       "2026-07-27T12:00:00.000Z",
     ],

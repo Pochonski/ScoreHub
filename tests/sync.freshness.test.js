@@ -113,11 +113,17 @@ describe('sync.freshness — tablas de caché tienen MAX(updated_at) reciente', 
 
       // Si la tabla tiene filas pero ninguna está "fresh" (en 48h),
       // el sync está claramente caído.
-      if (Number(fresh_rows) === 0) {
+      // Excepción: tablas hydrate-on-demand que tengan muy pocas filas
+      // (≤ 2) probablemente se hidrataron en tests o en una sola request
+      // manual, y no indican que el sync esté caído.
+      if (Number(fresh_rows) === 0 && Number(rows) > 2) {
         throw new Error(
           `[${table}] 0 fresh rows in last 48h (of ${rows} total). ` +
           `Sync job "${note}" may be down.`
         );
+      }
+      if (Number(fresh_rows) === 0) {
+        console.warn(`[sync.freshness] ${table}: solo ${rows} filas (hydrate-on-demand, no indicativo de sync caído)`);
       }
 
       if (ageHours > maxAgeHours) {

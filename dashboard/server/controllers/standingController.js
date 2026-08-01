@@ -78,6 +78,10 @@ async function getStandingsSeasons(req, res, next) {
     const { competitionId, seasonNum } = resolved;
 
     // DB-first con write-back (Fase 8.4).
+    // Fase 8.7+ fix: hay múltiples filas de standings por comp (syncStandings
+    // hace 2 requests, type=1 y type=2). El `seasonsFilter` solo está en
+    // la respuesta de `getStandings` con `withSeasonsFilter: true` (type=1).
+    // Buscamos la fila que tenga `seasonsFilter` presente.
     const { data: row } = await db.readThrough(
       'standings',
       {
@@ -103,6 +107,25 @@ async function getStandingsSeasons(req, res, next) {
     if (row?.data) {
       const sf = row.data?.seasonsFilter;
       if (Array.isArray(sf)) return res.json(sf);
+    }
+
+    // Fase 8.7+ fallback: si la fila preferida no tiene seasonsFilter, intentar
+    // otra fila (puede haber varias para la misma comp con diferentes stages).
+    try {
+      const allRows = await db.execAdvanced(
+        `SELECT data FROM standings
+         WHERE competition_id = $1
+           AND data ? 'seasonsFilter'
+         ORDER BY season_num DESC
+         LIMIT 1`,
+        [competitionId]
+      );
+      for (const r of allRows) {
+        const sf = r.data?.seasonsFilter;
+        if (Array.isArray(sf)) return res.json(sf);
+      }
+    } catch (_) {
+      /* ignore */
     }
 
     res.json([]);

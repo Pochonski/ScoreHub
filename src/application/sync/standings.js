@@ -21,7 +21,10 @@ async function syncStandingsForComp(comp) {
 
     for (const type of typesToFetch) {
       try {
-        const data = await api.getStandings(comp.id, type, comp.seasonNum, { type });
+        // Fase 8.7+ fix: withSeasonsFilter=true para que el response incluya
+        // data.seasonsFilter (necesario para el dropdown de seasons en el
+        // dashboard). Sin esto, el endpoint /standings/seasons retorna [].
+        const data = await api.getStandings(comp.id, type, comp.seasonNum, { type, withSeasonsFilter: true });
         if (data?.standings?.length) {
           stagesByType.set(type, data);
         }

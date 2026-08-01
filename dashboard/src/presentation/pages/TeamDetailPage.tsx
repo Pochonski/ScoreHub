@@ -41,12 +41,12 @@ export function TeamDetailPage() {
   const { competitions } = useCompetitions()
   // Resolver nombre de la competición principal del equipo (Fase 8.7+).
   // Antes estaba hardcoded para Mundial (5930) y Liga Promerica (5056).
+  // Ahora se resuelve dinámicamente desde la lista de competitions.
+  // Si competitions aún no está cargada, usar el ID como fallback.
   const mainCompName = useMemo(() => {
     if (!info?.mainCompetitionId) return 'competición'
     return competitions?.find(c => c.id === info.mainCompetitionId)?.displayName
-      ?? (info.mainCompetitionId === 5056 ? 'Liga Promerica'
-        : info.mainCompetitionId === 5930 ? 'Mundial 2026'
-        : 'competición')
+      ?? `competición #${info.mainCompetitionId}`
   }, [info?.mainCompetitionId, competitions])
 
   if (infoLoading) {
