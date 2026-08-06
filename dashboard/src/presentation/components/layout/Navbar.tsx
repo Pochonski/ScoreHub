@@ -4,37 +4,9 @@ import { PlayerSearch } from '@/presentation/components/explorer/PlayerSearch'
 import { useCompetitions } from '@/presentation/hooks/useCompetitions'
 import { useFeaturedGamesByComp } from '@/presentation/hooks/useGames'
 import { useActiveCompetition } from '@/presentation/context/ActiveCompetitionContext'
-import { competitionLogoUrl } from '@/shared/images'
+import { CompetitionLogo } from '@/presentation/components/competition/CompetitionLogo'
 
 type NavItem = { id: string; label: string; route: (competitionId: number | null) => string }
-
-/** Logo de la competición con fallback a monograma (iniciales). */
-function CompetitionLogo({ id, name }: { id: number; name: string }) {
-  const [failed, setFailed] = useState(false)
-  const initials =
-    name
-      .split(/\s+/)
-      .slice(0, 2)
-      .map((w) => w.charAt(0))
-      .join('')
-      .toUpperCase() || '?'
-  if (failed) {
-    return (
-      <span className="bg-bg-elevated text-accent-gold font-display flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-[11px] font-bold">
-        {initials}
-      </span>
-    )
-  }
-  return (
-    <img
-      src={competitionLogoUrl(id)}
-      alt=""
-      loading="lazy"
-      onError={() => setFailed(true)}
-      className="h-7 w-7 shrink-0 rounded-md object-contain"
-    />
-  )
-}
 
 const NAV_ITEMS: readonly NavItem[] = [
   { id: 'matches', label: 'Partidos', route: () => '/' },
