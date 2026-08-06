@@ -8,6 +8,7 @@
     "start:telegram": "node telegramBot.js",
     "admin": "node admin/server.js",
     "start:dashboard": "node dashboard/server/index.js",
+    "sync": "node sync.js",
     "start:sync": "pm2 startOrReload ecosystem.config.js --only scores365-sync",
     "deploy:sync": "git pull --ff-only && pm2 startOrReload ecosystem.config.js --only scores365-sync && pm2 save",
     "test": "jest",
