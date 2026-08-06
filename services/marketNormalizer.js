@@ -50,6 +50,19 @@ const MERCADO_KEYWORDS = {
 };
 
 /**
+ * ¿El texto contiene la keyword? Para keywords que son solo un número con signo
+ * ('-1', '+2.5', '-2') exigimos frontera de dígito: sin esto, un marcador como
+ * "2-1" (que contiene "-1") se clasificaba erróneamente como handicap.
+ */
+function matchesKeyword(lower, keyword) {
+  if (/^[+-]?\d+(\.\d+)?$/.test(keyword)) {
+    const esc = keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    return new RegExp(`(?<!\\d)${esc}(?!\\d)`).test(lower);
+  }
+  return lower.includes(keyword);
+}
+
+/**
  * Normaliza un texto de mercado al tipo interno
  * @param {string} texto - Texto del mercado (e.g., "Más de 5 corners")
  * @returns {object} { tipo: string, linea: number|null, valor: string }
@@ -64,7 +77,7 @@ function normalizarMercado(texto) {
   // Buscar el tipo de mercado
   for (const [tipo, keywords] of Object.entries(MERCADO_KEYWORDS)) {
     for (const keyword of keywords) {
-      if (lower.includes(keyword)) {
+      if (matchesKeyword(lower, keyword)) {
         return {
           tipo,
           linea,
