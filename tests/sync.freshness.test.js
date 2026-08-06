@@ -54,32 +54,23 @@ const FRESHNESS_RULES = [
   { table: 'historial_consultas',maxAgeHours: 168,  note: 'bot-driven (scripts/simulate-bot.js)' },
 ];
 
-describe('sync.freshness — tablas de caché tienen MAX(updated_at) reciente', () => {
-  let connected = false;
+// Requiere una DB real (valida frescura de MAX(updated_at) en tablas de caché).
+// Por defecto se SKIPPEA de forma VISIBLE — antes pasaba en vacío. Para correrlo:
+// RUN_DB_TESTS=1 npm test
+const describeDb = process.env.RUN_DB_TESTS === '1' ? describe : describe.skip;
 
+describeDb('sync.freshness — tablas de caché tienen MAX(updated_at) reciente', () => {
   beforeAll(async () => {
-    try {
-      await pool.query('SELECT 1');
-      connected = true;
-    } catch (err) {
-      console.warn(`[sync.freshness] DB not available (${err.message}); tests skipped.`);
-      connected = false;
-    }
+    await pool.query('SELECT 1'); // falla visible si se opta y la DB no responde
   });
 
   afterAll(async () => {
-    if (connected) {
-      try { await pool.end(); } catch {}
-    }
+    try { await pool.end(); } catch {}
   });
 
   test.each(FRESHNESS_RULES)(
     '$table está fresca (cron: $note)',
     async ({ table, maxAgeHours, note }) => {
-      if (!connected) {
-        console.warn(`[sync.freshness] skip ${table}: DB not reachable`);
-        return;
-      }
       // Si la tabla no tiene la columna updated_at, skip silencioso.
       const colCheck = await pool.query(
         `SELECT column_name FROM information_schema.columns
