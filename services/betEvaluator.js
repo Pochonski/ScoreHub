@@ -257,8 +257,11 @@ function statusChanged(prev, curr) {
     const p = prev.selecciones[i];
     const c = (curr.selecciones || [])[i];
     if (!c) continue;
-    if ((p?.status || null) !== c.status) return true;
-    if ((p?.value || null) !== c.value) return true;
+    // `?? null` (no `|| null`): con `||`, un value/status de 0 (0 goles, 0
+    // tarjetas — muy común) se volvía null y reportaba cambio falso → spam de
+    // notificaciones en modo outcome_only.
+    if ((p?.status ?? null) !== (c.status ?? null)) return true;
+    if ((p?.value ?? null) !== (c.value ?? null)) return true;
   }
   return false;
 }
