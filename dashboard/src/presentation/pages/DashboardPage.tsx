@@ -510,8 +510,8 @@ export function DashboardPage() {
         {/* Rail derecho — goleadores · tabla · noticias */}
         <aside className="hidden lg:block" aria-label="Estadísticas">
           <div className="sticky top-[72px] space-y-4 pb-4">
-            <StatsRail competitionId={activeCompId} seasonNum={activeComp?.seasonNum} />
             <StandingsRail competitionId={activeCompId} seasonNum={activeComp?.seasonNum} />
+            <StatsRail competitionId={activeCompId} seasonNum={activeComp?.seasonNum} />
             <NewsRail competitionId={activeCompId} />
           </div>
         </aside>
