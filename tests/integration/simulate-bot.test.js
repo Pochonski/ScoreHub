@@ -24,22 +24,18 @@ const SCRIPT_PATH = path.join(
   'simulate-bot.js'
 );
 
-describe('integration/simulate-bot — simulación de actividad del bot', () => {
-  let connected = false;
+// Requiere una DB real (ejecuta scripts/simulate-bot.js contra la DB). Por
+// defecto se SKIPPEA de forma VISIBLE — antes pasaba en vacío. Para correrlo:
+// RUN_DB_TESTS=1 npm test
+const describeDb = process.env.RUN_DB_TESTS === '1' ? describe : describe.skip;
 
+describeDb('integration/simulate-bot — simulación de actividad del bot', () => {
   beforeAll(async () => {
-    try {
-      await pool.query('SELECT 1');
-      connected = true;
-    } catch (err) {
-      console.warn(`[simulate-bot] DB not available: ${err.message}`);
-    }
+    await pool.query('SELECT 1'); // falla visible si se opta y la DB no responde
   });
 
   afterAll(async () => {
-    if (connected) {
-      try { await pool.end(); } catch {}
-    }
+    try { await pool.end(); } catch {}
   });
 
   function run(args = [], env = {}) {
@@ -51,7 +47,6 @@ describe('integration/simulate-bot — simulación de actividad del bot', () => 
   }
 
   test('dry-run no modifica la DB', async () => {
-    if (!connected) return;
     const before = await pool.query('SELECT count(*) FROM usuarios WHERE alias LIKE $1', ['sim_%']);
     const beforeCount = Number(before.rows[0].count);
 
@@ -64,7 +59,6 @@ describe('integration/simulate-bot — simulación de actividad del bot', () => 
   }, 35000);
 
   test('ejecuta con USERS_COUNT=3 y popula tablas', async () => {
-    if (!connected) return;
     const result = run(['--users=3']);
     expect(result.status).toBe(0);
 
@@ -91,7 +85,6 @@ describe('integration/simulate-bot — simulación de actividad del bot', () => 
   }, 35000);
 
   test('FK cascade: borrar usuario borra sus datos', async () => {
-    if (!connected) return;
     // Asegurar que hay simulaciones
     await pool.query("DELETE FROM usuarios WHERE alias LIKE 'sim_%'");
     const result = run(['--users=2']);
@@ -121,7 +114,6 @@ describe('integration/simulate-bot — simulación de actividad del bot', () => 
   }, 35000);
 
   test('idempotencia: ejecutar 2 veces no duplica', async () => {
-    if (!connected) return;
     await pool.query("DELETE FROM usuarios WHERE alias LIKE 'sim_%'");
 
     const r1 = run(['--users=3']);

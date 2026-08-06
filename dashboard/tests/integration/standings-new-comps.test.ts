@@ -51,7 +51,14 @@ async function fetchJson<T>(url: string): Promise<T> {
   return res.json() as Promise<T>
 }
 
-describe('integration/standings-new-comps — endpoints de standings', () => {
+// Pega a la API de PRODUCCIÓN en vivo (scorehub-pocho.vercel.app). Por defecto
+// se SKIPPEA de forma VISIBLE — es frágil: depende de que prod esté arriba y de
+// su estado de datos (ya se rompió antes con display_order). Para correrlo:
+// RUN_E2E_PROD=1 npx vitest run
+const RUN_E2E_PROD = process.env.RUN_E2E_PROD === '1'
+const describeE2E = RUN_E2E_PROD ? describe : describe.skip
+
+describeE2E('integration/standings-new-comps — endpoints de standings', () => {
   beforeAll(() => {
     // Las pruebas hacen fetch real a producción
     if (!navigator.onLine) {

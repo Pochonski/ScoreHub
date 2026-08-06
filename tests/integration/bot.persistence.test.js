@@ -27,21 +27,17 @@ const TEST_USER_ID = 'test-bot-' + Math.random().toString(36).slice(2, 8);
 const TEST_TEAM_NAME = 'Equipo de prueba Fase 8';
 const TEST_TEAM_ID = 9999999; // id_equipo NOT NULL FK opcional a competitors
 
-describe('integration/bot.persistence — tablas bot operativas', () => {
-  let connected = false;
+// Requiere una DB real (INSERT/SELECT/DELETE contra tablas del bot). Por defecto
+// se SKIPPEA de forma VISIBLE — antes pasaba en vacío. Para correrlo de verdad:
+// RUN_DB_TESTS=1 npm test
+const describeDb = process.env.RUN_DB_TESTS === '1' ? describe : describe.skip;
 
+describeDb('integration/bot.persistence — tablas bot operativas', () => {
   beforeAll(async () => {
-    try {
-      await pool.query('SELECT 1');
-      connected = true;
-    } catch (err) {
-      console.warn(`[bot.persistence] DB not available (${err.message}); tests skipped.`);
-      connected = false;
-    }
+    await pool.query('SELECT 1'); // falla visible si se opta y la DB no responde
   });
 
   afterAll(async () => {
-    if (!connected) return;
     // cleanup — defensivo: limpia cualquier id que haya podido quedar
     // aunque el test falle a mitad (e.g. tmp-* del FK cascade test).
     try {
@@ -59,7 +55,6 @@ describe('integration/bot.persistence — tablas bot operativas', () => {
   });
 
   test('INSERT en usuarios funciona', async () => {
-    if (!connected) return;
     const r = await db.execAdvanced(
       `INSERT INTO usuarios (id, alias, estado) VALUES ($1, $2, 'registrado')
        ON CONFLICT (id) DO UPDATE SET alias = EXCLUDED.alias
@@ -72,7 +67,6 @@ describe('integration/bot.persistence — tablas bot operativas', () => {
   });
 
   test('SELECT de usuario recién creado', async () => {
-    if (!connected) return;
     const rows = await db.execAdvanced(
       'SELECT id, alias FROM usuarios WHERE id = $1',
       [TEST_USER_ID]
@@ -82,7 +76,6 @@ describe('integration/bot.persistence — tablas bot operativas', () => {
   });
 
   test('INSERT en equipos_seguidos funciona', async () => {
-    if (!connected) return;
     const r = await db.execAdvanced(
       `INSERT INTO equipos_seguidos (id_usuario, id_equipo, nombre_equipo, fecha_seguimiento)
        VALUES ($1, $2, $3, now())
@@ -94,7 +87,6 @@ describe('integration/bot.persistence — tablas bot operativas', () => {
   });
 
   test('INSERT en historial_consultas funciona', async () => {
-    if (!connected) return;
     const r = await db.execAdvanced(
       `INSERT INTO historial_consultas (id_usuario, consulta, fecha, tipo, respuesta)
        VALUES ($1, $2, now(), $3, $4)
@@ -106,7 +98,6 @@ describe('integration/bot.persistence — tablas bot operativas', () => {
   });
 
   test('SELECT conjuntos: usuario con sus equipos y consultas', async () => {
-    if (!connected) return;
     const equipos = await db.execAdvanced(
       'SELECT id, nombre_equipo FROM equipos_seguidos WHERE id_usuario = $1 ORDER BY id',
       [TEST_USER_ID]
@@ -120,7 +111,6 @@ describe('integration/bot.persistence — tablas bot operativas', () => {
   });
 
   test('DELETE cascade (FK) al borrar usuario', async () => {
-    if (!connected) return;
     // Creamos un usuario nuevo para no afectar el principal.
     const tmpUser = 'tmp-' + Math.random().toString(36).slice(2, 8);
     await db.execAdvanced(

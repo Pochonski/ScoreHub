@@ -10,32 +10,27 @@ process.env.NODE_ENV = 'test';
 
 const { pool } = require('../../database/connection');
 
-describe('integration/active-competitions — nuevas competiciones Fase 8.6+/8.7+', () => {
-  let connected = false;
+// Requiere una DB real (valida el estado de active_competitions tras las
+// migraciones). Por defecto se SKIPPEA de forma VISIBLE — antes pasaba en vacío
+// con `if (!connected) return`. Para correrlo de verdad: RUN_DB_TESTS=1 npm test
+const describeDb = process.env.RUN_DB_TESTS === '1' ? describe : describe.skip;
 
+describeDb('integration/active-competitions — nuevas competiciones Fase 8.6+/8.7+', () => {
   beforeAll(async () => {
-    try {
-      await pool.query('SELECT 1');
-      connected = true;
-    } catch (err) {
-      console.warn(`[active-competitions] DB not available: ${err.message}`);
-    }
+    // Si se opta por correr pero la DB no responde, falla visible (no skip).
+    await pool.query('SELECT 1');
   });
 
   afterAll(async () => {
-    if (connected) {
-      try { await pool.end(); } catch {}
-    }
+    try { await pool.end(); } catch {}
   });
 
   test('hay 13 competiciones activas (10 Fase 8.6+ + 3 Fase 8.7+)', async () => {
-    if (!connected) return;
     const result = await pool.query('SELECT count(*) FROM active_competitions');
     expect(Number(result.rows[0].count)).toBe(13);
   });
 
   test('Eurocopa (id 6316) está activa', async () => {
-    if (!connected) return;
     const result = await pool.query(
       `SELECT id, display_name, season_num, has_brackets, has_groups, has_history
        FROM active_competitions WHERE id = 6316`
@@ -51,7 +46,6 @@ describe('integration/active-competitions — nuevas competiciones Fase 8.6+/8.7
   });
 
   test('Copa América (id 595) está activa', async () => {
-    if (!connected) return;
     const result = await pool.query(
       `SELECT id, display_name, season_num, has_brackets, has_groups, has_history
        FROM active_competitions WHERE id = 595`
@@ -67,7 +61,6 @@ describe('integration/active-competitions — nuevas competiciones Fase 8.6+/8.7
   });
 
   test('CONCACAF Copa Centroamericana (id 7954) está activa', async () => {
-    if (!connected) return;
     const result = await pool.query(
       `SELECT id, display_name, season_num, has_brackets, has_groups, has_history
        FROM active_competitions WHERE id = 7954`
@@ -81,7 +74,6 @@ describe('integration/active-competitions — nuevas competiciones Fase 8.6+/8.7
   });
 
   test('Liga MX (id 141) está activa', async () => {
-    if (!connected) return;
     const result = await pool.query(
       `SELECT id, display_name, season_num, has_history
        FROM active_competitions WHERE id = 141`
@@ -95,7 +87,6 @@ describe('integration/active-competitions — nuevas competiciones Fase 8.6+/8.7
   });
 
   test('MLS (id 104) está activa', async () => {
-    if (!connected) return;
     const result = await pool.query(
       `SELECT id, display_name, season_num, has_history
        FROM active_competitions WHERE id = 104`
@@ -109,7 +100,6 @@ describe('integration/active-competitions — nuevas competiciones Fase 8.6+/8.7
   });
 
   test('Liga Profesional Argentina (id 72) está activa', async () => {
-    if (!connected) return;
     const result = await pool.query(
       `SELECT id, display_name, season_num, has_groups, has_history
        FROM active_competitions WHERE id = 72`
@@ -124,7 +114,6 @@ describe('integration/active-competitions — nuevas competiciones Fase 8.6+/8.7
   });
 
   test('display_order: 6 nuevas + Mundial en 5-10 (Liga MX en 8.5 por migración 024)', async () => {
-    if (!connected) return;
     const result = await pool.query(`
       SELECT id, display_name, display_order
       FROM active_competitions
@@ -138,7 +127,6 @@ describe('integration/active-competitions — nuevas competiciones Fase 8.6+/8.7
   });
 
   test('competitors de las Américas (595, 6316, 7954, 141, 104, 72) en DB', async () => {
-    if (!connected) return;
     const result = await pool.query(
       `SELECT count(*) FROM competitors
        WHERE (data->'mainCompetitionId')::int IN (595, 6316, 7954, 141, 104, 72)`
@@ -147,7 +135,6 @@ describe('integration/active-competitions — nuevas competiciones Fase 8.6+/8.7
   });
 
   test('competitions table tiene data de las 6 nuevas', async () => {
-    if (!connected) return;
     const result = await pool.query(
       `SELECT id, jsonb_typeof(data) as data_type, age(now(), updated_at) as age
        FROM competitions WHERE id IN (595, 6316, 7954, 141, 104, 72)
@@ -160,7 +147,6 @@ describe('integration/active-competitions — nuevas competiciones Fase 8.6+/8.7
   });
 
   test('LD Alajuelense en competidores con mainCompetitionId CONCACAF', async () => {
-    if (!connected) return;
     const result = await pool.query(
       `SELECT id, data->>'name' as name
        FROM competitors
