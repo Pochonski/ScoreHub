@@ -3,6 +3,7 @@ import type { Game } from '@/domain/entities/Game'
 import type { Competition } from '@/domain/entities/Competition'
 import { CompactMatchRow } from './CompactMatchRow'
 import { DatePickerCalendar } from './DatePickerCalendar'
+import { CompetitionLogo } from '@/presentation/components/competition/CompetitionLogo'
 
 type FilterValue = 'all' | 'live' | 'upcoming' | 'finished'
 type CompetitionScope = { kind: 'all' } | { kind: 'one'; id: number }
@@ -29,21 +30,6 @@ function dateLabel(offset: number | null): string {
   if (offset === 1) return 'Mañana'
   if (offset === -1) return 'Ayer'
   return d.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })
-}
-
-/** Monograma de la competición cuando no hay logo disponible. */
-function LeagueMonogram({ name }: { name: string }) {
-  const initials = name
-    .split(/\s+/)
-    .slice(0, 2)
-    .map((w) => w.charAt(0))
-    .join('')
-    .toUpperCase()
-  return (
-    <span className="bg-bg-elevated text-accent-gold font-display flex h-6 w-6 shrink-0 items-center justify-center rounded text-[11px] font-bold">
-      {initials || '?'}
-    </span>
-  )
 }
 
 export function LeaguesRail({
@@ -213,7 +199,11 @@ export function LeaguesRail({
                   }`}
                   aria-expanded={open}
                 >
-                  <LeagueMonogram name={comp.shortName || comp.displayName} />
+                  <CompetitionLogo
+                    id={comp.id}
+                    name={comp.shortName || comp.displayName}
+                    className="h-6 w-6 rounded"
+                  />
                   <span
                     className={`min-w-0 flex-1 truncate font-medium ${
                       active ? 'text-accent-gold' : 'text-text-primary'
