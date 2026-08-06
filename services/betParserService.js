@@ -166,7 +166,7 @@ function detectarSelecciones(lineas) {
 /**
  * Helper para evitar duplicados
  */
-function selectionsNoEstaDuplicado(selcciones, linea) {
+function selectionsNoEstaDuplicado(selecciones, linea) {
   return !selecciones.some(s => s.raw === linea);
 }
 
