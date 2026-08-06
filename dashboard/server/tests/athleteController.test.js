@@ -3,6 +3,8 @@ const mockQuery = jest.fn();
 jest.mock('../../../database/connection', () => ({
   pool: { query: mockQuery },
   testConnection: jest.fn().mockResolvedValue(true),
+  pgQueryRetry: (...args) => mockQuery(...args),
+  withTransaction: (fn) => fn({ query: mockQuery }),
 }));
 
 // Upstream service mock: we want to assert hydration paths without hitting 365scores.

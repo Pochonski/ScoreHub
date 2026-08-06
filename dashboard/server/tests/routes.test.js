@@ -7,6 +7,8 @@ const mockQuery = jest.fn();
 jest.mock('../../../database/connection', () => ({
   pool: { query: mockQuery },
   testConnection: jest.fn().mockResolvedValue(true),
+  pgQueryRetry: (...args) => mockQuery(...args),
+  withTransaction: (fn) => fn({ query: mockQuery }),
 }));
 
 // scores365Service/images siguen mockeados por si algún controller los reach.
