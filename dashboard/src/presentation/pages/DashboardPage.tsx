@@ -12,6 +12,7 @@ import { LeaguesRail } from '@/presentation/components/dashboard/LeaguesRail'
 import { StatsRail } from '@/presentation/components/dashboard/StatsRail'
 import { StandingsRail } from '@/presentation/components/dashboard/StandingsRail'
 import { NewsRail } from '@/presentation/components/dashboard/NewsRail'
+import { Footer } from '@/presentation/components/layout/Footer'
 import {
   useFeaturedGame,
   useLiveGames,
@@ -473,6 +474,12 @@ export function DashboardPage() {
           </div>
         </div>
       )}
+
+      {/* Footer inyectado dentro del scroll del centro para que sea alcanzable
+          en desktop sin necesidad de un scroll a nivel de documento. */}
+      <div className="mt-8 hidden lg:block">
+        <Footer />
+      </div>
     </div>
   )
 
@@ -484,34 +491,41 @@ export function DashboardPage() {
         </div>
       )}
 
-      {/* Desktop: 3 columnas (rail izq · centro · rail der). Mobile: solo centro. */}
-      <div className="lg:grid lg:grid-cols-[280px_minmax(0,1fr)_320px] lg:gap-5 lg:px-4 lg:pt-4">
+      {/* Desktop: 3 columnas (rail izq · centro · rail der). Mobile: solo centro.
+          Cada columna hace su propio overflow-y-auto: scrolls independientes. */}
+      <div className="lg:grid lg:h-full lg:grid-cols-[280px_minmax(0,1fr)_320px] lg:gap-5 lg:px-4 lg:pt-4">
         {/* Rail izquierdo — ligas + partidos compactos */}
-        <aside className="hidden lg:block" aria-label="Ligas y partidos">
-          <div className="sticky top-[72px] pb-4">
-            <LeaguesRail
-              competitions={featuredSorted}
-              scope={scope}
-              onScopeChange={handleScopeChange}
-              games={filteredGames}
-              liveCount={liveGames.length}
-              onSelectGame={handleSelectGame}
-              filter={filter}
-              onFilterChange={setFilter}
-              dateOffset={dateOffset}
-              onDateChange={setDateOffset}
-            />
-          </div>
+        <aside
+          className="hidden lg:block lg:h-full lg:overflow-y-auto lg:overscroll-contain lg:pb-4"
+          aria-label="Ligas y partidos"
+        >
+          <LeaguesRail
+            competitions={featuredSorted}
+            scope={scope}
+            onScopeChange={handleScopeChange}
+            games={filteredGames}
+            liveCount={liveGames.length}
+            onSelectGame={handleSelectGame}
+            filter={filter}
+            onFilterChange={setFilter}
+            dateOffset={dateOffset}
+            onDateChange={setDateOffset}
+          />
         </aside>
 
         {/* Centro */}
-        {centerColumn}
+        <section className="lg:h-full lg:overflow-y-auto lg:overscroll-contain lg:pb-8">
+          {centerColumn}
+        </section>
 
         {/* Rail derecho — goleadores · tabla · noticias */}
-        <aside className="hidden lg:block" aria-label="Estadísticas">
-          <div className="sticky top-[72px] space-y-4 pb-4">
-            <StatsRail competitionId={activeCompId} seasonNum={activeComp?.seasonNum} />
+        <aside
+          className="hidden lg:block lg:h-full lg:overflow-y-auto lg:overscroll-contain lg:pb-4"
+          aria-label="Estadísticas"
+        >
+          <div className="space-y-4">
             <StandingsRail competitionId={activeCompId} seasonNum={activeComp?.seasonNum} />
+            <StatsRail competitionId={activeCompId} seasonNum={activeComp?.seasonNum} />
             <NewsRail competitionId={activeCompId} />
           </div>
         </aside>
