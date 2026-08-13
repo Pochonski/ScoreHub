@@ -4,6 +4,9 @@
  * Tests del newsImageProxyController.
  * Auditoría 2026-Q3 post-deploy: las imágenes de news vienen de hosts
  * externos; el proxy valida allowlist antes de fetchar.
+ *
+ * v2: Allowlist usa SLD+1 matching para cubrir subdominios sin
+ * enumerar cada `estaticos.X.com`, `objetos.estaticos-X.com`, etc.
  */
 
 // El controller usa fetch global (Node 18+). Lo mockeamos via globalThis.
@@ -29,16 +32,20 @@ function mockRes() {
   return res;
 }
 
-describe('newsImageProxyController', () => {
+describe('newsImageProxyController — isAllowedHost', () => {
   let originalFetch;
   let proxyNewsImage;
-  let ALLOWED_HOSTS;
+  let isAllowedHost;
+  let ALLOWED_DOMAINS;
 
   beforeAll(() => {
     originalFetch = globalThis.fetch;
     globalThis.fetch = mockFetch;
-    // Requerir el controller DESPUÉS de mockear fetch.
-    ({ proxyNewsImage, ALLOWED_HOSTS } = require('../controllers/newsImageProxyController'));
+    ({
+      proxyNewsImage,
+      isAllowedHost,
+      ALLOWED_DOMAINS,
+    } = require('../controllers/newsImageProxyController'));
   });
 
   afterAll(() => {
@@ -63,13 +70,6 @@ describe('newsImageProxyController', () => {
     expect(res.statusCode).toBe(400);
   });
 
-  test('rechaza host fuera de allowlist', async () => {
-    const req = { query: { url: 'https://evil.com/img.jpg' } };
-    const res = mockRes();
-    await proxyNewsImage(req, res);
-    expect(res.statusCode).toBe(403);
-  });
-
   test('rechaza http:// (no https)', async () => {
     const req = { query: { url: 'http://www.365scores.com/img.jpg' } };
     const res = mockRes();
@@ -77,8 +77,19 @@ describe('newsImageProxyController', () => {
     expect(res.statusCode).toBe(400);
   });
 
+  test('rechaza host fuera de allowlist (con log de diagnóstico)', async () => {
+    const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    const req = { query: { url: 'https://evil.com/img.jpg' } };
+    const res = mockRes();
+    await proxyNewsImage(req, res);
+    expect(res.statusCode).toBe(403);
+    expect(warnSpy).toHaveBeenCalledWith(
+      expect.stringContaining('blocked host: evil.com')
+    );
+    warnSpy.mockRestore();
+  });
+
   test('fetch upstream si host está en allowlist', async () => {
-    // Body como ReadableStream real (Node 18+) con getReader().
     const chunks = [Buffer.from([0xff, 0xd8, 0xff]), Buffer.from('jpeg data')];
     let i = 0;
     const stream = new ReadableStream({
@@ -128,11 +139,49 @@ describe('newsImageProxyController', () => {
     await proxyNewsImage(req, res);
     expect(res.statusCode).toBe(404);
   });
+});
 
-  test('ALLOWED_HOSTS contiene los hosts esperados', () => {
-    expect(ALLOWED_HOSTS.has('www.365scores.com')).toBe(true);
-    expect(ALLOWED_HOSTS.has('objetos.estaticos-marca.com')).toBe(true);
-    expect(ALLOWED_HOSTS.has('imagecache.365scores.com')).toBe(true);
-    expect(ALLOWED_HOSTS.has('evil.com')).toBe(false);
+describe('isAllowedHost — SLD+1 matching', () => {
+  let isAllowedHost;
+  let ALLOWED_DOMAINS;
+
+  beforeAll(() => {
+    ({ isAllowedHost, ALLOWED_DOMAINS } = require('../controllers/newsImageProxyController'));
+  });
+
+  test('acepta dominio exacto en allowlist', () => {
+    expect(isAllowedHost('marca.com')).toBe(true);
+    expect(isAllowedHost('365scores.com')).toBe(true);
+  });
+
+  test('acepta subdomain directo', () => {
+    expect(isAllowedHost('www.365scores.com')).toBe(true);
+    expect(isAllowedHost('estaticos.marca.com')).toBe(true);
+  });
+
+  test('acepta subdominios nested (estaticos, objetos, static)', () => {
+    expect(isAllowedHost('objetos.estaticos-marca.com')).toBe(true);
+    expect(isAllowedHost('estaticos.as.com')).toBe(true);
+    expect(isAllowedHost('estaticos.epimg.es')).toBe(true);
+  });
+
+  test('rechaza dominio no registrado', () => {
+    expect(isAllowedHost('evil.com')).toBe(false);
+    expect(isAllowedHost('random-site.org')).toBe(false);
+  });
+
+  test('rechaza ataques tipo "365scores.com.evil.com"', () => {
+    // endsWith('.365scores.com') requiere que TERMINÉ en 365scores.com,
+    // no que contenga la substring.
+    expect(isAllowedHost('365scores.com.evil.com')).toBe(false);
+    expect(isAllowedHost('evil-365scores.com')).toBe(false);
+  });
+
+  test('ALLOWED_DOMAINS contiene los periódicos españoles esperados', () => {
+    expect(ALLOWED_DOMAINS).toContain('365scores.com');
+    expect(ALLOWED_DOMAINS).toContain('marca.com');
+    expect(ALLOWED_DOMAINS).toContain('as.com');
+    expect(ALLOWED_DOMAINS).toContain('epimg.es');
+    expect(ALLOWED_DOMAINS).toContain('elmundo.es');
   });
 });

@@ -3,28 +3,45 @@
 /**
  * newsImageProxyController — Proxy de imágenes de noticias externas.
  *
- * Auditoría 2026-Q3 (post-deploy): las imágenes de noticias vienen
- * directamente del upstream 365scores o de sitios syndicated (marca.com, as.com).
- * Si los permitimos via CSP img-src, abrimos la superficie de ataque a
- * muchos dominios externos. Solución: el dashboard usa URLs del proxy
- * `/api/news/image?url=<encoded>` y el backend hace fetch upstream con
- * allowlist + timeout + size cap.
+ * Auditoría 2026-Q3 (post-deploy): las imágenes de noticias vienen del
+ * upstream 365scores o de sitios syndicated. Si las permitiéramos via
+ * CSP img-src, abriríamos la superficie de ataque a muchos dominios externos.
  *
- * Sólo permitimos hosts conocidos en ALLOWED_HOSTS. Cualquier otro host
- * → 403 (no es exploitable — el atacante no puede pivotear a otros hosts).
+ * Solución: el dashboard usa URLs del proxy `/api/news/image?url=<encoded>`
+ * y el backend hace fetch upstream con allowlist + timeout + size cap.
+ *
+ * Estrategia de allowlist (v3 — SLD+1 + exact):
+ * - Lista de dominios base + subdominios registrados que difieren del SLD.
+ * - Match por hostname === domain || hostname.endsWith('.' + domain).
+ * - El log de bloqueo (`blocked host: ...`) permite descubrir nuevos
+ *   hosts en runtime y añadirlos al array sin redeploy manual.
  */
 
-const ALLOWED_HOSTS = new Set([
-  'www.365scores.com',
-  'imagecache.365scores.com',
-  'objetos.estaticos-marca.com',
-  'estaticos.marca.com',
+const ALLOWED_DOMAINS = [
+  // 365scores ecosystem (noticias + assets)
+  '365scores.com',
+  // Marca + Unidad Editorial
+  'marca.com',
+  // Marca usa subdominios separados por guion (no SLD-prefixed), así
+  // que necesitamos listar 'estaticos-marca.com' explícitamente.
+  'estaticos-marca.com',
+  'expansion.com',
+  'elmundo.es',
+  // Elmundo usa UECDN (uecdn.es) como CDN
+  'uecdn.es',
+  // PRISA / El País (epimg.es = El País Imagen CDN) y As (PRISA también)
+  'epimg.es',
   'as.com',
-  'estaticos.as.com',
-  'e00-elmundo.uecdn.es',
-  'e01.expansion.com',
-  'e02.eplstatic.com',
-]);
+  // EPL static (usado en internacionales)
+  'eplstatic.com',
+  // Si aparecen más dominios, añadir aquí.
+];
+
+function isAllowedHost(hostname) {
+  return ALLOWED_DOMAINS.some((domain) => {
+    return hostname === domain || hostname.endsWith('.' + domain);
+  });
+}
 
 const FETCH_TIMEOUT_MS = 4500;
 const MAX_BYTES = 5 * 1024 * 1024;
@@ -49,12 +66,19 @@ async function proxyNewsImage(req, res) {
     return;
   }
 
-  if (!ALLOWED_HOSTS.has(parsed.hostname)) {
-    res.status(403).json({ error: 'host not allowed', host: parsed.hostname });
+  if (!isAllowedHost(parsed.hostname)) {
+    // Log para diagnóstico — si este warning aparece en producción,
+    // añadir el host correspondiente a ALLOWED_DOMAINS.
+    console.warn(
+      `[newsImageProxy] blocked host: ${parsed.hostname} (path=${req.path})`
+    );
+    res
+      .status(403)
+      .json({ error: 'host not allowed', host: parsed.hostname });
     return;
   }
 
-  // Fetch upstream with timeout + size cap.
+  // Fetch upstream con timeout + size cap.
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
 
@@ -63,7 +87,7 @@ async function proxyNewsImage(req, res) {
       signal: controller.signal,
       headers: {
         'User-Agent': 'ScoreHub/1.0 (+image-proxy)',
-        'Referer': 'https://www.365scores.com/',
+        Referer: 'https://www.365scores.com/',
       },
       redirect: 'follow',
     });
@@ -107,4 +131,4 @@ async function proxyNewsImage(req, res) {
   }
 }
 
-module.exports = { proxyNewsImage, ALLOWED_HOSTS };
+module.exports = { proxyNewsImage, isAllowedHost, ALLOWED_DOMAINS };
