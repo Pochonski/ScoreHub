@@ -1,4 +1,3 @@
-require('dotenv').config();
 const { pool } = require('../database/connection');
 const db = require('../database/db');
 const mundialCache = require('./mundialCache');
