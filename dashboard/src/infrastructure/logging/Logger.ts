@@ -2,7 +2,10 @@ type LogLevel = 'info' | 'warn' | 'error' | 'debug'
 
 class Logger {
   private static instance: Logger
-  private enabled = true
+  // Auditoría 2026-Q3 Fase 7.2: en producción el logger viene deshabilitado
+  // por default para no exponer data interna (errores con payloads sensibles)
+  // en la consola del navegador. En dev se mantiene habilitado.
+  private enabled = !import.meta.env.PROD
 
   private constructor() {}
 

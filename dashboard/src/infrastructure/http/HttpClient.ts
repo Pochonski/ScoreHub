@@ -9,13 +9,23 @@ type RequestOptions = {
 
 export class HttpClient {
   private baseUrl: string
+  private originBase: string | undefined
 
   constructor(baseUrl: string) {
+    // Auditoría 2026-Q3 Fase 7.5: en producción, baseUrl debe ser absoluta.
+    // Si llega relativa, fallamos ruidosamente para evitar el fallback
+    // window.location.origin que puede no ser el esperado (mixed-protocol).
+    if (import.meta.env.PROD && baseUrl.startsWith('/')) {
+      throw new Error(
+        `HttpClient: baseUrl must be absolute in production (got "${baseUrl}")`
+      )
+    }
     this.baseUrl = baseUrl
+    this.originBase = baseUrl.startsWith('/') ? window.location.origin : undefined
   }
 
   private buildUrl(path: string, params?: RequestOptions['params']): string {
-    const url = new URL(`${this.baseUrl}${path}`, window.location.origin)
+    const url = new URL(`${this.baseUrl}${path}`, this.originBase)
 
     if (params) {
       Object.entries(params).forEach(([key, value]) => {

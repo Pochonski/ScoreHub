@@ -84,4 +84,16 @@ export class DiContainer {
   getCompetitionRepository(): CompetitionRepository {
     return this.getOrCreate('competition', () => new ApiCompetitionRepository())
   }
+
+  /** Auditoría 2026-Q3 Fase 7.4: hooks de testing para repos. */
+  setGameRepositoryForTests(repo: GameRepository): void {
+    this.repos.set('game', repo)
+  }
+
+  /** Auditoría 2026-Q3 Fase 7.4: reset singleton entre tests. */
+  resetForTests(): void {
+    this.repos.clear()
+  }
 }
+
+DiContainer.getInstance() // inicializa al cargar el módulo

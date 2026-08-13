@@ -28,42 +28,99 @@ const EMPTY: GameDetail = {
   news: [],
 }
 
+export type GameSection = 'game' | 'stats' | 'lineups' | 'timeline' | 'predictions' | 'tips' | 'news'
+
 /**
- * TanStack Query version. External shape preserved:
- * returns { game, stats, lineups, timeline, predictions, tips, news,
- *   loading, error, refetch }.
+ * Auditoría 2026-Q3 Fase 7.4: cada sección del game detail puede fallar
+ * independientemente. El hook expone `partialError` para que la UI muestre
+ * un banner discreto sin bloquear el resto de los datos.
  */
-export function useGameDetail(gameId: number | null) {
+export interface PartialError {
+  section: GameSection
+  message: string
+}
+
+export interface UseGameDetailResult {
+  game: Game | null
+  stats: GameStat[]
+  lineups: { home: Lineup; away: Lineup } | null
+  timeline: MatchEvent[]
+  predictions: Prediction[]
+  tips: BettingTip | null
+  news: News[]
+  loading: boolean
+  error: string | null
+  partialError: PartialError[]
+  refetch: () => void
+}
+
+/**
+ * Carga todas las secciones de un partido con degradación graceful.
+ * - Cada fetch se hace en paralelo via Promise.allSettled.
+ * - Si una sección falla, se usa un valor por default y se agrega a
+ *   `partialError`. Las otras secciones siguen siendo visibles.
+ * - Si el game base falla, `error` se setea (fatal), pero las otras
+ *   secciones pueden seguir devolviendo data parcial.
+ */
+export function useGameDetail(gameId: number | null): UseGameDetailResult {
   const qKey = ['game-detail', gameId] as const
 
-  const { data, isLoading, error, refetch } = useQuery<GameDetail>({
+  const { data, isLoading, error, refetch } = useQuery({
     queryKey: qKey,
     enabled: gameId != null,
-    queryFn: async () => {
+    queryFn: async (): Promise<{ detail: GameDetail; partialError: PartialError[] }> => {
       const gid = gameId as number
       const repo = DiContainer.getInstance().getGameRepository()
-      const [game, stats, lineups, timeline, predictions, tips, news] = await Promise.all([
-        repo.getGameById(gid).catch(() => null),
-        repo.getGameStats(gid).catch(() => [] as GameStat[]),
-        repo.getGameLineups(gid).catch(() => null),
-        repo.getGameTimeline(gid).catch(() => [] as MatchEvent[]),
-        repo.getGamePredictions(gid).catch(() => [] as Prediction[]),
-        repo.getGameTips(gid).catch(() => null),
-        apiClient.get<News[]>(ENDPOINTS.newsByGame(gid)).catch(() => [] as News[]),
-      ])
-      return { game, stats, lineups, timeline, predictions, tips, news }
+      const sections: Array<[GameSection, () => Promise<unknown>]> = [
+        ['game', () => repo.getGameById(gid)],
+        ['stats', () => repo.getGameStats(gid)],
+        ['lineups', () => repo.getGameLineups(gid)],
+        ['timeline', () => repo.getGameTimeline(gid)],
+        ['predictions', () => repo.getGamePredictions(gid)],
+        ['tips', () => repo.getGameTips(gid)],
+        ['news', () => apiClient.get<News[]>(ENDPOINTS.newsByGame(gid))],
+      ]
+
+      const results = await Promise.allSettled(sections.map(([, fn]) => fn()))
+      const detail: GameDetail = { ...EMPTY }
+      const errors: PartialError[] = []
+      sections.forEach(([key], i) => {
+        const result = results[i]
+        if (result.status === 'fulfilled') {
+          ;(detail as Record<string, unknown>)[key] = result.value
+        } else {
+          ;(detail as Record<string, unknown>)[key] = EMPTY[key]
+          errors.push({
+            section: key,
+            message:
+              result.reason instanceof Error ? result.reason.message : 'unknown',
+          })
+        }
+      })
+      return { detail, partialError: errors }
     },
     staleTime: 30 * 1000,
   })
 
+  const detail = data?.detail ?? EMPTY
+  const partialError = data?.partialError ?? []
   const errMsg =
-    error && !(data?.game) ? 'No se pudieron cargar los datos del partido' : null
+    error && !detail.game ? 'No se pudieron cargar los datos del partido' : null
   const err = error instanceof Error ? errMsg || error.message : errMsg
 
   return {
-    ...(data ?? EMPTY),
+    game: detail.game,
+    stats: detail.stats,
+    lineups: detail.lineups,
+    timeline: detail.timeline,
+    predictions: detail.predictions,
+    tips: detail.tips,
+    news: detail.news,
     loading: isLoading,
     error: err,
-    refetch: () => refetch(),
+    partialError,
+    refetch: () => {
+      refetch()
+    },
   }
 }
