@@ -1,5 +1,14 @@
--- Schema para ScoreHub
--- Ejecutar primero en MySQL: CREATE DATABASE botmundialista;
+-- ═══════════════════════════════════════════════════════════════
+-- HISTORICAL — Auditoría 2026-Q3 Fase 6.3
+--
+-- Este archivo es histórico y está SUPERSEDIDO por database/migrations/
+-- (002-025). NO ejecutar. Se conserva sólo como referencia de la
+-- estructura original del proyecto (era MySQL).
+--
+-- Para aplicar el schema actual, ejecutar las migraciones en orden:
+--   node database/migrate.js
+-- (que ya valida la conexión a Supabase y aplica 002-025 secuencialmente).
+-- ═══════════════════════════════════════════════════════════════
 
 -- Tabla de usuarios
 CREATE TABLE usuarios (

@@ -45,13 +45,25 @@ const poolConfig = {
 };
 
 if (process.env.SUPABASE_DB_URL) {
+  // Auditoría 2026-Q3 Fase 6.5: Supavisor usa certificados auto-firmados en
+  // algunos pools. rejectUnauthorized: false es necesario para conectar, pero
+  // significa que MITM protection depende sólo de TLS. NO exponer el puerto
+  // a redes no confiadas. Para producción con CA bundle propio, agregar
+  // `ca: fs.readFileSync(...)`.
   poolConfig.connectionString = process.env.SUPABASE_DB_URL;
   poolConfig.ssl = { rejectUnauthorized: false };
 } else {
   poolConfig.host = process.env.DB_HOST || 'localhost';
   poolConfig.port = parseInt(process.env.DB_PORT || '5432', 10);
   poolConfig.user = process.env.DB_USER || 'postgres';
-  poolConfig.password = process.env.DB_PASSWORD || '';
+  // Auditoría 2026-Q3 Fase 6.4: validar DB_PASSWORD no vacío cuando se usa
+  // variables individuales. Sin esto, una config rota podría intentar conectar
+  // con credencial vacía y fallar silenciosamente.
+  const password = process.env.DB_PASSWORD || '';
+  if (!password && process.env.NODE_ENV === 'production') {
+    throw new Error('DB_PASSWORD must be set in production (individual env vars mode)');
+  }
+  poolConfig.password = password;
   poolConfig.database = process.env.DB_NAME || 'postgres';
   poolConfig.ssl = process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : false;
 }

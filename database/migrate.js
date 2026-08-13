@@ -60,44 +60,74 @@ async function applyMigration(filePath, name) {
   }
 }
 
+// Auditoría 2026-Q3 Fase 6.2: usar pg_advisory_lock para serializar
+// ejecuciones paralelas de migrate.js. Evita que dos runners concurrentes
+// apliquen migraciones no-idempotentes dos veces.
+const MIGRATE_LOCK_ID = 5930; // ScoreHub fixed lock
+
+async function acquireMigrateLock(client) {
+  const result = await client.query('SELECT pg_try_advisory_lock($1) AS locked', [MIGRATE_LOCK_ID]);
+  if (!result.rows[0].locked) {
+    console.error('Another migrate.js is already running. Exiting to avoid concurrent migrations.');
+    process.exit(2);
+  }
+}
+
+async function releaseMigrateLock(client) {
+  try {
+    await client.query('SELECT pg_advisory_unlock($1)', [MIGRATE_LOCK_ID]);
+  } catch (e) {
+    console.error(`Failed to release advisory lock: ${e.message}`);
+  }
+}
+
 async function main() {
   console.log('Migration runner\n');
 
-  const files = fs.readdirSync(MIGRATIONS_DIR)
-    .filter(f => f.endsWith('.sql'))
-    .sort();
+  // Lock global — un solo migrate.js a la vez en toda la flota.
+  const lockClient = await pool.connect();
+  await acquireMigrateLock(lockClient);
 
-  if (!files.length) {
-    console.log('No migration files found.');
-    await pool.end();
-    return;
-  }
+  try {
+    const files = fs.readdirSync(MIGRATIONS_DIR)
+      .filter(f => f.endsWith('.sql'))
+      .sort();
 
-  await ensureTrackingTable();
-  const applied = await getApplied();
-  const pending = files.filter(f => !applied.has(f.replace(/\.sql$/, '')));
-
-  if (!pending.length) {
-    console.log('All migrations already applied.');
-    await pool.end();
-    return;
-  }
-
-  console.log(`Found ${pending.length} pending migration(s):\n`);
-
-  for (const file of pending) {
-    const filePath = path.join(MIGRATIONS_DIR, file);
-    try {
-      await applyMigration(filePath, file);
-    } catch (e) {
-      console.error(`  ✗ ${file}: ${e.message}`);
+    if (!files.length) {
+      console.log('No migration files found.');
       await pool.end();
-      process.exit(1);
+      return;
     }
-  }
 
-  console.log(`\nAll ${pending.length} migration(s) applied successfully.`);
-  await pool.end();
+    await ensureTrackingTable();
+    const applied = await getApplied();
+    const pending = files.filter(f => !applied.has(f.replace(/\.sql$/, '')));
+
+    if (!pending.length) {
+      console.log('All migrations already applied.');
+      await pool.end();
+      return;
+    }
+
+    console.log(`Found ${pending.length} pending migration(s):\n`);
+
+    for (const file of pending) {
+      const filePath = path.join(MIGRATIONS_DIR, file);
+      try {
+        await applyMigration(filePath, file);
+      } catch (e) {
+        console.error(`  ✗ ${file}: ${e.message}`);
+        await releaseMigrateLock(lockClient);
+        await pool.end();
+        process.exit(1);
+      }
+    }
+
+    console.log(`\nAll ${pending.length} migration(s) applied successfully.`);
+    await pool.end();
+  } finally {
+    await releaseMigrateLock(lockClient);
+  }
 }
 
 main();

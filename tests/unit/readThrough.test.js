@@ -153,3 +153,76 @@ describe('unit/readThrough — patrón cache miss + write-back', () => {
     expect(result.error).toBeDefined();
   });
 });
+
+// Auditoría 2026-Q3 C3 — per-key lock para deduplicar fetcher() y upsert()
+// ante requests concurrentes.
+describe('unit/readThrough — inFlight lock (concurrencia)', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  test('10 requests paralelos al mismo key → fetcher llamado 1 vez', async () => {
+    const { pgQueryRetry } = require('../../database/connection');
+    // SELECT inicial: cache miss
+    pgQueryRetry.mockResolvedValueOnce({ rows: [], rowCount: 0 });
+    // Upsert: persiste
+    pgQueryRetry.mockResolvedValueOnce({ rows: [{ id: 1 }], rowCount: 1 });
+    // Resto de requests paralelos: cache hit (la fila ya está persistida)
+    pgQueryRetry.mockResolvedValue({
+      rows: [{ id: 1, data: { foo: 'fresh' }, updated_at: new Date().toISOString() }],
+      rowCount: 1,
+    });
+
+    const fetcher = jest.fn().mockImplementation(
+      () => new Promise((resolve) => setTimeout(() => resolve({ id: 1, foo: 'fresh' }), 50))
+    );
+
+    const queryOpts = { select: '*', eq: { id: 1 } };
+    const promises = Array.from({ length: 10 }, () =>
+      db.readThrough('concurrent_test', queryOpts, fetcher, { onConflict: 'id' })
+    );
+    const results = await Promise.all(promises);
+
+    // fetcher debe ejecutarse 1 sola vez (los demás esperan al primero).
+    expect(fetcher).toHaveBeenCalledTimes(1);
+    // Todos los resultados deben tener la misma data.
+    expect(results.every((r) => r.source === '365+writeback' || r.source === 'db')).toBe(true);
+  });
+
+  test('10 requests paralelos con keys distintos → fetcher llamado 10 veces', async () => {
+    const { pgQueryRetry } = require('../../database/connection');
+    pgQueryRetry.mockResolvedValue({ rows: [], rowCount: 0 });
+
+    const fetcher = jest.fn().mockImplementation(
+      () => new Promise((resolve) => setTimeout(() => resolve({ foo: 'fresh' }), 10))
+    );
+
+    const promises = Array.from({ length: 10 }, (_, i) =>
+      db.readThrough('concurrent_test', { select: '*', eq: { id: i } }, fetcher, { onConflict: 'id' })
+    );
+    await Promise.all(promises);
+
+    // Cada key distinto ejecuta su propio fetcher.
+    expect(fetcher).toHaveBeenCalledTimes(10);
+  });
+
+  test('lock se libera tras error → siguiente request puede ejecutar fetcher', async () => {
+    const { pgQueryRetry } = require('../../database/connection');
+    pgQueryRetry.mockResolvedValue({ rows: [], rowCount: 0 });
+
+    const fetcher = jest.fn()
+      .mockRejectedValueOnce(new Error('upstream 500'))
+      .mockResolvedValueOnce({ id: 1, foo: 'fresh' });
+
+    const queryOpts = { select: '*', eq: { id: 1 } };
+
+    // Primer request: error
+    const r1 = await db.readThrough('lock_test', queryOpts, fetcher, { onConflict: 'id' });
+    expect(r1.source).toBe('365-error');
+
+    // Segundo request (mismo key, después del error): reintenta
+    const r2 = await db.readThrough('lock_test', queryOpts, fetcher, { onConflict: 'id' });
+    expect(r2.source).toBe('365+writeback');
+    expect(fetcher).toHaveBeenCalledTimes(2);
+  });
+});

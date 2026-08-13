@@ -425,10 +425,16 @@ module.exports = {
   execAdvanced,
   execAdvancedFull,
   readThrough,
+  // Auditoría 2026-Q3 Fase 8.5: exponer guards internos para testing directo.
+  // No usar desde código de aplicación — son SQL-injection guards de último recurso.
+  _internal: {
+    assertIdent,
+    assertSelectList,
+  },
 };
 
 /**
- * Read-through cache pattern (Fase 8.4):
+ * Read-through cache pattern (Fase 8.4 + Fase 2.1):
  *
  *  1. Lee de DB usando los `queryOpts` (mismo shape que `db.query`).
  *  2. Si encuentra datos → los devuelve con `source: 'db'`.
@@ -439,6 +445,10 @@ module.exports = {
  * Si la fila de DB está stale (edad > `ttlMs`), también se considera
  * cache miss para forzar refresh.
  *
+ * Auditoría 2026-Q3 C3 — inFlight Map por key para deduplicar fetcher() y upsert()
+ * ante requests concurrentes para el mismo (table, queryOpts). Mismo patrón que
+ * jobGuard.wrap: el primer request ejecuta; los siguientes esperan la misma Promise.
+ *
  * @param {string} table
  * @param {object} queryOpts - mismo shape que db.query (eq, select, single, etc.)
  * @param {() => any} fetcher - función que trae datos de 365scores.
@@ -446,8 +456,26 @@ module.exports = {
  * @param {object} [opts]
  * @param {string|string[]} [opts.onConflict='id'] - columnas de conflict para upsert.
  * @param {number} [opts.ttlMs] - si la fila de DB es más vieja que esto, se rehidrata.
- * @returns {Promise<{ data, error, source: 'db'|'365+writeback'|'365-error' }>}
+ * @returns {Promise<{ data, error, source: 'db'|'db-stale'|'365+writeback'|'365-error' }>}
  */
+
+// Auditoría 2026-Q3 C3: per-key lock para deduplicar fetcher() y upsert()
+// ante requests concurrentes.
+const inFlight = new Map();
+
+function cacheKey(table, queryOpts) {
+  try {
+    return `${table}:${JSON.stringify(queryOpts)}`;
+  } catch {
+    // Fallback para queryOpts no serializables
+    return `${table}:${Date.now()}:${Math.random()}`;
+  }
+}
+
+// LRU-evict inFlight para evitar leak si keys nunca se piden de nuevo.
+// (La deduplicación es per-request, no global, así que un Set pequeño basta.)
+const MAX_INFLIGHT = 500;
+
 async function readThrough(table, queryOpts, fetcher, opts = {}) {
   const { onConflict = 'id', ttlMs = null } = opts;
 
@@ -457,6 +485,30 @@ async function readThrough(table, queryOpts, fetcher, opts = {}) {
     require('../utils/dbStats').recordReadThroughHit();
   } catch {}
 
+  const key = cacheKey(table, queryOpts);
+  if (inFlight.has(key)) {
+    return inFlight.get(key);
+  }
+
+  // Crear promise ANTES de cualquier await para evitar race entre check + set.
+  const promise = doReadThrough(table, queryOpts, fetcher, opts);
+  inFlight.set(key, promise);
+
+  // Cleanup: eliminar del Map cuando termine (éxito o error) y evict si excede.
+  promise.finally(() => {
+    inFlight.delete(key);
+    if (inFlight.size > MAX_INFLIGHT) {
+      const oldestKey = inFlight.keys().next().value;
+      if (oldestKey) inFlight.delete(oldestKey);
+    }
+  });
+
+  return promise;
+}
+
+async function doReadThrough(table, queryOpts, fetcher, opts) {
+  const { onConflict = 'id', ttlMs = null } = opts;
+
   // 1. Intentar DB
   const { data: row, error } = await query(table, queryOpts);
   if (error) return { data: null, error, source: 'db-error' };
@@ -465,10 +517,14 @@ async function readThrough(table, queryOpts, fetcher, opts = {}) {
   if (hasData) {
     const single = Array.isArray(row) ? row[0] : row;
     const updatedAt = single?.updated_at;
+    // Auditoría 2026-Q3 Fase 2.3: validar new Date(updated_at) para evitar
+    // que un valor mal formado (null, NaN) haga que stale data se trate como fresh.
+    const updatedAtMs = updatedAt != null ? new Date(updatedAt).getTime() : NaN;
     const isStale =
       ttlMs != null &&
       updatedAt != null &&
-      Date.now() - new Date(updatedAt).getTime() > ttlMs;
+      !Number.isNaN(updatedAtMs) &&
+      Date.now() - updatedAtMs > ttlMs;
     if (!isStale) {
       return { data: row, error: null, source: 'db' };
     }
