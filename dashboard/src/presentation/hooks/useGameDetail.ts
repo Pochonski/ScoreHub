@@ -82,14 +82,14 @@ export function useGameDetail(gameId: number | null): UseGameDetailResult {
       ]
 
       const results = await Promise.allSettled(sections.map(([, fn]) => fn()))
-      const detail: GameDetail = { ...EMPTY }
+      const detail = { ...EMPTY } as Record<string, unknown>
       const errors: PartialError[] = []
       sections.forEach(([key], i) => {
         const result = results[i]
         if (result.status === 'fulfilled') {
-          ;(detail as Record<string, unknown>)[key] = result.value
+          detail[key] = result.value
         } else {
-          ;(detail as Record<string, unknown>)[key] = EMPTY[key]
+          detail[key] = EMPTY[key as GameSection]
           errors.push({
             section: key,
             message:
@@ -97,7 +97,7 @@ export function useGameDetail(gameId: number | null): UseGameDetailResult {
           })
         }
       })
-      return { detail, partialError: errors }
+      return { detail: detail as unknown as GameDetail, partialError: errors }
     },
     staleTime: 30 * 1000,
   })
