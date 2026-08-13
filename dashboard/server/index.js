@@ -13,9 +13,17 @@ const app = express();
 const PORT = process.env.DASHBOARD_PORT || 3002;
 const isDev = process.env.NODE_ENV !== 'production';
 
+// Auditoría 2026-Q3 S9: whitelist restrictivo en default.
+// Si CORS_ORIGINS no está seteado, sólo se permite localhost (desarrollo).
+// En PRODUCCIÓN, CORS_ORIGINS DEBE estar seteado en env.
 const whitelist = process.env.CORS_ORIGINS
-  ? process.env.CORS_ORIGINS.split(',')
-  : ['http://localhost:5173', 'https://scorehub-pocho.vercel.app', 'https://scorehub-rust.vercel.app'];
+  ? process.env.CORS_ORIGINS.split(',').map((s) => s.trim()).filter(Boolean)
+  : ['http://localhost:5173'];
+if (!process.env.CORS_ORIGINS && process.env.NODE_ENV === 'production') {
+  serverLogger.warn(
+    'CORS_ORIGINS no configurado en producción — sólo se aceptarán requests desde localhost'
+  );
+}
 
 const pino = require('pino');
 const serverLogger = pino({

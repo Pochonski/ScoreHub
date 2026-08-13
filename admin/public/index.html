@@ -8,8 +8,8 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Fira+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/admin/public/css/tailwind.css">
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-  <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js" integrity="sha384-9nhczxUqK87bcKHh20fSQcTGD4qq5GhayNYSYWqwBkINBhOfQLg/P5HG5lF1urn4" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js" integrity="sha384-gyCvR13H0ShfkL6y7EloGjXPnoXowcUDYGGnp53jr9PzoeLiJYfFO8AybbEZxxxq" crossorigin="anonymous"></script>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { font-family: 'Fira Sans', sans-serif; background: #020617; color: #F8FAFC; min-height: 100vh; }
@@ -284,6 +284,15 @@
     let currentPlatform = 'telegram';
     let currentFilter = { search: '', limit: 50, offset: 0 };
 
+    // XSS guard: escapar todo texto user-controlled antes de innerHTML.
+    // Auditoría 2026-Q3 C1 — admin/public/index.html interpolaba DB strings sin escape.
+    const escapeHtml = (s) => String(s ?? '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+
     lucide.createIcons();
 
     function toggleSidebar() {
@@ -412,8 +421,8 @@
       container.innerHTML = data.map(q => `
         <div class="flex items-center gap-4 p-3 rounded-lg bg-surface-800/50 hover:bg-surface-700/50 transition-colors">
           <div class="w-10 h-10 rounded-full bg-accent/20 flex items-center justify-center flex-shrink-0"><i data-lucide="message-circle" class="w-5 h-5 text-accent"></i></div>
-          <div class="flex-1 min-w-0"><p class="font-medium truncate">${q.consulta}</p><p class="text-xs text-slate-400">${q.alias || 'Usuario'} &bull; ${formatDate(q.fecha)}</p></div>
-          <span class="px-2 py-1 rounded text-xs ${getBadgeClass(q.tipo)}">${q.tipo}</span>
+          <div class="flex-1 min-w-0"><p class="font-medium truncate">${escapeHtml(q.consulta)}</p><p class="text-xs text-slate-400">${escapeHtml(q.alias || 'Usuario')} &bull; ${formatDate(q.fecha)}</p></div>
+          <span class="px-2 py-1 rounded text-xs ${getBadgeClass(q.tipo)}">${escapeHtml(q.tipo)}</span>
         </div>
       `).join('');
       lucide.createIcons();
@@ -432,24 +441,29 @@
         tbody.innerHTML = '<tr><td colspan="5" class="px-6 py-8 text-center text-slate-500">Sin consultas a&uacute;n</td></tr>';
         return;
       }
-      tbody.innerHTML = data.map(q => `
-        <tr class="table-row transition-all duration-200">
+      tbody.innerHTML = data.map(q => {
+        const safeId = Number.isInteger(Number(q.id)) ? Number(q.id) : '';
+        return `
+        <tr class="table-row transition-all duration-200" data-id="${escapeHtml(safeId)}">
           <td class="px-6 py-4 text-sm font-mono text-slate-400 whitespace-nowrap">${formatDate(q.fecha)}</td>
-          <td class="px-6 py-4 text-sm">${q.alias || '?'}</td>
-          <td class="px-6 py-4 text-sm max-w-xs truncate">${q.consulta}</td>
-          <td class="px-6 py-4 whitespace-nowrap"><span class="px-2 py-1 rounded text-xs ${getBadgeClass(q.tipo)}">${q.tipo}</span></td>
+          <td class="px-6 py-4 text-sm">${escapeHtml(q.alias || '?')}</td>
+          <td class="px-6 py-4 text-sm max-w-xs truncate">${escapeHtml(q.consulta)}</td>
+          <td class="px-6 py-4 whitespace-nowrap"><span class="px-2 py-1 rounded text-xs ${getBadgeClass(q.tipo)}">${escapeHtml(q.tipo)}</span></td>
           <td class="px-6 py-4">
-            <button class="p-1 rounded hover:bg-surface-700 cursor-pointer" onclick="toggleResponse(this, '${q.id}')" title="Ver respuesta">
+            <button class="p-1 rounded hover:bg-surface-700 cursor-pointer resp-toggle" data-id="${escapeHtml(safeId)}" title="Ver respuesta">
               <i data-lucide="chevron-down" class="w-4 h-4 text-slate-400"></i>
             </button>
           </td>
         </tr>
-        <tr class="hidden" id="resp-${q.id}">
+        <tr class="hidden" id="resp-${escapeHtml(safeId)}">
           <td colspan="5" class="px-6 py-4 bg-surface-800/50">
-            <div class="text-xs font-mono text-slate-300 whitespace-pre-wrap max-h-48 overflow-y-auto">${(q.respuesta || '').substring(0, 2000)}</div>
+            <div class="text-xs font-mono text-slate-300 whitespace-pre-wrap max-h-48 overflow-y-auto">${escapeHtml((q.respuesta || '').substring(0, 2000))}</div>
           </td>
         </tr>
-      `).join('');
+      `;}).join('');
+      tbody.querySelectorAll('.resp-toggle').forEach(btn => {
+        btn.addEventListener('click', () => toggleResponse(btn, btn.dataset.id));
+      });
       lucide.createIcons();
       if (data.length >= currentFilter.limit) {
         document.getElementById('loadMoreContainer').classList.remove('hidden');
@@ -459,6 +473,7 @@
 
     function toggleResponse(btn, id) {
       const row = document.getElementById('resp-' + id);
+      if (!row) return;
       row.classList.toggle('hidden');
       const icon = btn.querySelector('i');
       if (row.classList.contains('hidden')) {
@@ -478,24 +493,30 @@
         return;
       }
       const tbody = document.getElementById('queriesTable');
-      tbody.insertAdjacentHTML('beforeend', data.map(q => `
-        <tr class="table-row transition-all duration-200">
+      tbody.insertAdjacentHTML('beforeend', data.map(q => {
+        const safeId = Number.isInteger(Number(q.id)) ? Number(q.id) : '';
+        return `
+        <tr class="table-row transition-all duration-200" data-id="${escapeHtml(safeId)}">
           <td class="px-6 py-4 text-sm font-mono text-slate-400 whitespace-nowrap">${formatDate(q.fecha)}</td>
-          <td class="px-6 py-4 text-sm">${q.alias || '?'}</td>
-          <td class="px-6 py-4 text-sm max-w-xs truncate">${q.consulta}</td>
-          <td class="px-6 py-4 whitespace-nowrap"><span class="px-2 py-1 rounded text-xs ${getBadgeClass(q.tipo)}">${q.tipo}</span></td>
+          <td class="px-6 py-4 text-sm">${escapeHtml(q.alias || '?')}</td>
+          <td class="px-6 py-4 text-sm max-w-xs truncate">${escapeHtml(q.consulta)}</td>
+          <td class="px-6 py-4 whitespace-nowrap"><span class="px-2 py-1 rounded text-xs ${getBadgeClass(q.tipo)}">${escapeHtml(q.tipo)}</span></td>
           <td class="px-6 py-4">
-            <button class="p-1 rounded hover:bg-surface-700 cursor-pointer" onclick="toggleResponse(this, '${q.id}')" title="Ver respuesta">
+            <button class="p-1 rounded hover:bg-surface-700 cursor-pointer resp-toggle" data-id="${escapeHtml(safeId)}" title="Ver respuesta">
               <i data-lucide="chevron-down" class="w-4 h-4 text-slate-400"></i>
             </button>
           </td>
         </tr>
-        <tr class="hidden" id="resp-${q.id}">
+        <tr class="hidden" id="resp-${escapeHtml(safeId)}">
           <td colspan="5" class="px-6 py-4 bg-surface-800/50">
-            <div class="text-xs font-mono text-slate-300 whitespace-pre-wrap max-h-48 overflow-y-auto">${(q.respuesta || '').substring(0, 2000)}</div>
+            <div class="text-xs font-mono text-slate-300 whitespace-pre-wrap max-h-48 overflow-y-auto">${escapeHtml((q.respuesta || '').substring(0, 2000))}</div>
           </td>
         </tr>
-      `).join(''));
+      `;}).join(''));
+      tbody.querySelectorAll('.resp-toggle:not([data-bound])').forEach(btn => {
+        btn.dataset.bound = '1';
+        btn.addEventListener('click', () => toggleResponse(btn, btn.dataset.id));
+      });
       lucide.createIcons();
       currentFilter.offset += data.length;
       if (data.length < currentFilter.limit) {
@@ -532,25 +553,28 @@
         if (qr.ok) { /* counts are per-platform */ }
       } catch(e) {}
       tbody.innerHTML = data.map(u => `
-        <tr class="table-row transition-all duration-200" data-id="${u.id}">
+        <tr class="table-row transition-all duration-200" data-id="${escapeHtml(u.id)}">
           <td class="px-6 py-4 text-sm font-medium">
-            <span class="alias-text">${u.alias}</span>
-            <input class="alias-input hidden px-2 py-1 rounded bg-surface-700 border border-surface-500 text-white text-sm font-mono" value="${u.alias}">
-            <button class="edit-btn ml-2 p-1 rounded hover:bg-surface-700 inline-flex cursor-pointer" onclick="editUser(this)">
+            <span class="alias-text">${escapeHtml(u.alias)}</span>
+            <input class="alias-input hidden px-2 py-1 rounded bg-surface-700 border border-surface-500 text-white text-sm font-mono" value="${escapeHtml(u.alias)}">
+            <button class="edit-btn ml-2 p-1 rounded hover:bg-surface-700 inline-flex cursor-pointer user-edit">
               <i data-lucide="pencil" class="w-4 h-4 text-slate-400 hover:text-accent"></i>
             </button>
-            <button class="save-btn hidden ml-1 p-1 rounded hover:bg-surface-700 inline-flex cursor-pointer" onclick="saveUser(this)">
+            <button class="save-btn hidden ml-1 p-1 rounded hover:bg-surface-700 inline-flex cursor-pointer user-save">
               <i data-lucide="check" class="w-4 h-4 text-green-400"></i>
             </button>
-            <button class="cancel-btn hidden ml-1 p-1 rounded hover:bg-surface-700 inline-flex cursor-pointer" onclick="cancelEdit(this)">
+            <button class="cancel-btn hidden ml-1 p-1 rounded hover:bg-surface-700 inline-flex cursor-pointer user-cancel">
               <i data-lucide="x" class="w-4 h-4 text-red-400"></i>
             </button>
           </td>
-          <td class="px-6 py-4 text-sm font-mono text-slate-500 text-xs">${u.id.substring(0, 30)}...</td>
+          <td class="px-6 py-4 text-sm font-mono text-slate-500 text-xs">${escapeHtml(String(u.id || '').substring(0, 30))}...</td>
           <td class="px-6 py-4 text-sm text-slate-400 whitespace-nowrap">${formatDate(u.fecha_registro)}</td>
-          <td class="px-6 py-4"><span class="px-2 py-1 rounded text-xs bg-accent/20 text-accent">${u.estado || 'activo'}</span></td>
+          <td class="px-6 py-4"><span class="px-2 py-1 rounded text-xs bg-accent/20 text-accent">${escapeHtml(u.estado || 'activo')}</span></td>
         </tr>
       `).join('');
+      tbody.querySelectorAll('.user-edit').forEach(b => b.addEventListener('click', () => editUser(b)));
+      tbody.querySelectorAll('.user-save').forEach(b => b.addEventListener('click', () => saveUser(b)));
+      tbody.querySelectorAll('.user-cancel').forEach(b => b.addEventListener('click', () => cancelEdit(b)));
       lucide.createIcons();
     }
 
@@ -594,11 +618,11 @@
       }
       tbody.innerHTML = data.map(a => `
         <tr class="table-row transition-all duration-200">
-          <td class="px-6 py-4 text-sm">${a.alias || a.id_usuario?.substring(0, 20) || '?'}</td>
-          <td class="px-6 py-4 text-sm max-w-xs truncate">${a.partido_normalizado || a.partido_extrado || '-'}</td>
-          <td class="px-6 py-4 text-sm font-mono">${a.marcador_local != null ? a.marcador_local + '-' + a.marcador_visitante : '-'}</td>
-          <td class="px-6 py-4 whitespace-nowrap"><span class="px-2 py-1 rounded text-xs ${getEstadoApuestaClass(a.estado)}">${a.estado || '?'}</span></td>
-          <td class="px-6 py-4 whitespace-nowrap"><span class="px-2 py-1 rounded text-xs ${getEstadoApuestaClass(a.resultado_final)}">${a.resultado_final || '-'}</span></td>
+          <td class="px-6 py-4 text-sm">${escapeHtml(a.alias || String(a.id_usuario || '').substring(0, 20) || '?')}</td>
+          <td class="px-6 py-4 text-sm max-w-xs truncate">${escapeHtml(a.partido_normalizado || a.partido_extrado || '-')}</td>
+          <td class="px-6 py-4 text-sm font-mono">${a.marcador_local != null ? escapeHtml(String(a.marcador_local)) + '-' + escapeHtml(String(a.marcador_visitante)) : '-'}</td>
+          <td class="px-6 py-4 whitespace-nowrap"><span class="px-2 py-1 rounded text-xs ${getEstadoApuestaClass(a.estado)}">${escapeHtml(a.estado || '?')}</span></td>
+          <td class="px-6 py-4 whitespace-nowrap"><span class="px-2 py-1 rounded text-xs ${getEstadoApuestaClass(a.resultado_final)}">${escapeHtml(a.resultado_final || '-')}</span></td>
           <td class="px-6 py-4 text-sm text-slate-400 whitespace-nowrap">${formatDate(a.fecha_creacion)}</td>
         </tr>
       `).join('');
@@ -615,8 +639,8 @@
       }
       tbody.innerHTML = data.map(t => `
         <tr class="table-row transition-all duration-200">
-          <td class="px-6 py-4 text-sm font-medium flex items-center gap-2"><i data-lucide="shield" class="w-4 h-4 text-accent"></i> ${t.nombre_equipo}</td>
-          <td class="px-6 py-4 text-sm">${t.alias || '?'}</td>
+          <td class="px-6 py-4 text-sm font-medium flex items-center gap-2"><i data-lucide="shield" class="w-4 h-4 text-accent"></i> ${escapeHtml(t.nombre_equipo)}</td>
+          <td class="px-6 py-4 text-sm">${escapeHtml(t.alias || '?')}</td>
           <td class="px-6 py-4 text-sm text-slate-400 whitespace-nowrap">${formatDate(t.fecha_seguimiento)}</td>
         </tr>
       `).join('');

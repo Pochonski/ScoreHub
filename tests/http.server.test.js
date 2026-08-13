@@ -43,10 +43,16 @@ function mockRes() {
     headers: {},
     body: '',
     ended: null,
-    setHeader(k, v) { res.headers[k] = v; },
+    setHeader(k, v) { res.headers[k.toLowerCase()] = v; },
+    getHeader(k) { return res.headers[k.toLowerCase()]; },
+    removeHeader(k) { delete res.headers[k.toLowerCase()]; },
     writeHead(status, headers) {
       res.statusCode = status;
-      if (headers) Object.assign(res.headers, headers);
+      if (headers) {
+        for (const [k, v] of Object.entries(headers)) {
+          res.headers[k.toLowerCase()] = v;
+        }
+      }
       return res;
     },
     end(chunk) {
@@ -123,6 +129,120 @@ describe('HTTP server — webhook', () => {
   });
 });
 
+describe('HTTP server — webhook secret (Auditoría 2026-Q3 C2)', () => {
+  let originalSecret;
+  let originalNodeEnv;
+
+  beforeEach(() => {
+    originalSecret = process.env.WEBHOOK_SECRET;
+    originalNodeEnv = process.env.NODE_ENV;
+    webhookUpdates = [];
+  });
+
+  afterEach(() => {
+    if (originalSecret === undefined) delete process.env.WEBHOOK_SECRET;
+    else process.env.WEBHOOK_SECRET = originalSecret;
+    if (originalNodeEnv === undefined) delete process.env.NODE_ENV;
+    else process.env.NODE_ENV = originalNodeEnv;
+  });
+
+  test('con WEBHOOK_SECRET seteado y header correcto → 200 y procesa update', async () => {
+    process.env.WEBHOOK_SECRET = 'test-secret-1234567890';
+    ({ handleRequest } = createHttpServer({
+      getDbAvailable: () => false,
+      handleWebhookUpdate: async (u) => { webhookUpdates.push(u); },
+    }));
+    const req = mockReq({
+      url: '/webhook',
+      method: 'POST',
+      headers: { 'x-telegram-bot-api-secret-token': 'test-secret-1234567890' },
+      body: JSON.stringify({ update_id: 99 }),
+    });
+    const res = mockRes();
+    handleRequest(req, res);
+    req.emitBody();
+    await res.ended;
+    expect(res.statusCode).toBe(200);
+    expect(webhookUpdates).toEqual([{ update_id: 99 }]);
+  });
+
+  test('con WEBHOOK_SECRET seteado pero header incorrecto → 401', async () => {
+    process.env.WEBHOOK_SECRET = 'test-secret-1234567890';
+    ({ handleRequest } = createHttpServer({
+      getDbAvailable: () => false,
+      handleWebhookUpdate: async (u) => { webhookUpdates.push(u); },
+    }));
+    const req = mockReq({
+      url: '/webhook',
+      method: 'POST',
+      headers: { 'x-telegram-bot-api-secret-token': 'wrong-secret' },
+      body: JSON.stringify({ update_id: 99 }),
+    });
+    const res = mockRes();
+    handleRequest(req, res);
+    await res.ended;
+    expect(res.statusCode).toBe(401);
+    expect(webhookUpdates).toEqual([]);
+  });
+
+  test('con WEBHOOK_SECRET seteado pero sin header → 401', async () => {
+    process.env.WEBHOOK_SECRET = 'test-secret-1234567890';
+    ({ handleRequest } = createHttpServer({
+      getDbAvailable: () => false,
+      handleWebhookUpdate: async (u) => { webhookUpdates.push(u); },
+    }));
+    const req = mockReq({
+      url: '/webhook',
+      method: 'POST',
+      body: JSON.stringify({ update_id: 99 }),
+    });
+    const res = mockRes();
+    handleRequest(req, res);
+    await res.ended;
+    expect(res.statusCode).toBe(401);
+  });
+
+  test('en NODE_ENV=production sin WEBHOOK_SECRET → 503 (fail-safe)', async () => {
+    delete process.env.WEBHOOK_SECRET;
+    process.env.NODE_ENV = 'production';
+    ({ handleRequest } = createHttpServer({
+      getDbAvailable: () => false,
+      handleWebhookUpdate: async (u) => { webhookUpdates.push(u); },
+    }));
+    const req = mockReq({
+      url: '/webhook',
+      method: 'POST',
+      body: JSON.stringify({ update_id: 99 }),
+    });
+    const res = mockRes();
+    handleRequest(req, res);
+    await res.ended;
+    expect(res.statusCode).toBe(503);
+    expect(res.body).toBe('webhook disabled');
+    expect(webhookUpdates).toEqual([]);
+  });
+
+  test('en NODE_ENV=development sin WEBHOOK_SECRET → 200 (modo permisivo)', async () => {
+    delete process.env.WEBHOOK_SECRET;
+    process.env.NODE_ENV = 'development';
+    ({ handleRequest } = createHttpServer({
+      getDbAvailable: () => false,
+      handleWebhookUpdate: async (u) => { webhookUpdates.push(u); },
+    }));
+    const req = mockReq({
+      url: '/webhook',
+      method: 'POST',
+      body: JSON.stringify({ update_id: 42 }),
+    });
+    const res = mockRes();
+    handleRequest(req, res);
+    req.emitBody();
+    await res.ended;
+    expect(res.statusCode).toBe(200);
+    expect(webhookUpdates).toEqual([{ update_id: 42 }]);
+  });
+});
+
 describe('HTTP server — admin gates', () => {
   test('/admin con admin deshabilitado → 503', async () => {
     mockAdminEnabled = false;
@@ -141,7 +261,7 @@ describe('HTTP server — admin gates', () => {
     handleRequest(req, res);
     await res.ended;
     expect(res.statusCode).toBe(401);
-    expect(res.headers['WWW-Authenticate']).toMatch('Bearer');
+    expect(res.headers['www-authenticate']).toMatch('Bearer');
   });
 
   test('/admin/api/stats autorizado → 200 con métricas', async () => {

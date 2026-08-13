@@ -68,14 +68,20 @@ Opción B (fallback, variables individuales):
 |---|---|---|
 | `ENABLE_LIVE_NOTIFIER` | `false` | Si `true`, `telegramBot.js` registra el listener del notifier |
 
-### 6. Panel admin — auth
+### 6. Webhook security (Auditoría 2026-Q3 C2)
+
+| Var | Default | Notas |
+|---|---|---|
+| `WEBHOOK_SECRET` | (vacío) | Token de validación para `POST /webhook`. Generar con `openssl rand -hex 32`. Configurar en Telegram con `setWebhook?secret_token=<SECRET>`. Si está seteado, el bot rechaza requests sin el header `X-Telegram-Bot-Api-Secret-Token`. **En producción sin `WEBHOOK_SECRET`, el endpoint devuelve 503 (fail-safe).** En desarrollo (`NODE_ENV != production`) el endpoint queda abierto. |
+
+### 7. Panel admin — auth
 
 | Var | Default | Notas |
 |---|---|---|
 | `ADMIN_TOKEN` | (vacío) | Token para acceder a `/admin/*`. Si no se setea (o mide < 8 chars), el admin queda **deshabilitado** (503). Se envía como `Authorization: Bearer <token>` o cookie `admin_token`. |
 | `ADMIN_STANDALONE` | `false` | Si `true`, el admin corre como servidor Express separado |
 
-### 7. Servidores y logging
+### 8. Servidores y logging
 
 | Var | Default | Notas |
 |---|---|---|
@@ -86,7 +92,7 @@ Opción B (fallback, variables individuales):
 | `LOG_LEVEL` | `info` | Nivel de log pino (info, warn, error, debug) |
 | `NODE_ENV` | — | `production` activa comportamiento de prod |
 
-### 8. WhatsApp (legacy, inactivo)
+### 9. WhatsApp (legacy, inactivo)
 
 | Var | Default | Notas |
 |---|---|---|

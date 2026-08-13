@@ -17,6 +17,12 @@ const STALE_AFTER_MS = parseInt(process.env.ATHLETE_STALE_AFTER_MS || String(24 
 // a backfill). Map<id, Promise<row|null>>.
 const inflightHydrations = new Map();
 
+// Auditoría 2026-Q3 S8: escape de LIKE wildcards (% _ \).
+// Sin esto, buscar "100%" devuelve todos los matches (el % se interpreta como wildcard).
+function escapeLike(s) {
+  return String(s).replace(/[\\%_]/g, '\\$&');
+}
+
 function isRowSparse(row) {
   if (!row) return true;
   const d = row.data || {};
@@ -212,7 +218,7 @@ async function searchAthletes(req, res, next) {
     const conds = [];
 
     if (search && String(search).trim()) {
-      params.push(`%${String(search).toLowerCase()}%`);
+      params.push(`%${escapeLike(String(search).toLowerCase())}%`);
       conds.push(`lower(name) LIKE $${params.length}`);
     }
 

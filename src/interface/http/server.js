@@ -15,8 +15,28 @@
 const http = require('http');
 const path = require('path');
 const fs = require('fs');
+const config = require('../../infrastructure/config');
+const log = require('../../../utils/logger');
 const { isAdminEnabled, requireAdmin } = require('../../../utils/adminAuth');
 const { pool } = require('../../../database/connection');
+
+// Auditoría 2026-Q3 Fase 1.3 + Fase 4.1: security headers manuales + config
+// centralizado. createHttpServer usa http nativo (no express), por eso no
+// podemos usar helmet middleware; aplicamos headers equivalentes.
+const SECURITY_HEADERS = {
+  'X-Content-Type-Options': 'nosniff',
+  'X-Frame-Options': 'DENY',
+  'Referrer-Policy': 'no-referrer',
+};
+if (config.helpers.isProduction()) {
+  SECURITY_HEADERS['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains';
+}
+
+function applySecurityHeaders(res) {
+  for (const [k, v] of Object.entries(SECURITY_HEADERS)) {
+    if (!res.getHeader(k)) res.setHeader(k, v);
+  }
+}
 
 // Raíz del repo (admin/public/ se resuelve desde acá, antes vía __dirname del root).
 const ROOT = path.join(__dirname, '..', '..', '..');
@@ -92,7 +112,7 @@ function createHttpServer({ getDbAvailable, handleWebhookUpdate }) {
             res.writeHead(200);
             res.end(JSON.stringify({ success: true }));
           } catch (error) {
-            console.error('[admin] rename error:', error.message);
+            log.error({ err: error }, '[admin] rename error');
             res.writeHead(500);
             res.end(JSON.stringify({ error: 'Error al renombrar usuario' }));
           }
@@ -200,7 +220,7 @@ function createHttpServer({ getDbAvailable, handleWebhookUpdate }) {
         res.writeHead(200);
         res.end(JSON.stringify(data));
       } catch (error) {
-        console.error('[admin] Error en', pathname, error.message);
+        log.error({ err: error, pathname }, '[admin] handler error');
         res.writeHead(500);
         res.end(JSON.stringify({ error: 'Database error' }));
       }
@@ -226,7 +246,7 @@ function createHttpServer({ getDbAvailable, handleWebhookUpdate }) {
         res.writeHead(200, { 'Content-Type': mime[ext] || 'application/octet-stream' });
         res.end(content);
       } catch (e) {
-        console.error('[admin] static file error:', filePath, e.message);
+        log.error({ err: e, filePath }, '[admin] static file error');
         res.writeHead(404);
         res.end('Not found');
       }
@@ -239,6 +259,7 @@ function createHttpServer({ getDbAvailable, handleWebhookUpdate }) {
 
   function handleRequest(req, res) {
     const url = req.url || '/';
+    applySecurityHeaders(res);
     if (url === '/health' || url === '/') {
       const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress || 'unknown';
       if (!checkRateLimit(ip)) {
@@ -255,6 +276,22 @@ function createHttpServer({ getDbAvailable, handleWebhookUpdate }) {
         timestamp: new Date().toISOString()
       }));
     } else if (url === WEBHOOK_PATH && req.method === 'POST') {
+      // Auditoría 2026-Q3 C2 — validar X-Telegram-Bot-Api-Secret-Token.
+      // Si WEBHOOK_SECRET está configurado, el header debe coincidir exactamente.
+      // En producción sin secret, el endpoint queda cerrado (503) por seguridad.
+      const expectedSecret = config.helpers.webhookSecret();
+      if (expectedSecret) {
+        const provided = req.headers['x-telegram-bot-api-secret-token'];
+        if (!provided || provided !== expectedSecret) {
+          res.writeHead(401, { 'Content-Type': 'text/plain' });
+          res.end('unauthorized');
+          return;
+        }
+      } else if (config.helpers.isProduction()) {
+        res.writeHead(503, { 'Content-Type': 'text/plain' });
+        res.end('webhook disabled');
+        return;
+      }
       let body = '';
       req.on('data', (chunk) => { body += chunk; });
       req.on('end', () => {
@@ -262,9 +299,9 @@ function createHttpServer({ getDbAvailable, handleWebhookUpdate }) {
         res.end();
         try {
           const update = JSON.parse(body);
-          handleWebhookUpdate(update).catch(e => console.error('[webhook] handler error:', e.message));
+          handleWebhookUpdate(update).catch(e => log.error({ err: e }, '[webhook] handler error'));
         } catch (e) {
-          console.error('[webhook] body parse error:', e.message);
+          log.error({ err: e }, '[webhook] body parse error');
         }
       });
     } else if (url.startsWith('/admin')) {

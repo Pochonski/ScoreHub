@@ -94,26 +94,17 @@ async function getTeamMatches(req, res, next) {
     const compIds = ccRows.map(r => r.competition_id);
     if (!compIds.length) return res.json([]);
 
-    const { data: rows, error } = await db.query('games', {
-      select: 'data',
-      or: `(home_competitor_id.eq.${tid},away_competitor_id.eq.${tid})`,
-      in: { competition_id: compIds },
-      order: { column: 'start_time', asc: false },
-      limit: 200,
-    });
-    let games;
-    if (error) {
-      const fallback = await db.execAdvanced(
-        `SELECT data FROM games
-          WHERE competition_id = ANY($1::int[])
-            AND (home_competitor_id = $2 OR away_competitor_id = $2)
-          ORDER BY start_time DESC LIMIT 200`,
-        [compIds, tid]
-      );
-      games = fallback.map(r => enrichGame(r.data));
-    } else {
-      games = (rows || []).map(r => enrichGame(r.data));
-    }
+    // Auditoría 2026-Q3 S3: refactor a SQL parametrizado puro.
+    // Antes usaba PostgREST `or: '(home_competitor_id.eq.${tid},...)'` que era
+    // string-templated. Ahora SQL nativo con placeholders $N.
+    const rows = await db.execAdvanced(
+      `SELECT data FROM games
+        WHERE competition_id = ANY($1::int[])
+          AND (home_competitor_id = $2 OR away_competitor_id = $2)
+        ORDER BY start_time DESC LIMIT 200`,
+      [compIds, tid]
+    );
+    const games = rows.map(r => enrichGame(r.data));
     res.json(games);
   } catch (err) {
     next(err);
