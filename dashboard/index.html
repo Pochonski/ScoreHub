@@ -7,16 +7,17 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="description" content="ScoreHub — Centro multi-competición. Partidos en vivo, tablas, estadísticas y fichajes del Mundial 2026, Liga Promerica CR y más." />
     <!--
-      Auditoría 2026-Q3 Fase 7.1 — Content Security Policy (v2 fix).
+      Auditoría 2026-Q3 Fase 7.1 — Content Security Policy (v3).
       - 'self' para assets locales
       - Tailwind 4 genera estilos inline → style-src incluye 'unsafe-inline'
       - Google Fonts requiere https://fonts.googleapis.com en style-src
         (los archivos reales vienen de https://fonts.gstatic.com — font-src)
-      - data: para imágenes base64 (badges, flags)
-      - imagecache.365scores.com para thumbnails de upstream
+      - img-src: solo 'self' + imagecache.365scores.com (badges de equipos) +
+        data: (badges inline). Las imágenes de NOTICIAS externas se sirven
+        via proxy backend /api/news/image (allowlist en newsImageProxyController)
+        con Cache-Control — esto evita abrir CSP a dominios third-party.
       - jsdelivr/unpkg NO permitidos (deps empaquetadas vía vite)
-      - frame-ancestors se entrega via HTTP header (vercel.json) — NO en meta tag
-        porque navegadores lo ignoran cuando viene de <meta>.
+      - frame-ancestors se entrega via HTTP header (vercel.json) — NO en meta tag.
     -->
     <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' https://imagecache.365scores.com data:; font-src 'self' https://fonts.gstatic.com data:; connect-src 'self' https://jcfulxsqayscvqgxemhv.supabase.co; worker-src 'self'; manifest-src 'self'; base-uri 'self'; form-action 'self';" />
     <meta name="theme-color" content="#070B15" />

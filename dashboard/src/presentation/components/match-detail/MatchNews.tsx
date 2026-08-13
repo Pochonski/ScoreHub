@@ -1,6 +1,7 @@
 import { memo, useState } from 'react'
 import type { News } from '@/domain/entities/News'
 import { formatDate } from '@/presentation/utils/dates'
+import { proxyImageUrl } from '@/shared/newsImageProxy'
 
 interface MatchNewsProps {
   news: News[]
@@ -32,7 +33,9 @@ export const MatchNews = memo(function MatchNews({ news }: MatchNewsProps) {
         {news.slice(0, 5).map((article, i) => (
           <a key={i} href={article.url} target="_blank" rel="noopener noreferrer" className="group block">
             <div className="flex items-start gap-3">
-              {article.image && <NewsThumb src={article.image} alt={article.title} />}
+              {article.image && (
+                <NewsThumb src={proxyImageUrl(article.image) || article.image} alt={article.title} />
+              )}
               <div className="min-w-0">
                 <p className="font-body text-text-primary group-hover:text-accent-blue line-clamp-2 text-sm font-medium transition-colors">
                   {article.title}

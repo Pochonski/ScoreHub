@@ -1,5 +1,6 @@
 import { memo, useState } from 'react'
 import type { News } from '@/domain/entities/News'
+import { proxyImageUrl } from '@/shared/newsImageProxy'
 
 interface NewsCardProps {
   item: News
@@ -54,7 +55,7 @@ export const NewsCard = memo(function NewsCard({ item }: NewsCardProps) {
       className="bg-bg-card border-border-card hover:border-border-hover group focus-visible block overflow-hidden rounded-xl border transition-all duration-200"
     >
       {item.image ? (
-        <NewsImage src={item.image} alt={item.title} />
+        <NewsImage src={proxyImageUrl(item.image) || item.image} alt={item.title} />
       ) : (
         <div className="bg-bg-elevated flex aspect-[16/9] items-center justify-center">
           <span role="img" aria-label="Noticia" className="font-display text-text-dim text-3xl">

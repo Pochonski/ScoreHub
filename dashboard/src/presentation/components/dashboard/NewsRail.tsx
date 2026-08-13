@@ -2,6 +2,7 @@ import { memo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import type { News } from '@/domain/entities/News'
 import { useNews } from '@/presentation/hooks/useNews'
+import { proxyImageUrl } from '@/shared/newsImageProxy'
 import { CollapsibleSection } from './CollapsibleSection'
 
 interface NewsRailProps {
@@ -48,7 +49,7 @@ function NewsRow({ item }: { item: News }) {
       rel="noopener noreferrer"
       className="hover:bg-bg-elevated focus-visible group flex items-center gap-2.5 rounded-lg px-2 py-2 transition-colors"
     >
-      <NewsThumb src={item.image} />
+      <NewsThumb src={proxyImageUrl(item.image)} />
       <div className="min-w-0 flex-1">
         <h3 className="font-body text-text-primary group-hover:text-accent-blue line-clamp-2 text-[13px] leading-snug font-medium transition-colors">
           {item.title}
