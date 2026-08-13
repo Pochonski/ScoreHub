@@ -59,15 +59,47 @@ async function syncAll() {
   }
 }
 
+// Auditoría 2026-Q3 Fase 5.3: exports explícitos en lugar de spread.
+// El spread causaba colisiones silenciosas si dos módulos exportaban el mismo
+// nombre (ej. `syncLiveGames` en games.js y details.js). Ahora cada nombre es
+// explícito y verificable.
 module.exports = {
-  ...games,
-  ...standings,
-  ...content,
-  ...trendsOdds,
-  ...details,
-  ...catalog,
-  ...athletes,
-  ...transfers,
-  ...betSelections,
   syncAll,
+  // games
+  syncGames: games.syncGames,
+  syncLiveGames: games.syncLiveGames,
+  syncGamesResults: games.syncGamesResults,
+  syncFixtures: games.syncFixtures,
+  // standings
+  syncStandings: standings.syncStandings,
+  syncStandingsWithSeasons: standings.syncStandingsWithSeasons,
+  // content
+  syncBrackets: content.syncBrackets,
+  syncTournamentStats: content.syncTournamentStats,
+  syncTeamOfWeek: content.syncTeamOfWeek,
+  syncCompetitionHistory: content.syncCompetitionHistory,
+  syncNews: content.syncNews,
+  // trendsOdds
+  syncTrends: trendsOdds.syncTrends,
+  syncGameTrends: trendsOdds.syncGameTrends,
+  syncTrendDetails: trendsOdds.syncTrendDetails,
+  syncPredictions: trendsOdds.syncPredictions,
+  syncOutrights: trendsOdds.syncOutrights,
+  syncOdds: trendsOdds.syncOdds,
+// details
+syncGameDetails: details.syncGameDetails,
+syncGameDetailsForGame: details.syncGameDetailsForGame,
+syncGameNewsForGame: details.syncGameNewsForGame,
+syncLiveStats: details.syncLiveStats,
+  // catalog
+  syncCatalog: catalog.syncCatalog,
+  syncCountries: catalog.syncCountries,
+  // athletes
+  syncVenues: athletes.syncVenues,
+  syncAthletes: athletes.syncAthletes,
+  // transfers
+  syncTransfers: transfers.syncTransfers,
+  syncSuggestions: transfers.syncSuggestions,
+  // betSelections
+  syncBetSelections: betSelections.syncBetSelections,
 };

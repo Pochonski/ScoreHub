@@ -62,7 +62,7 @@ async function syncAthletes() {
     });
     log(`Synced ${athleteIds.length} athlete roster rows (atomic)`);
 
-    const STALE_AFTER_MS = parseInt(process.env.ATHLETE_STALE_AFTER_MS || String(24 * 60 * 60 * 1000), 10);
+    const STALE_AFTER_MS = require('../../infrastructure/config').helpers.athleteStaleAfterMs();
     const freshRows = await db.execAdvanced(
       `SELECT id, updated_at,
               (data ? 'trophies') AS has_trophies,

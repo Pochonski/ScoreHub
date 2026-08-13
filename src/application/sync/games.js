@@ -18,15 +18,18 @@ async function syncGamesForComp(comp) {
   //   - syncLiveGames (games.status_group=1)
   //   - syncFixtures (games.status_group=2 via getFixtures per-comp)
   //   - syncGamesResults (games.status_group=4 via getGamesResults per-comp)
-  // syncGames queda como alias de syncFixtures + syncGamesResults para mantener
-  // compatibilidad con el scheduler y tests.
   return Promise.resolve();
 }
 
+/**
+ * Auditoría 2026-Q3 Fase 5.2: syncGames() ya no es invocado por syncAll().
+ * Mantenido como no-op explícito para retrocompatibilidad con tests que lo
+ * importan. Loguea un warning para visibilidad si alguien lo llama por error.
+ * @deprecated Use syncFixtures() + syncGamesResults() directamente.
+ */
 async function syncGames() {
-  // syncAll() en syncService.js sigue invocándolo en orden, pero la lógica
-  // per-comp se delega a syncFixtures y syncGamesResults (cron jobs separados).
-  log('syncGames: alias of syncFixtures + syncGamesResults (no-op)');
+  log('syncGames() is deprecated — use syncFixtures() + syncGamesResults()');
+  return { ok: 0, skipped: true, reason: 'deprecated alias' };
 }
 
 async function syncLiveGamesForComp(comp) {

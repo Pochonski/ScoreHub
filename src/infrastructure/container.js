@@ -5,6 +5,31 @@
  * router. Recibe del proceso (telegramBot.js) los colaboradores concretos que
  * aún viven fuera (`mundialista365`, `matchSearch`, `scores365`, `sendMessage`).
  * Se va poblando a medida que la migración strangler mueve cada comando.
+ *
+ * Auditoría 2026-Q3 Fase 3.4: typedef JSDoc de `ContainerDeps` para documentar
+ * el contrato del "wide bag" de dependencias que recibe el composition root.
+ * Sigue siendo un objeto plano (no se introduce DI container library), pero
+ * ahora el shape es verificable con TypeScript server-side o IDEs.
+ */
+
+/**
+ * @typedef {Object} ContainerDeps
+ * @property {Object} mundialista365 - Handler legacy con getLiveGamesText, getFixtureText, etc.
+ * @property {Object} mundialistaStats - Handler legacy con getNoticias, getEquipoIdeal, etc.
+ * @property {Object} matchSearch - DB-backed game search service.
+ * @property {Object} scores365 - Raw HTTPS client para 365scores.
+ * @property {Object} matchHandler - Legacy handler de formato de partidos.
+ * @property {Object} cache - MundialCache para staleness.
+ * @property {Object} messageHandler - Legacy orchestrator de NL path.
+ * @property {Object} userStorage - userStorage.js (alias + clearUserData).
+ * @property {Object} pool - pg Pool (para queries directos).
+ * @property {(chatId:number|string, text:string, opts?:object) => Promise} sendMessage
+ * @property {(chatId:number|string, photo:string|Buffer, opts?:object) => Promise} sendPhoto
+ * @property {(chatId:number|string, media:Array, opts?:object) => Promise} sendMediaGroup
+ * @property {(teamId:number, version?:number) => string} getTeamBadgeUrl
+ * @property {(countryId:number) => string} getCountryFlagUrl
+ * @property {(athleteId:number) => string} getAthletePhotoUrl
+ * @property {(athleteId:number) => string} getAthleteThumbUrl
  */
 
 const { createRouter } = require('../interface/telegram/router');
@@ -29,6 +54,11 @@ const { registerProfileCommands } = require('../interface/telegram/commands/prof
 const { registerMatchDataCommands } = require('../interface/telegram/commands/matchData');
 const { registerPlayerCommands } = require('../interface/telegram/commands/players');
 
+/**
+ * Composition root del bot.
+ * @param {ContainerDeps} deps
+ * @returns {{ router: object, handleCallback: Function }}
+ */
 function createContainer(deps) {
   const {
     mundialista365, mundialistaStats, matchSearch, scores365, matchHandler, cache,
