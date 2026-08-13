@@ -1,0 +1,17 @@
+{
+  "name": "scorehub-admin-server",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "start": "node server.js",
+    "test": "NODE_ENV=test npx jest --forceExit"
+  },
+  "jest": {
+    "testEnvironment": "node",
+    "testMatch": ["**/tests/**/*.test.js"],
+    "rootDir": "."
+  },
+  "devDependencies": {
+    "supertest": "^7.2.2"
+  }
+}
