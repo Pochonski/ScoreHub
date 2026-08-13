@@ -184,6 +184,13 @@ if (require.main === module && process.env.NODE_ENV !== 'test') {
 
   const shutdown = (signal) => {
     logger.info(`Shutting down Telegram bot (${signal})...`);
+    // Auditoría 2026-Q3 Fase 5.1: flush contexto antes de salir.
+    // Evita perder los últimos ~5s de conversación pendiente de persistir.
+    try {
+      conversationContext.flushSync();
+    } catch (e) {
+      logger.error({ err: e }, 'conversationContext.flushSync failed');
+    }
     lifecycle.stop();
     setTimeout(() => process.exit(0), 3000).unref();
   };

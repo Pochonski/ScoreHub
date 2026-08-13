@@ -20,7 +20,10 @@
 const ADMIN_TOKEN = process.env.ADMIN_TOKEN;
 
 function isAdminEnabled() {
-  return Boolean(ADMIN_TOKEN && ADMIN_TOKEN.length >= 8);
+  // Auditoría 2026-Q3 Fase 9.2: subir mínimo de 8 a 32 chars.
+  // 32 chars = ~190 bits de entropía con base64, suficiente para brute-force
+  // resistir. Generar con: openssl rand -hex 32
+  return Boolean(ADMIN_TOKEN && ADMIN_TOKEN.length >= 32);
 }
 
 function extractToken(req) {

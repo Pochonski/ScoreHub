@@ -31,7 +31,7 @@ function iniciar(intervalSeconds = 60) {
     ? `*/${Math.floor(intervalSeconds / 60)} * * * *`
     : '* * * * * *';
 
-  console.log(`[BetTracking] Iniciando motor (cada ${intervalSeconds}s)`);
+  logger.info({ intervalSeconds }, 'BetTracking: iniciando motor');
 
   trackingJob = cron.schedule(cronExpr, async () => {
     if (isRunning) {
@@ -41,7 +41,7 @@ function iniciar(intervalSeconds = 60) {
     await cicloEvaluacion();
   });
 
-  console.log(`[BetTracking] Motor iniciado con cron: ${cronExpr}`);
+  logger.info({ cronExpr }, 'BetTracking: motor iniciado');
 }
 
 /**
@@ -70,7 +70,7 @@ async function cicloEvaluacion() {
       return;
     }
 
-    console.log(`[BetTracking] Evaluando ${apuestas.length} apuestas...`);
+    logger.info({ count: apuestas.length }, 'BetTracking: evaluando apuestas');
 
     for (const apuesta of apuestas) {
       try {
@@ -81,7 +81,7 @@ async function cicloEvaluacion() {
     }
 
     const duration = Date.now() - startTime;
-    console.log(`[BetTracking] Ciclo completado en ${duration}ms`);
+    logger.info({ durationMs: duration }, 'BetTracking: ciclo completado');
   } finally {
     isRunning = false;
   }
@@ -121,7 +121,7 @@ async function evaluarApuesta(apuesta) {
     const stats = await cache.getMatchStats(apuesta.id_partido_api);
 
   if (!stats) {
-    console.log(`[BetTracking] No se pudieron obtener stats para apuesta ${apuesta.id}`);
+    logger.warn({ apuestaId: apuesta.id }, 'BetTracking: no stats available');
     return;
   }
 
@@ -293,7 +293,7 @@ async function verificarApuestaCompleta(apuestaId) {
       `UPDATE apuestas SET estado = 'completada', fecha_cierre = NOW() WHERE id = $1`,
       [apuestaId]
     );
-    console.log(`[BetTracking] Apuesta ${apuestaId} completada`);
+    logger.info({ apuestaId }, 'BetTracking: apuesta completada');
   }
 }
 

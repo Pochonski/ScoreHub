@@ -17,7 +17,14 @@ async function extractTextFromImage(imageData, options = {}) {
   let worker = null;
   try {
     worker = await Tesseract.createWorker(language, 1, {
-      logger: logger ? m => console.log(`[OCR] ${m.status}: ${Math.round(m.progress * 100)}%`) : null
+      // Auditoría 2026-Q3 Fase 4.2: tesseract usa su propio callback logger,
+      // pero ahora lo enrutamos a Pino si está habilitado.
+      logger: logger
+        ? (m) => logger.info(
+            { status: m.status, progress: Math.round(m.progress * 100) },
+            'OCR progress'
+          )
+        : null,
     });
 
     const result = await worker.recognize(imageData);

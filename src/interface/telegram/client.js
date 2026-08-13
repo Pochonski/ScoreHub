@@ -16,6 +16,7 @@
 
 const https = require('https');
 const { telegramToken } = require('../../infrastructure/config');
+const log = require('../../../utils/logger');
 
 const API_URL = `https://api.telegram.org/bot${telegramToken}`;
 
@@ -78,9 +79,9 @@ async function telegramRequest(method, params = {}, timeoutMs = 60000) {
             err.isRateLimited = true;
             err.retryAfter = parsed.parameters.retry_after;
           }
-          console.error(
-            `[Telegram API] ${method} falló [${parsed.error_code}]: ${parsed.description}` +
-              (markdownIssue ? ' (markdownIssue=true)' : '')
+          log.error(
+            { method, errorCode: parsed.error_code, description: parsed.description, markdownIssue },
+            `[Telegram API] ${method} failed`
           );
           reject(err);
         } catch (e) {
@@ -105,7 +106,7 @@ async function telegramRequestWithRetry(method, params = {}, timeoutMs = 60000, 
   } catch (e) {
     if (e.isRateLimited && attempt < 3) {
       const wait = (e.retryAfter || 1) * 1000;
-      console.warn(`[Telegram] 429 en ${method}, esperando ${e.retryAfter}s (intento ${attempt + 1})...`);
+      log.warn({ method, retryAfter: e.retryAfter, attempt }, `[Telegram] 429 rate limit, retrying`);
       await new Promise((r) => setTimeout(r, wait));
       return telegramRequestWithRetry(method, params, timeoutMs, attempt + 1);
     }
@@ -133,7 +134,7 @@ async function sendMessage(chatId, text, options = {}) {
     if (err.markdownIssue && params.parse_mode) {
       const retryParams = { ...params };
       delete retryParams.parse_mode;
-      console.warn(`[Telegram] sendMessage markdown inválido, reintentando sin parse_mode`);
+      log.warn('[Telegram] sendMessage markdown inválido, reintentando sin parse_mode');
       return telegramRequestWithRetry('sendMessage', retryParams);
     }
     throw err;
@@ -154,7 +155,7 @@ async function sendPhoto(chatId, photoUrl, caption = '', options = {}) {
     if (err.markdownIssue && params.parse_mode) {
       const retryParams = { ...params };
       delete retryParams.parse_mode;
-      console.warn(`[Telegram] sendPhoto markdown inválido en caption, reintentando sin parse_mode`);
+      log.warn('[Telegram] sendPhoto markdown inválido en caption, reintentando sin parse_mode');
       return telegramRequestWithRetry('sendPhoto', retryParams);
     }
     throw err;

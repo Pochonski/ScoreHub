@@ -1,4 +1,6 @@
 // Handler de tablas de posiciones
+// Auditoría 2026-Q3 Fase 4.2/12.2: logger Pino.
+const log = require('../utils/logger');
 const cache = require('../services/mundialCache');
 const { getCompetitionName } = require('../services/competitionName');
 const { PRIMARY_COMPETITION_ID: COMPETITION_ID } = require('../services/config');
@@ -38,7 +40,7 @@ async function getTabla(liga) {
     }
     return MENSAJE_NO_SOPORTADO(ligaNombre || ligaKey);
   } catch (error) {
-    console.error('Error getTabla:', error);
+    log.error({ err: error }, 'Error getTabla');
     return `⚠️ No pude obtener la tabla.`;
   }
 }
@@ -80,7 +82,7 @@ async function getTablaMundial(ligaNombre) {
     }
     return msg.trim();
   } catch (error) {
-    console.error('Error getTablaMundial:', error);
+    log.error({ err: error }, 'Error getTablaMundial');
     return `⚠️ No pude obtener la tabla.`;
   }
 }
@@ -120,7 +122,7 @@ async function getTablaGrupoMundial(grupo) {
     }
     return `⚠️ Grupo ${grupoUpper} no encontrado.`;
   } catch (error) {
-    console.error('Error getTablaGrupoMundial:', error);
+    log.error({ err: error }, 'Error getTablaGrupoMundial');
     return `⚠️ No pude obtener la tabla del Grupo ${grupo}.`;
   }
 }

@@ -1,4 +1,3 @@
-require('dotenv').config();
 const cron = require('node-cron');
 
 const api = require('./scores365Service');
@@ -7,7 +6,18 @@ const { forEachActive } = require('./syncCompetitions');
 const notifier = require('./notifier');
 const logger = require('../utils/logger');
 
-const POLL_MS = parseInt(process.env.SCORES365_POLL_MS || '25000', 10);
+// Auditoría 2026-Q3 Fase 4.1: lectura via config helper (con fallback process.env).
+const c = (() => {
+  try {
+    return require('../src/infrastructure/config').helpers;
+  } catch {
+    return null;
+  }
+})();
+const POLL_MS = parseInt(
+  c?.scores365PollMs?.() ?? process.env.SCORES365_POLL_MS ?? '25000',
+  10
+);
 const CRON_EXPR = `*/${Math.max(15, Math.floor(POLL_MS / 1000))} * * * * *`;
 
 function now() { return new Date().toISOString(); }
@@ -280,22 +290,17 @@ async function tick() {
 }
 
 let scheduledTask = null;
-let isRunning = false;
 
-async function tickGuarded() {
-  if (isRunning) {
-    log('tick saltado: ya en curso');
-    return;
-  }
-  isRunning = true;
+// Auditoría 2026-Q3 Fase 5.4: usar jobGuard.wrap en lugar de un boolean local.
+// Antes había dos mutexes para la misma idea; ahora un solo sistema global.
+const jobGuard = require('../utils/jobGuard');
+const tickGuarded = jobGuard.wrap('liveGamesPoller', async () => {
   try {
     await tick();
   } catch (e) {
     logger.error({ err: e.message, poller: 'live' }, 'tick falló');
-  } finally {
-    isRunning = false;
   }
-}
+});
 
 function start() {
   if (scheduledTask) return scheduledTask;

@@ -1,4 +1,5 @@
 // Servicio de parsing de texto OCR -> JSON estructurado
+const log = require('../utils/logger');
 const { normalizarMercado, normalizarEquipo, detectarMarcador, detectarMinuto } = require('./marketNormalizer');
 const cache = require('./mundialCache');
 
@@ -216,7 +217,7 @@ async function buscarPartidoReal(partido) {
     ]);
 
     if (!homeTeam || !awayTeam) {
-      console.log('[BetParser] No se encontraron ambos equipos');
+      log.warn('BetParser: no se encontraron ambos equipos');
       return null;
     }
 
@@ -244,7 +245,7 @@ async function buscarPartidoReal(partido) {
 
     return null;
   } catch (error) {
-    console.error('[BetParser] Error buscando partido:', error);
+    log.error({ err: error }, 'BetParser: error buscando partido');
     return null;
   }
 }

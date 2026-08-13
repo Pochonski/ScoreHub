@@ -1,4 +1,6 @@
 // Servicio de notificaciones WhatsApp para apuestas
+// Auditoría 2026-Q3 Fase 12.2: logger Pino.
+const log = require('../utils/logger');
 const { pool } = require('../database/connection');
 const db = require('../database/db');
 const { getFlag, formatTeamWithFlag } = require('./countryFlagsService');
@@ -58,16 +60,16 @@ function getEmoji(tipo) {
  */
 async function enviarNotificacion(userId, mensaje) {
   if (!whatsappClient) {
-    console.log('[Notification] WhatsApp client no configurado');
+    log.warn('NotificationService: WhatsApp client no configurado');
     return false;
   }
 
   try {
     await whatsappClient.sendMessage(userId, mensaje);
-    console.log(`[Notification] Enviado a ${userId}`);
+    log.info({ userId }, 'NotificationService: enviado');
     return true;
   } catch (error) {
-    console.error('[Notification] Error enviando:', error.message);
+    log.error({ err: error }, 'NotificationService: error enviando');
     return false;
   }
 }
@@ -243,7 +245,7 @@ async function registrarEvento(apuestaId, tipoEvento, descripcion, datos = {}) {
     );
     return true;
   } catch (error) {
-    console.error('[Notification] Error registrando evento:', error);
+    log.error({ err: error }, 'NotificationService: error registrando evento');
     return false;
   }
 }

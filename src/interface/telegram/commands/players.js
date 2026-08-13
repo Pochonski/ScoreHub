@@ -4,6 +4,7 @@
  * lógica de fotos de alineación por posición y el perfil de jugador con eventos).
  */
 
+const log = require('../../../../utils/logger');
 const VS_RE = /^(.+?)\s+(?:vs\.?|y|contra|c\/)\s+(.+)$/i;
 const ALINEACION_TRIGGERS = ['/alineacion', '/alineación', '/lineup', '/titulares'];
 
@@ -45,7 +46,7 @@ function registerPlayerCommands(router, deps) {
           }
         }
       } catch (e) {
-        console.error('[alineacion] resolve error:', e.message);
+        log.error({ err: e }, '[alineacion] resolve error');
       }
       if (!gameId || gameId === arg) {
         await sendMessage(chatId, `⚠️ No encontré el partido. Usá \`/alineacion <gameId>\` o \`/alineacion <eq1> vs <eq2>\`.`);
@@ -101,7 +102,7 @@ function registerPlayerCommands(router, deps) {
         }
       }
     } catch (e) {
-      console.error('[alineacion] error sending photos:', e.message);
+      log.error({ err: e }, '[alineacion] error sending photos');
     }
   });
 
@@ -137,7 +138,7 @@ function registerPlayerCommands(router, deps) {
         const d = g.startTime ? new Date(g.startTime).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' }) : '';
         msg += `\n📅 *Próximo:* ${h} vs ${a} ${d ? '(' + d + ')' : ''}`;
       }
-    } catch (e) { console.warn('[athlete] nextData fetch failed:', e.message); }
+    } catch (e) { log.warn({ err: e }, '[athlete] nextData fetch failed'); }
 
     // Chart events (form)
     try {
@@ -154,7 +155,7 @@ function registerPlayerCommands(router, deps) {
         }).join(' ');
         msg += `\n📈 *Últimos eventos:* ${icons}`;
       }
-    } catch (e) { console.warn('[athlete] chart events failed:', e.message); }
+    } catch (e) { log.warn({ err: e }, '[athlete] chart events failed'); }
 
     const photoUrl = getAthletePhotoUrl(athlete.id);
     if (photoUrl) {

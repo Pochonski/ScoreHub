@@ -1,4 +1,3 @@
-require('dotenv').config();
 
 // Node 18+ incluye fetch global nativo; no necesitamos node-fetch.
 const fetch = globalThis.fetch;
@@ -6,18 +5,34 @@ if (!fetch) {
   throw new Error('globalThis.fetch no está disponible. Se requiere Node 18+.');
 }
 const zlib = require('zlib');
+// Auditoría 2026-Q3 Fase 4.1: lecturas de env centralizadas en config helper.
+// Mantiene retrocompat: si config.helpers no está disponible, cae a process.env.
+const config = (() => {
+  try {
+    return require('../src/infrastructure/config');
+  } catch {
+    return null;
+  }
+})();
+const c = config?.helpers ?? null;
 
 const BASE = 'https://webws.365scores.com';
-const TZ = process.env.SCORES365_TIMEZONE || 'America/Costa_Rica';
-const COUNTRY = process.env.SCORES365_USER_COUNTRY || '153';
-const LANG = process.env.SCORES365_LANG || '14';
-const APPTYPE = process.env.SCORES365_APP_TYPE || '5';
-const HTTP_TIMEOUT_MS = parseInt(process.env.SCORES365_HTTP_TIMEOUT_MS || '15000', 10);
+const TZ = c?.scores365Timezone() ?? process.env.SCORES365_TIMEZONE ?? 'America/Costa_Rica';
+const COUNTRY = c?.scores365UserCountry() ?? process.env.SCORES365_USER_COUNTRY ?? '153';
+const LANG = c?.scores365Lang() ?? process.env.SCORES365_LANG ?? '14';
+const APPTYPE = c?.scores365AppType() ?? process.env.SCORES365_APP_TYPE ?? '5';
+const HTTP_TIMEOUT_MS = parseInt(
+  process.env.SCORES365_HTTP_TIMEOUT_MS ?? '15000',
+  10
+);
 
 const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0';
 
 let lastCall = 0;
-const MIN_INTERVAL_MS = parseInt(process.env.SCORES365_MIN_INTERVAL_MS || '120', 10);
+const MIN_INTERVAL_MS = parseInt(
+  c?.scores365MinIntervalMs() ?? process.env.SCORES365_MIN_INTERVAL_MS ?? '120',
+  10
+);
 
 function buildQuery(extra) {
   const base = `appTypeId=${APPTYPE}&langId=${LANG}&timezoneName=${encodeURIComponent(TZ)}&userCountryId=${COUNTRY}`;

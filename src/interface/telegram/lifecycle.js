@@ -15,6 +15,8 @@
  * `setDbAvailable` para publicar el estado de la DB.
  */
 
+const log = require('../../../utils/logger');
+
 function createLifecycle({
   telegramRequest,
   processMessage,
@@ -81,7 +83,7 @@ function createLifecycle({
           try {
             await handleWebhookUpdate(update);
           } catch (e) {
-            console.error('[polling] handler error:', e.message);
+            log.error({ err: e }, '[polling] handler error');
           }
         }
         // Confirmar procesado: offset = lastUpdateId + 1
@@ -91,10 +93,10 @@ function createLifecycle({
     } catch (e) {
       if (e.isRateLimited) {
         const wait = (e.retryAfter || 1) * 1000;
-        console.warn(`[polling] 429, esperando ${e.retryAfter}s...`);
+        log.warn({ retryAfter: e.retryAfter }, '[polling] 429 rate limit');
         await sleep(wait);
       } else {
-        console.error('[polling] getUpdates error:', e.message);
+        log.error({ err: e }, '[polling] getUpdates error');
         await sleep(3000); // backoff fijo ante errores de red
       }
       return false;
@@ -108,7 +110,7 @@ function createLifecycle({
     while (!shouldStop) {
       await fetchOnce();
     }
-    console.log('[polling] loop detenido.');
+    log.info('[polling] loop stopped');
   }
 
   /**

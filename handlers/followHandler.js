@@ -1,4 +1,5 @@
-require('dotenv').config();
+// Auditoría 2026-Q3 Fase 12.2: logger Pino.
+const log = require('../utils/logger');
 const context = require('../services/conversationContext');
 const db = require('../database/db');
 
@@ -28,7 +29,7 @@ async function getTicketInfo(apuestaId) {
     );
     return r[0] || null;
   } catch (e) {
-    console.error('[followHandler] getTicketInfo error:', e.message);
+    log.error({ err: e }, 'followHandler: getTicketInfo error');
     return null;
   }
 }

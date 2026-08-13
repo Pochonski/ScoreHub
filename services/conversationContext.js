@@ -1,3 +1,5 @@
+// Auditoría 2026-Q3 Fase 12.2: logger Pino.
+const log = require('../utils/logger');
 const fs = require('fs');
 const path = require('path');
 
@@ -46,7 +48,7 @@ function scheduleSave() {
       fs.renameSync(TMP_FILE, STORE_FILE);
       dirty = false;
     } catch (e) {
-      console.error('[conversationContext] save failed:', e.message?.split('\n')[0]);
+      log.error({ err: e?.message?.split('\n')?.[0] }, 'conversationContext: save failed');
     }
   }, 5000);
 }
@@ -140,7 +142,7 @@ function flushSync() {
     try {
       fs.writeFileSync(STORE_FILE, JSON.stringify(store, null, 2));
       dirty = false;
-    } catch (e) { console.error('[conversationContext] flush failed:', e.message); }
+    } catch (e) { log.error({ err: e }, 'conversationContext: flush failed'); }
   }
 }
 

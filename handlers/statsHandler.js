@@ -1,4 +1,6 @@
 // Handler de estadísticas
+// Auditoría 2026-Q3 Fase 4.2/12.2: logger Pino en lugar de console.
+const log = require('../utils/logger');
 const cache = require('../services/mundialCache');
 const { getCompetitionName } = require('../services/competitionName');
 const { PRIMARY_COMPETITION_ID: COMPETITION_ID } = require('../services/config');
@@ -81,7 +83,7 @@ async function getEstadisticas(parsed) {
     }
     return msg;
   } catch (error) {
-    console.error('Error getEstadisticas:', error);
+    log.error({ err: error }, 'Error getEstadisticas');
     const teamName = typeof equipo === 'object' ? equipo.nombre : equipo;
     return `⚠️ No pude obtener estadísticas de ${teamName}.`;
   }
@@ -107,7 +109,7 @@ async function getGoleadores(limit = 10) {
     });
     return msg;
   } catch (error) {
-    console.error('Error getGoleadores:', error);
+    log.error({ err: error }, 'Error getGoleadores');
     return '⚠️ No pude obtener los goleadores.';
   }
 }

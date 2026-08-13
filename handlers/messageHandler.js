@@ -1,5 +1,6 @@
 // Router principal de mensajes
-require('dotenv').config();
+// Auditoría 2026-Q3 Fase 4.2/12.2: logger Pino (legacy messageHandler).
+const log = require('../utils/logger');
 const { pool, testConnection, withTransaction } = require('../database/connection');
 const db = require('../database/db');
 const { ESTADOS_USUARIO, INTENTOS } = require('../utils/constants');
@@ -29,9 +30,9 @@ async function safeReply(message, text) {
     if (error.message?.includes('Execution context') ||
         error.message?.includes('Protocol error') ||
         error.message?.includes('target closed')) {
-      console.error('⚠️ WhatsApp desconectado, no se pudo enviar respuesta');
+      log.warn('WhatsApp disconnected, response not sent');
     } else {
-      console.error('Error enviando mensaje:', error.message);
+      log.error({ err: error }, 'Error sending message');
     }
   }
 }
@@ -65,7 +66,7 @@ let dbCheckPromise = null;
 async function initDbConnection() {
   dbAvailable = await testConnection();
   if (!dbAvailable) {
-    console.log('⚠️ Modo demo activo (sin base de datos)');
+    log.warn('Modo demo activo (sin base de datos)');
   }
   return dbAvailable;
 }
@@ -114,7 +115,7 @@ async function getUserData(userId) {
     if (err) throw err;
     return data || null;
   } catch (error) {
-    console.error('Error getting user:', error.message);
+    log.error({ err: error }, 'Error getting user');
     // Fallback a modo demo
     if (!demoUsers.has(userId)) {
       demoUsers.set(userId, {
@@ -179,7 +180,7 @@ async function registrarUsuario(userId, alias) {
     if (err) throw err;
     return true;
   } catch (error) {
-    console.error('Error registering user:', error.message);
+    log.error({ err: error }, 'Error registering user');
     return true; // Seguir en modo demo
   }
 }
@@ -195,7 +196,7 @@ async function messageHandler(client, message) {
   const userId = message.from;
   const text = message.body.trim();
 
-  console.log(`📩 Mensaje recibido (${text.length} chars)`);
+  log.info({ length: text.length }, 'Mensaje recibido');
 
   // Obtener usuario
   let user = await getUserData(userId);
@@ -231,7 +232,7 @@ async function messageHandler(client, message) {
         return;
       }
     } catch (error) {
-      console.error('Error processing image:', error);
+      log.error({ err: error }, 'Error processing image');
       await safeReply(message, '⚠️ No pude procesar la imagen. Intenta de nuevo.');
       return;
     }
@@ -256,7 +257,7 @@ async function messageHandler(client, message) {
           `Todo limpio. ¡Avisame si querés registrar algo de nuevo!`
         );
       } catch (e) {
-        console.error('Error borrando datos:', e.message);
+        log.error({ err: e }, 'Error borrando datos');
         await message.reply('⚠️ Hubo un error al borrar datos. Contactá al admin.');
       }
       return;
@@ -277,7 +278,7 @@ async function messageHandler(client, message) {
         || geminiResult.liga
         || geminiResult.grupo
         || '';
-      console.log(`🤖 Gemini: ${geminiResult.intent} | ${detail}`);
+      log.info({ intent: geminiResult.intent, detail }, 'Gemini parsed');
       parsedFromGemini = {
         intent: geminiResult.intent,
         equipo: geminiResult.equipo,
@@ -289,13 +290,13 @@ async function messageHandler(client, message) {
       };
     }
   } catch (geminiError) {
-    console.error('Gemini error, usando parser local:', geminiError.message);
+    log.warn({ err: geminiError }, 'Gemini error, usando parser local');
   }
 
   // Si Gemini no entendió, usar parser local
   if (!parsedFromGemini) {
     parsed = await parse(text);
-    console.log(`🎯 Parser local: ${parsed.intent}`);
+    log.info({ intent: parsed.intent }, 'Parser local');
   }
 
   let response = '';
@@ -415,7 +416,7 @@ async function messageHandler(client, message) {
     }
     }
   } catch (error) {
-    console.error('Error handling message:', error);
+    log.error({ err: error }, 'Error handling message');
     response = '⚠️ Ocurrió un error procesando tu consulta. Intenta de nuevo.';
   }
 
@@ -427,7 +428,7 @@ async function messageHandler(client, message) {
         [userId, text, parsed.intent, response]
       );
     } catch (error) {
-      console.error('Error saving query:', error.message);
+      log.error({ err: error }, 'Error saving query');
     }
   }
 
@@ -435,7 +436,7 @@ async function messageHandler(client, message) {
   try {
     await message.reply(response);
   } catch (replyError) {
-    console.error('Error enviando respuesta (posible desconexión de WhatsApp):', replyError.message);
+    log.error({ err: replyError }, 'Error sending reply (posible desconexión WhatsApp)');
   }
 }
 

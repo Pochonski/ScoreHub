@@ -1,4 +1,7 @@
 // Handler principal para procesar imágenes de apuestas
+// Auditoría 2026-Q3 Fase 4.2/12.2: logger Pino (legacy WhatsApp usa console
+// porque messageHandler.js lo importa sin dep Pino).
+const log = require('../utils/logger');
 const { pool, testConnection } = require('../database/connection');
 const db = require('../database/db');
 const ocrService = require('../services/ocrService');
@@ -24,9 +27,9 @@ async function procesarImagenApuesta(client, message, media) {
       if (error.message?.includes('Execution context') ||
           error.message?.includes('Protocol error') ||
           error.message?.includes('target closed')) {
-        console.error('⚠️ WhatsApp desconectado, no se pudo enviar respuesta');
+        log.warn('WhatsApp disconnected, response not sent');
       } else {
-        console.error('Error enviando mensaje:', error.message);
+        log.error({ err: error }, 'Error sending message');
       }
     }
   }
@@ -184,7 +187,7 @@ async function procesarImagenApuesta(client, message, media) {
     }
 
   } catch (error) {
-    console.error('[BetImage] Error procesando imagen:', error);
+    log.error({ err: error }, 'Error procesando imagen');
     await safeReply(
       '⚠️ Ocurrió un error procesando la imagen.\n\n' +
       'Error: ' + error.message

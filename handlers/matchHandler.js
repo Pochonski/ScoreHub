@@ -76,7 +76,7 @@ async function getPartidosHoy(parsed = {}) {
     msg += `💡 _Tip: "Tabla del grupo X" para ver la clasificación._`;
     return msg.trim();
   } catch (error) {
-    console.error('Error getPartidosHoy:', error);
+    logger.error({ err: error }, 'Error getPartidosHoy');
     const compNameFb = await getCompetitionName(COMPETITION_ID);
     return buildNoMatchesMessage(compNameFb);
   }
@@ -157,7 +157,7 @@ async function getPartidosFecha(tipoFecha) {
     });
     return msg.trim();
   } catch (error) {
-    console.error('Error getPartidosFecha:', error.message);
+    logger.error({ err: error }, 'Error getPartidosFecha');
     return `⚠️ No pude obtener partidos para ${fmtDate(fecha)}.`;
   }
 }
@@ -225,7 +225,7 @@ async function getResultadoEquipo(equipo) {
     }
     return msg;
   } catch (error) {
-    console.error('Error getResultadoEquipo:', error);
+    logger.error({ err: error }, 'Error getResultadoEquipo');
     return '⚠️ No pude obtener el resultado.';
   }
 }
@@ -270,7 +270,7 @@ async function getProximosEquipo(equipo, limit = 5) {
     });
     return msg.trim();
   } catch (error) {
-    console.error('Error getProximosEquipo:', error);
+    logger.error({ err: error }, 'Error getProximosEquipo');
     return '⚠️ No pude obtener próximos partidos.';
   }
 }
@@ -308,7 +308,7 @@ async function getUpcomingMatchTips(homeTeam, awayTeam) {
     if (!tip && !trends) return null;
     return msg.trim();
   } catch (e) {
-    console.error('Error getUpcomingMatchTips:', e.message);
+    logger.error({ err: e }, 'Error getUpcomingMatchTips');
     return null;
   }
 }
@@ -358,7 +358,7 @@ async function getResultadoVS(home, away) {
     return `⚠️ No encontré enfrentamientos directos entre *${homeTeam.name}* y *${awayTeam.name}*.\n\n` +
       `💡 Puede que no se hayan enfrentado en el Mundial, o los datos no estén disponibles.`;
   } catch (error) {
-    console.error('Error getResultadoVS:', error);
+    logger.error({ err: error }, 'Error getResultadoVS');
     return '⚠️ No pude obtener el resultado del enfrentamiento.';
   }
 }

@@ -9,6 +9,7 @@
  * presenter `moreOptions`.
  */
 
+const log = require('../../../utils/logger');
 const { moreOptions } = require('./presenters/matchDetail');
 
 function createCallbackDispatcher({ scoresGateway, cache, sendMessage }) {
@@ -33,7 +34,7 @@ function createCallbackDispatcher({ scoresGateway, cache, sendMessage }) {
           await sendMessage(chatId, '⚠️ No pude obtener información de ese partido.');
         }
       } catch (e) {
-        console.error('[callback tip] error:', e.message);
+        log.error({ err: e }, '[callback tip] error');
         await sendMessage(chatId, '⚠️ Error al obtener tip de ese partido.');
       }
     },
@@ -52,7 +53,7 @@ function createCallbackDispatcher({ scoresGateway, cache, sendMessage }) {
         await sendMessage(chatId, t);
         await sendMore(chatId, gameId, ['tip', 'trends']);
       } catch (e) {
-        console.error('[callback odds] error:', e);
+        log.error({ err: e }, '[callback odds] error');
         await sendMessage(chatId, '⚠️ Error al obtener cuotas.');
       }
     },

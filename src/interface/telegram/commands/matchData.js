@@ -3,6 +3,8 @@
  * (Fase 7, Fase 3). /partidos, /manana, /tabla. Relocalizados VERBATIM.
  */
 
+const log = require('../../../../utils/logger');
+
 function registerMatchDataCommands(router, { matchHandler, cache, nlu, sendMessage, buildGameKeyboard }) {
   // /partidos, /hoy
   router.register(['/partidos', '/hoy'], async (ctx) => {
@@ -18,7 +20,7 @@ function registerMatchDataCommands(router, { matchHandler, cache, nlu, sendMessa
         await sendMessage(chatId, text);
       }
     } catch (e) {
-      console.error('[partidos] error:', e);
+      log.error({ err: e }, '[partidos] error');
       await sendMessage(chatId, '⚠️ Error al obtener los partidos.');
     }
   });

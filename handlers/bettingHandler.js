@@ -1,4 +1,6 @@
 // Handler de análisis para apuestas
+// Auditoría 2026-Q3 Fase 4.2/12.2: logger Pino.
+const log = require('../utils/logger');
 const cache = require('../services/mundialCache');
 const { formatAnalisis } = require('../utils/formatters');
 
@@ -68,7 +70,7 @@ async function analizarEnfrentamiento(home, away) {
 
     return formatAnalisis(analisis.home, analisis.away, analisis.stats);
   } catch (error) {
-    console.error('Error analizarEnfrentamiento:', error);
+    log.error({ err: error }, 'Error analizarEnfrentamiento');
     return `⚠️ No pude analizar ${home.nombre || home} vs ${away.nombre || away}.`;
   }
 }
@@ -108,7 +110,7 @@ async function analizarEquipo(equipo) {
 
     return msg;
   } catch (error) {
-    console.error('Error analizarEquipo:', error);
+    log.error({ err: error }, 'Error analizarEquipo');
     return `⚠️ No pude analizar ${typeof equipo === 'object' ? equipo.nombre : equipo}.`;
   }
 }

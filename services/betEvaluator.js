@@ -1,4 +1,4 @@
-require('dotenv').config();
+const log = require('../utils/logger');
 const { pool } = require('../database/connection');
 const db = require('../database/db');
 const { PRIMARY_COMPETITION_ID: COMPETITION_ID } = require('./config');
@@ -200,7 +200,7 @@ async function getGameStateFromSupabase(gameId) {
       awayName: snap.awayName || '',
     };
   } catch (e) {
-    console.error('[betEvaluator] getGameState error:', e.message);
+    log.error({ err: e }, 'betEvaluator: getGameState error');
     return null;
   }
 }
@@ -218,7 +218,7 @@ async function fetchTicketFromDb(ticketId) {
     if (result.length === 0) return null;
     return result[0];
   } catch (e) {
-    console.error('[betEvaluator] fetchTicket error:', e.message);
+    log.error({ err: e }, 'betEvaluator: fetchTicket error');
     return null;
   }
 }
@@ -302,7 +302,7 @@ async function findAffectedChats(event) {
       }
     }
   } catch (e) {
-    console.error('[betEvaluator] findAffectedChats error:', e.message);
+    log.error({ err: e }, 'betEvaluator: findAffectedChats error');
   }
   return out;
 }

@@ -1,10 +1,20 @@
 // Gemini AI Service para entender consultas de fútbol
-require('dotenv').config();
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 const logger = require('../utils/logger');
 
+// Auditoría 2026-Q3 Fase 4.1: lectura de env via config helper (con fallback).
+const c = (() => {
+  try {
+    return require('../src/infrastructure/config').helpers;
+  } catch {
+    return null;
+  }
+})();
+
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-const model = genAI.getGenerativeModel({ model: process.env.GEMINI_MODEL || 'gemini-2.5-flash' });
+const model = genAI.getGenerativeModel({
+  model: c?.geminiModel?.() ?? process.env.GEMINI_MODEL ?? 'gemini-2.5-flash',
+});
 
 // Contexto del bot - información sobre equipos y funcionalidades
 const BOT_CONTEXT = `

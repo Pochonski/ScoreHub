@@ -1,4 +1,4 @@
-require('dotenv').config();
+const log = require('../utils/logger');
 const notifier = require('./notifier');
 const evaluator = require('./betEvaluator');
 const conversationContext = require('./conversationContext');
@@ -106,7 +106,7 @@ async function notifyChats(event) {
         notified++;
         break;
       } catch (e) {
-        console.error(`[telegramNotifier] error sending to ${chatId} via ${platform}:`, e.message);
+        log.error({ err: e, chatId, platform }, 'telegramNotifier: error sending');
       }
     }
     if (sent) {
@@ -122,10 +122,10 @@ function attach() {
     try {
       await notifyChats(event);
     } catch (e) {
-      console.error('[telegramNotifier] notifyChats error:', e.message);
+      log.error({ err: e }, 'telegramNotifier: notifyChats error');
     }
   });
-  console.log('[telegramNotifier] attached to notifier');
+  log.info('telegramNotifier: attached to notifier');
 }
 
 function detach() {

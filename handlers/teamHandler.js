@@ -1,4 +1,6 @@
 // Handler de información de equipos
+// Auditoría 2026-Q3 Fase 4.2/12.2: logger Pino.
+const log = require('../utils/logger');
 const cache = require('../services/mundialCache');
 const { formatEquipoSeguido, formatMisEquipos, formatMatchLine } = require('../utils/formatters');
 const { getFlag, getConfederation, getRecentForm } = require('../utils/teamContext');
@@ -56,7 +58,7 @@ async function getInfoEquipo(equipo) {
     msg += `\n👤 *Roster:* No tengo el roster completo, prueba con \`/buscar <jugador>\` para stats individuales.`;
     return msg;
   } catch (error) {
-    console.error('Error getInfoEquipo:', error);
+    log.error({ err: error }, 'Error getInfoEquipo');
     const name = typeof equipo === 'object' ? equipo.nombre : equipo;
     return `⚠️ No pude obtener información de ${name}.`;
   }
@@ -82,7 +84,7 @@ async function seguirEquipo(userId, equipo) {
     );
     return formatEquipoSeguido(teamName);
   } catch (error) {
-    console.error('Error seguirEquipo:', error);
+    log.error({ err: error }, 'Error seguirEquipo');
     return `⚠️ No pude seguir a ${typeof equipo === 'object' ? equipo.nombre : equipo}.`;
   }
 }
@@ -105,7 +107,7 @@ async function dejarSeguirEquipo(userId, equipo) {
     );
     return `✅ Has dejado de seguir a ${teamName}.`;
   } catch (error) {
-    console.error('Error dejarSeguirEquipo:', error);
+    log.error({ err: error }, 'Error dejarSeguirEquipo');
     return `⚠️ No pude dejar de seguir a ${typeof equipo === 'object' ? equipo.nombre : equipo}.`;
   }
 }
@@ -121,7 +123,7 @@ async function getEquiposSeguidos(userId) {
     if (res.length === 0) return formatMisEquipos([]);
     return formatMisEquipos(res.rows);
   } catch (error) {
-    console.error('Error getEquiposSeguidos:', error);
+    log.error({ err: error }, 'Error getEquiposSeguidos');
     return formatMisEquipos([]);
   }
 }

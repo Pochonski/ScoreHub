@@ -1,5 +1,5 @@
-require('dotenv').config();
 const crypto = require('crypto');
+const log = require('../utils/logger');
 const gemini = require('./geminiService');
 
 const QUICK_PARSE_SYSTEM_PROMPT = `Sos el clasificador de intenciones de "ScoreHub", un asistente de Telegram en español sobre fútbol y apuestas deportivas. Recibís mensajes coloquiales (a menudo sin acentos, jerga regional). Extraés intención y entidades.
@@ -166,7 +166,7 @@ async function parseIntent(message, chatContext) {
     cache.set(cacheKey, { at: Date.now(), value: out });
     return out;
   } catch (e) {
-    console.error('[intentParser] Gemini error:', e.message);
+    log.error({ err: e }, 'intentParser: Gemini error');
     return { intent: 'chat', ticketId: null, gameId: null, teamName: null, mode: null, confidence: 0.3 };
   }
 }
