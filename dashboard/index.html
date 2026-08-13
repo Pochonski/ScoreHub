@@ -7,16 +7,18 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="description" content="ScoreHub — Centro multi-competición. Partidos en vivo, tablas, estadísticas y fichajes del Mundial 2026, Liga Promerica CR y más." />
     <!--
-      Auditoría 2026-Q3 Fase 7.1 — Content Security Policy.
+      Auditoría 2026-Q3 Fase 7.1 — Content Security Policy (v2 fix).
       - 'self' para assets locales
-      - Tailwind 4 genera estilos inline → style-src incluye 'unsafe-inline' (transitorio)
+      - Tailwind 4 genera estilos inline → style-src incluye 'unsafe-inline'
+      - Google Fonts requiere https://fonts.googleapis.com en style-src
+        (los archivos reales vienen de https://fonts.gstatic.com — font-src)
       - data: para imágenes base64 (badges, flags)
       - imagecache.365scores.com para thumbnails de upstream
       - jsdelivr/unpkg NO permitidos (deps empaquetadas vía vite)
-      - frame-ancestors 'none' anti-clickjacking
-      Ajustar según necesidad (e.g. agregar dominio analytics si se usa).
+      - frame-ancestors se entrega via HTTP header (vercel.json) — NO en meta tag
+        porque navegadores lo ignoran cuando viene de <meta>.
     -->
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' https://imagecache.365scores.com data:; font-src 'self' https://fonts.gstatic.com data:; connect-src 'self' https://jcfulxsqayscvqgxemhv.supabase.co; worker-src 'self'; manifest-src 'self'; base-uri 'self'; form-action 'self'; frame-ancestors 'none';" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' https://imagecache.365scores.com data:; font-src 'self' https://fonts.gstatic.com data:; connect-src 'self' https://jcfulxsqayscvqgxemhv.supabase.co; worker-src 'self'; manifest-src 'self'; base-uri 'self'; form-action 'self';" />
     <meta name="theme-color" content="#070B15" />
     <meta property="og:title" content="ScoreHub · Fútbol multi-competición" />
     <meta property="og:description" content="Centro multi-competición. Mundial 2026, Liga Promerica CR y más." />

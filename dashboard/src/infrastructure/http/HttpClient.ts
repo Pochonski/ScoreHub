@@ -12,12 +12,22 @@ export class HttpClient {
   private originBase: string | undefined
 
   constructor(baseUrl: string) {
-    // Auditoría 2026-Q3 Fase 7.5: en producción, baseUrl debe ser absoluta.
-    // Si llega relativa, fallamos ruidosamente para evitar el fallback
-    // window.location.origin que puede no ser el esperado (mixed-protocol).
-    if (import.meta.env.PROD && baseUrl.startsWith('/')) {
-      throw new Error(
-        `HttpClient: baseUrl must be absolute in production (got "${baseUrl}")`
+    // Auditoría 2026-Q3 Fase 7.5: en producción, baseUrl absoluto es PREFERIBLE
+    // para evitar el fallback window.location.origin (puede no ser el esperado en
+    // deployments cross-origin). Pero para deployments same-origin (Vercel sirve
+    // dashboard + API en el mismo host, Supabase no activado), una URL relativa
+    // es válida y NO debe crashear la app. Emitimos un warning en consola si
+    // el modo dev está activo para recordar al dev que setee VITE_API_BASE_URL
+    // antes del deploy a producción.
+    if (
+      import.meta.env.DEV &&
+      baseUrl.startsWith('/') &&
+      !import.meta.env.VITE_API_BASE_URL
+    ) {
+      // Audit 2026-Q3: solo warning en dev. En producción, relativa funciona
+      // si dashboard y API son same-origin.
+      console.warn(
+        '[HttpClient] baseUrl es relativa; considera setear VITE_API_BASE_URL explícitamente.'
       )
     }
     this.baseUrl = baseUrl
