@@ -23,7 +23,6 @@
  * completo. Tratar como secreto de máximo nivel.
  */
 
-require('dotenv').config();
 const { isEnabled, getClient } = require('../database/supabaseClient');
 
 const SUPABASE_URL = process.env.SUPABASE_URL || '';

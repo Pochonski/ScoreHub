@@ -137,6 +137,19 @@ cd dashboard && npm run dev # frontend Vite (puerto 5173, proxy /api → 3002)
 
 Privado.
 
+## Seguridad
+
+Ver [`docs/security.md`](./docs/security.md) para el modelo de amenaza y controles activos. Resumen:
+
+- Webhook firmado con `X-Telegram-Bot-Api-Secret-Token` (Fase 0).
+- Admin con `ADMIN_TOKEN` ≥ 32 chars, comparación constant-time, helmet + rate limit + audit log.
+- Dashboard con CSP, helmet, rate limit.
+- SQL parametrizado en todos los queries; guards SQL injection en pg fallback.
+- XSS mitigado en admin (escape HTML en todos los sinks user-controlled).
+- PII redactado por Pino (text, body, message, headers, env vars).
+
+Auditoría Q3 2026 cerrada (12 fases, 38 hallazgos). Plan completo en [`docs/refactor-plans/audit-master-plan.md`](./docs/refactor-plans/audit-master-plan.md).
+
 ## Tareas manuales pendientes
 
 Cosas que no se pueden automatizar desde código y requieren acción externa:

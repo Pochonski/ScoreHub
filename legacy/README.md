@@ -16,4 +16,20 @@ la **Fase 7** (Clean Architecture). El producto activo es el **bot de Telegram**
   la ruta de lenguaje natural. No se tocó.
 - Nunca arrancaba salvo con `ENABLE_WHATSAPP=true`.
 
+## Estado
+
+**Cuarentenado permanente desde la Fase 7 (Q3 2025).** Auditoría 2026-Q3 Fase 12
+confirma que NO se reactivará:
+
+- El canal activo es Telegram (mayor base de usuarios hispanohablantes).
+- El dashboard cubre Mundial + multi-comp (Liga Promerica, Liga MX, MLS, etc.).
+- WhatsApp Web requiere Chromium (~200MB) + Puppeteer, lo que rompe serverless.
+- El código se conserva como referencia histórica / repo personal.
+
+**Para reactivar** (NO recomendado):
+1. `npm install whatsapp-web.js qrcode-terminal`
+2. Setear `ENABLE_WHATSAPP=true` en `.env`.
+3. Verificar que el host tiene Chrome/Chromium instalado.
+4. El código de `whatsapp-bot.js` no se ha mantenido — puede requerir ajustes.
+
 Se conserva el código (no se borra) por si en el futuro se quiere retomar el canal.

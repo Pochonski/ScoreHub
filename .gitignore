@@ -1,63 +1,64 @@
-# Environment variables (CRITICAL - contains secrets)
-.env
-.env.local
-.env.*.local
 
-# WhatsApp session files
-.wwebjs_auth/
-session/
-
-# Node modules
-node_modules/
-
-# Logs
-logs/
-*.log
-npm-debug.log*
-
-# OS files
-.DS_Store
-Thumbs.db
-
-# IDE
-.vscode/
-.idea/
-*.swp
-*.swo
-
-# Build outputs
-dist/
-build/
-
-# Images from bets (personal)
+admin/public/images/*.jpeg
 admin/public/images/*.jpg
 admin/public/images/*.png
-admin/public/images/*.jpeg
-
-# pnpm
-pnpm-lock.yaml
-package-lock.json
-
-# Temporary files
-tmp/
-temp/
-*.tmp
-
+# Auditoría 2026-Q3 Fase 10.5: certs / keys / coverage / cache.
+build/
+# Build outputs
+.cache/
+.claude/
 # Cosmos DB bootstrap state (caches what's already ingested)
-database/.scores365-state.json
-database/.scores365-state.json.tmp
-database/.conversation-context.json
-database/.conversation-context.json.tmp
-.vercel
-.env*
-
-# Supabase CLI scratch dir (contains project ref, pooler URL — sensitive metadata)
-supabase/.temp/
-
-# TypeScript incremental build cache
-*.tsbuildinfo
+coverage/
+dashboard/dist/
 dashboard/tsconfig.app.tsbuildinfo
 dashboard/tsconfig.tsbuildinfo
-
-# ZCode CLI metadata
+database/.conversation-context.json
+database/.conversation-context.json.tmp
+database/.scores365-state.json
+database/.scores365-state.json.tmp
+dist/
+.DS_Store
+.env
+.env*
+# Environment variables (CRITICAL - contains secrets)
+.env.*.local
+.env.local
+.eslintcache
+# IDE
+.idea/
+# Images from bets (personal)
+*.key
+*.log
+logs/
+# Logs
+node_modules/
+# Node modules
+npm-debug.log*
+.nyc_output/
+# OS files
+*.p12
+package-lock.json
+.parcel-cache/
+*.pem
+*.pfx
+# pnpm
+pnpm-lock.yaml
+session/
+.stylelintcache
+# Supabase CLI scratch dir (contains project ref, pooler URL — sensitive metadata)
+supabase/.temp/
+*.swo
+*.swp
+temp/
+# Temporary files
+Thumbs.db
+*.tmp
+tmp/
+*.tsbuildinfo
+# TypeScript incremental build cache
+.vercel
+.vscode/
+# WhatsApp session files
+.wwebjs_auth/
 .zcode/
+# ZCode CLI metadata

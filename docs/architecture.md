@@ -4,6 +4,9 @@ Resultado de la **Fase 7** ([plan](./refactor-plans/07-clean-architecture-backen
 El bot de Telegram y el servicio de sync siguen Clean Architecture, espejando la
 del frontend (`dashboard/src/`).
 
+> Auditoría 2026-Q3: los ports ahora son factories tipadas con Proxy enforcement (Fase 3).
+> Ver [`refactor-plans/audit-master-plan.md`](./refactor-plans/audit-master-plan.md).
+
 ## Regla de dependencia
 
 ```

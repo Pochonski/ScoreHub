@@ -19,7 +19,6 @@
  *   SUPABASE_SERVICE_ROLE_KEY=eyJ... node scripts/activate-supabase-http.js
  */
 
-require('dotenv').config();
 const { isEnabled, getClient } = require('../database/supabaseClient');
 
 const PROJECT_URL = 'https://jcfulxsqayscvqgxemhv.supabase.co';

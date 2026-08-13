@@ -501,3 +501,57 @@ watch 'curl -s https://scorehub-pocho.vercel.app/api/football/health | jq .dbSta
 ```
 
 Esperado en producción: `supabasePercent > 80%` después de los primeros minutos de tráfico.
+
+## 12. Auditoría 2026-Q3 — Cambios de mantenimiento
+
+### Migración 025 (`DROP bet_followers v1`)
+
+Antes de aplicar:
+
+```bash
+psql "$SUPABASE_DB_URL" -c "SELECT COUNT(*) FROM bet_followers;"
+```
+
+Si retorna > 0: migrar datos a `bet_followers_v2` primero (migración 019). Si retorna 0, aplicar:
+
+```bash
+node database/migrate.js   # aplica 025
+```
+
+Verificar:
+
+```bash
+psql "$SUPABASE_DB_URL" -c "\d bet_followers"   # debe decir "no existe"
+psql "$SUPABASE_DB_URL" -c "SELECT COUNT(*) FROM bet_followers_v2;"
+```
+
+### Lock de migraciones concurrentes
+
+`database/migrate.js` ahora usa `pg_advisory_lock(5930)` para evitar
+ejecuciones paralelas. Si dos runs compiten, el segundo sale con exit code 2.
+Seguro de integrar en CI:
+
+```bash
+node database/migrate.js   # idempotente, gate-serializado por advisory lock
+```
+
+### Variables de entorno — Fase 0 (2026-Q3)
+
+Agregar a `.env` y a las variables de Vercel:
+
+- `WEBHOOK_SECRET=<openssl rand -hex 32>` — usado para validar
+  `X-Telegram-Bot-Api-Secret-Token` en `/webhook`. Si no se setea en
+  producción, el endpoint responde 503 (fail-safe).
+- `ADMIN_TOKEN` debe medir ≥ 32 chars (validación endurecida en `utils/adminAuth.js`).
+- `CORS_ORIGINS` debe estar seteado explícitamente en producción (ya no hay
+  default con dominios de Vercel).
+
+### Cambios de comportamiento
+
+- `readThrough` cache (`database/db.js:451`) usa `inFlight` Map para deduplicar
+  fetcher() y upsert() concurrentes por key. Elimina la race condition que
+  duplicaba writes bajo carga.
+- Webhook funciona en fail-safe: sin `WEBHOOK_SECRET` + `NODE_ENV=production`
+  → 503. En desarrollo sigue funcionando como antes.
+- Health endpoint del bot HTTP lleva headers de Helmet (HSTS, X-Frame-Options,
+  etc.) sin necesidad de express.

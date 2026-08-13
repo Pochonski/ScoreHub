@@ -1,4 +1,3 @@
-require('dotenv').config();
 const intentParser = require('../services/intentParser');
 const followHandler = require('./followHandler');
 const context = require('../services/conversationContext');

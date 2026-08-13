@@ -1,4 +1,3 @@
-require('dotenv').config();
 const matchSearch = require('../services/matchSearch');
 const mundialCache = require('../services/mundialCache');
 const { getCompetitionName } = require('../services/competitionName');

@@ -24,6 +24,31 @@ Roadmap de refactorización organizado en fases independientes, ordenadas por im
 |---|---|
 | [`docs/architecture/db-coverage.md`](../architecture/db-coverage.md) | Mapa completo de qué datos están en DB, con qué frescura, y cobertura por endpoint/comando |
 
+## Audit hardening 2026-Q3 (ciclo nuevo)
+
+Tras la auditoría exhaustiva del commit `270f32c`, se detectó que las fases 1-8 (DB coverage) están bien ejecutadas pero el proyecto tiene **38 hallazgos adicionales** (2 vulnerabilidades activas, 1 race condition, 6 huecos de seguridad media, 13 anti-patterns, 12 gaps de tests, 8 items de limpieza/docs). Se abre un nuevo ciclo de remediación:
+
+| Plan | Propósito |
+|---|---|
+| [`audit-master-plan.md`](./audit-master-plan.md) | Índice maestro de las 12 fases de hardening |
+| [`AUDIT-2026-Q3.md`](./AUDIT-2026-Q3.md) | Informe completo de auditoría con evidencia |
+| [`audit-checklist.md`](./audit-checklist.md) | Checklist operacional de los 80 items |
+| [`phase-00-critical-security.md`](./phase-00-critical-security.md) | XSS admin + webhook secret (bloqueante deploy) |
+| [`phase-01-security-hardening.md`](./phase-01-security-hardening.md) | Helmet, rate limit, SRI, LIKE escape, PII |
+| [`phase-02-race-conditions.md`](./phase-02-race-conditions.md) | `readThrough` lock + CORS env |
+| [`phase-03-architecture-ports-sync.md`](./phase-03-architecture-ports-sync.md) | Ports tipados + sync gateado |
+| [`phase-04-config-logger.md`](./phase-04-config-logger.md) | Config unificada + logger Pino |
+| [`phase-05-antipatterns-cleanup.md`](./phase-05-antipatterns-cleanup.md) | `flushSync`, `syncGames`, `jobGuard`, SQL extraction |
+| [`phase-06-db-cleanup.md`](./phase-06-db-cleanup.md) | Migración 025 + `pg_advisory_lock` |
+| [`phase-07-frontend-hardening.md`](./phase-07-frontend-hardening.md) | CSP, logger prod, LRU, hook errors |
+| [`phase-08-test-coverage.md`](./phase-08-test-coverage.md) | Tests críticos + coverage thresholds |
+| [`phase-09-admin-panel.md`](./phase-09-admin-panel.md) | Audit log, ADMIN_TOKEN ≥32, CSP |
+| [`phase-10-final-cleanup.md`](./phase-10-final-cleanup.md) | Scripts redundantes, `.env.bak`, snapshots |
+| [`phase-11-documentation.md`](./phase-11-documentation.md) | README, env-vars, security.md, architecture.md |
+| [`phase-12-legacy-migration.md`](./phase-12-legacy-migration.md) | `processMessage` + `console.*` en handlers |
+
+**Fases 0-1 bloquean deploy. Fases 2-12 son mejoras incrementales.**
+
 ## Checklist de seguimiento
 
 Ver [CHECKLIST.md](./CHECKLIST.md) para tildar items a medida que se avanza.
