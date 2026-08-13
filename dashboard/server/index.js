@@ -6,6 +6,7 @@ const rateLimit = require('express-rate-limit');
 const path = require('path');
 const pinoHttp = require('pino-http');
 const footballRoutes = require('./routes/football');
+const newsImageProxyController = require('./controllers/newsImageProxyController');
 const errorHandler = require('./middleware/errorHandler');
 const { install: installProcessGuard } = require('../../utils/processGuard');
 
@@ -80,6 +81,10 @@ app.get('/api/football/health', async (req, res) => {
 
 
 app.use('/api/football', footballRoutes);
+// Auditoría 2026-Q3 — proxy de imágenes de noticias con allowlist.
+// Mounted directamente para evitar el prefix /api/football (semánticamente
+// no es parte del dominio "football", es de "news").
+app.get('/api/news/image', newsImageProxyController.proxyNewsImage);
 app.use(errorHandler);
 
 // 404 JSON para rutas /api/* no matcheadas (evita devolver el HTML del SPA

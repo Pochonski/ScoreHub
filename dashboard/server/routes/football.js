@@ -6,7 +6,6 @@ const statsController = require('../controllers/statsController');
 const trendController = require('../controllers/trendController');
 const trendDetailController = require('../controllers/trendDetailController');
 const newsController = require('../controllers/newsController');
-const newsImageProxyController = require('../controllers/newsImageProxyController');
 const athleteController = require('../controllers/athleteController');
 const teamController = require('../controllers/teamController');
 const teamEnhancementsController = require('../controllers/teamEnhancementsController');
@@ -56,9 +55,6 @@ router.get('/trends/details', trendDetailController.getTrendDetails);
 // News routes
 router.get('/news', newsController.getNews);
 router.get('/news/game/:id', newsController.getNewsByGame);
-// Auditoría 2026-Q3 — proxy de imágenes externas con allowlist (ver
-// newsImageProxyController para SECURITY_NOTE).
-router.get('/news/image', newsImageProxyController.proxyNewsImage);
 
 // Athlete routes
 router.get('/athletes', athleteController.searchAthletes);
