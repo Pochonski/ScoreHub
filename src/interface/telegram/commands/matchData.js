@@ -10,7 +10,10 @@
 
 const log = require('../../../../utils/logger');
 
-function registerMatchDataCommands(router, { matchesList, cache, nlu, sendMessage, buildGameKeyboard }) {
+function registerMatchDataCommands(router, { matchesList, cache, useCases, sendMessage, buildGameKeyboard }) {
+  if (!useCases) {
+    throw new Error('registerMatchDataCommands: useCases is required');
+  }
   // /partidos, /hoy
   router.register(['/partidos', '/hoy'], async (ctx) => {
     const chatId = ctx.chatId;
@@ -69,9 +72,10 @@ function registerMatchDataCommands(router, { matchesList, cache, nlu, sendMessag
     }
   });
 
-  // /tabla, /clasificacion → delega 'tabla del mundial' al messageHandler
+  // /tabla, /clasificacion → standings.tabla directo (T1.4)
   router.register(['/tabla', '/clasificacion'], async (ctx) => {
-    await nlu.delegate(ctx.chatId, 'tabla del mundial', async (text) => sendMessage(ctx.chatId, text));
+    const text = await useCases.standings.tabla('mundial');
+    await sendMessage(ctx.chatId, text);
   });
 }
 

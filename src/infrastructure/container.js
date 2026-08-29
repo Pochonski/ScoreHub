@@ -307,18 +307,24 @@ function createContainer(deps) {
   // callers nuevos; el legacy queda como fachada para el scheduler actual.
   const syncOrchestrator = createSyncOrchestrator();
 
+  // Use-cases consolidados para callers externos (commands de Telegram).
+  // T1.4: teams.js y matchData.js reciben este objeto en lugar de `nlu`,
+  // y llaman useCases.<dominio>.<función> directo. Reemplaza los 10
+  // nlu.delegate() del legacy.
+  const useCasesObj = {
+    matches: matchesList,
+    teams: teamsUseCases,
+    betting: bettingUseCases,
+    teamStats: teamStatsUseCases,
+    standings: standingsUseCases,
+  };
+
   // Use-cases de routeIntent (Fase 2-9, orquestador de intents NL).
   // Reemplaza handlers/messageHandler.js. Recibe safeReply y saveHistory
   // como deps para abstraer WhatsApp y storage.
   const { INTENTOS } = require('../../utils/constants');
   const routeIntent = createRouteIntent({
-    useCases: {
-      matches: matchesList,
-      teams: teamsUseCases,
-      betting: bettingUseCases,
-      teamStats: teamStatsUseCases,
-      standings: standingsUseCases,
-    },
+    useCases: useCasesObj,
     INTENTOS,
     safeReply: (msg, text) => Promise.resolve(msg.reply(text)).catch((e) => {
       // Replicar comportamiento legacy: ignorar errores de desconexión.
@@ -352,11 +358,11 @@ function createContainer(deps) {
   registerTrendsCommands(router, { trends, sendMessage });
   registerContentCommands(router, { content, sendMessage, sendPhoto });
   registerTeamsCommands(router, {
-    nlu: useNlu, cache, matchSearch, sendMessage, sendPhoto, sendMediaGroup,
+    useCases: useCasesObj, cache, matchSearch, sendMessage, sendPhoto, sendMediaGroup,
     getTeamBadgeUrl, getCountryFlagUrl, buildGameKeyboard, buildSingleGameKeyboard,
   });
   registerProfileCommands(router, { userStorage, pool, sendMessage });
-  registerMatchDataCommands(router, { matchesList, cache, nlu: useNlu, sendMessage, buildGameKeyboard });
+  registerMatchDataCommands(router, { matchesList, cache, useCases: useCasesObj, sendMessage, buildGameKeyboard });
   registerPlayerCommands(router, {
     cache, scores365, mundialista365,
     getAthletePhotoUrl, getAthleteThumbUrl, getTeamBadgeUrl,

@@ -23,9 +23,14 @@ const STAT_ALIASES = [
 
 function registerTeamsCommands(router, deps) {
   const {
-    nlu, cache, matchSearch, sendMessage, sendPhoto, sendMediaGroup,
+    cache, matchSearch, sendMessage, sendPhoto, sendMediaGroup,
     getTeamBadgeUrl, getCountryFlagUrl, buildGameKeyboard, buildSingleGameKeyboard,
+    // T1.4: use-cases directos en lugar de `nlu` (que se elimina en T1.5).
+    useCases,
   } = deps;
+  if (!useCases) {
+    throw new Error('registerTeamsCommands: useCases is required');
+  }
 
   // ---- /resultado [equipo | eq1 vs eq2] ----
   router.registerPrefix(['/resultado'], async (ctx) => {
@@ -50,22 +55,26 @@ function registerTeamsCommands(router, deps) {
       const team = await cache.getTeamByName(equipoText.trim());
       if (team?.id) photoUrls = [getTeamBadgeUrl(team.id, team.imageVersion)];
     }
-    await nlu.delegate(chatId, `como quedo ${equipoText}`, async (t) => {
-      if (photoUrls && photoUrls.length === 2) {
-        await sendMediaGroup(chatId, photoUrls.map((u) => ({ type: 'photo', media: u })));
-        await sendMessage(chatId, t);
-      } else if (photoUrls && photoUrls.length === 1) {
-        await sendPhoto(chatId, photoUrls[0], t);
-      } else {
-        await sendMessage(chatId, t);
+    // T1.4: usa use-cases directos. Si es eq1 vs eq2 → resultadoVS;
+    // si es un solo equipo → resultadoEquipo. Equivale al flujo
+    // nlu.delegate('como quedo X') pero sin parsear NL.
+    const text = vsMatch
+      ? await useCases.matches.resultadoVS(vsHomeName, vsAwayName)
+      : await useCases.matches.resultadoEquipo(equipoText.trim());
+    if (photoUrls && photoUrls.length === 2) {
+      await sendMediaGroup(chatId, photoUrls.map((u) => ({ type: 'photo', media: u })));
+      await sendMessage(chatId, text);
+    } else if (photoUrls && photoUrls.length === 1) {
+      await sendPhoto(chatId, photoUrls[0], text);
+    } else {
+      await sendMessage(chatId, text);
+    }
+    if (vsMatch && vsHomeName && vsAwayName) {
+      const game = await matchSearch.findGameByTeams(vsHomeName, vsAwayName).catch(() => null);
+      if (game?.id) {
+        await sendMessage(chatId, '📊 Acciones:', { reply_markup: { inline_keyboard: buildSingleGameKeyboard(game.id, ['tip', 'trends', 'odds']) } });
       }
-      if (vsHomeName && vsAwayName) {
-        const game = await matchSearch.findGameByTeams(vsHomeName, vsAwayName).catch(() => null);
-        if (game?.id) {
-          await sendMessage(chatId, '📊 Acciones:', { reply_markup: { inline_keyboard: buildSingleGameKeyboard(game.id, ['tip', 'trends', 'odds']) } });
-        }
-      }
-    });
+    }
   });
 
   // ---- /analizar (usage) + /analizar <eq1 vs eq2> ----
@@ -83,15 +92,17 @@ function registerTeamsCommands(router, deps) {
     const chatId = ctx.chatId;
     const vsText = ctx.text.replace('/analizar ', '').replace('/Analizar ', '');
     const vsM = vsText.match(VS_RE);
-    await nlu.delegate(chatId, `analiza ${vsText}`, async (t) => {
-      await sendMessage(chatId, t);
-      if (vsM) {
-        const game = await matchSearch.findGameByTeams(vsM[1].trim(), vsM[2].trim()).catch(() => null);
-        if (game?.id) {
-          await sendMessage(chatId, '📊 Acciones:', { reply_markup: { inline_keyboard: buildSingleGameKeyboard(game.id, ['h2h', 'odds']) } });
-        }
+    // T1.4: directo a use-case betting.analizarEnfrentamiento/Equipo
+    const text = vsM
+      ? await useCases.betting.analizarEnfrentamiento(vsM[1].trim(), vsM[2].trim())
+      : await useCases.betting.analizarEquipo(vsText);
+    await sendMessage(chatId, text);
+    if (vsM) {
+      const game = await matchSearch.findGameByTeams(vsM[1].trim(), vsM[2].trim()).catch(() => null);
+      if (game?.id) {
+        await sendMessage(chatId, '📊 Acciones:', { reply_markup: { inline_keyboard: buildSingleGameKeyboard(game.id, ['h2h', 'odds']) } });
       }
-    });
+    }
   });
 
   // ---- Aliases de stats: /goles /corners /posesion /tarjetas /goleador ----
@@ -108,7 +119,9 @@ function registerTeamsCommands(router, deps) {
     });
     router.registerPrefix([alias.cmd], async (ctx) => {
       const equipo = ctx.text.replace(new RegExp(`^${alias.cmd}(?:@\\w+)? `, 'i'), '').trim();
-      await nlu.delegate(ctx.chatId, `${alias.tipo} de ${equipo}`, async (t) => sendMessage(ctx.chatId, t));
+      // T1.4: directo a teamStats.estadisticas con tipo + equipo
+      const text = await useCases.teamStats.estadisticas({ tipo: alias.tipo, equipo });
+      await sendMessage(ctx.chatId, text);
     });
   }
 
@@ -128,13 +141,14 @@ function registerTeamsCommands(router, deps) {
     const equipo = ctx.text.replace(/^\/racha(?:@\w+)? /i, '').trim();
     const team = await cache.getTeamByName(equipo);
     const photoUrl = team?.id ? getTeamBadgeUrl(team.id, team.imageVersion) : null;
-    await nlu.delegate(chatId, `cual es la racha de ${equipo}`, async (t) => {
-      if (photoUrl) {
-        await sendPhoto(chatId, photoUrl, t);
-      } else {
-        await sendMessage(chatId, t);
-      }
-    });
+    // T1.4: /racha es equivalente a teams.infoEquipo (forma reciente es
+    // parte del output de infoEquipo).
+    const text = await useCases.teams.infoEquipo(equipo);
+    if (photoUrl) {
+      await sendPhoto(chatId, photoUrl, text);
+    } else {
+      await sendMessage(chatId, text);
+    }
   });
 
   // ---- /proximos y /siguiente (usage) + <equipo> (inline) ----
@@ -204,12 +218,16 @@ function registerTeamsCommands(router, deps) {
   router.registerPrefix(['/dejarseguir', '/dejar_seguir'], async (ctx) => {
     const chatId = ctx.chatId;
     const equipo = ctx.text.replace(/^\/(dejarseguir|dejar_seguir)(?:@\w+)? /i, '').trim();
-    await nlu.delegate(chatId, `dejar de seguir ${equipo}`, async (t) => sendMessage(chatId, t));
+    // T1.4: directo a teams.dejarSeguirEquipo
+    const text = await useCases.teams.dejarSeguirEquipo(ctx.userId, equipo);
+    await sendMessage(chatId, text);
   });
 
   // ---- /misfavoritos (+ aliases) ----
   router.register(['/misfavoritos', '/misequipos', '/misfavorito'], async (ctx) => {
-    await nlu.delegate(ctx.chatId, 'mis equipos', async (t) => sendMessage(ctx.chatId, t));
+    // T1.4: directo a teams.getEquiposSeguidos
+    const text = await useCases.teams.getEquiposSeguidos(ctx.userId);
+    await sendMessage(ctx.chatId, text);
   });
 
   // ---- /dondever (usage) + <equipo> (inline) ----
@@ -266,21 +284,21 @@ function registerTeamsCommands(router, deps) {
     } else if (team && team.countryId) {
       photoUrl = getCountryFlagUrl(team.countryId);
     }
-    await nlu.delegate(chatId, `dame info de ${equipo}`, async (t) => {
-      if (photoUrl) {
-        await sendPhoto(chatId, photoUrl, t);
-      } else {
-        await sendMessage(chatId, t);
+    // T1.4: directo a teams.infoEquipo
+    const text = await useCases.teams.infoEquipo(equipo);
+    if (photoUrl) {
+      await sendPhoto(chatId, photoUrl, text);
+    } else {
+      await sendMessage(chatId, text);
+    }
+    if (team?.id) {
+      const allM = await cache.getRecentWorldCupMatchesByTeam(team.id).catch(() => []);
+      const now = Date.now();
+      const next = allM.filter((gm) => new Date(gm.startTime || gm.date || 0) > now).sort((a, b) => new Date(a.startTime || a.date) - new Date(b.startTime || b.date)).slice(0, 1);
+      if (next.length && next[0].id) {
+        await sendMessage(chatId, '🎲 Cuotas del próximo partido:', { reply_markup: { inline_keyboard: buildGameKeyboard(next[0].id, ['odds']) } });
       }
-      if (team?.id) {
-        const allM = await cache.getRecentWorldCupMatchesByTeam(team.id).catch(() => []);
-        const now = Date.now();
-        const next = allM.filter((gm) => new Date(gm.startTime || gm.date || 0) > now).sort((a, b) => new Date(a.startTime || a.date) - new Date(b.startTime || b.date)).slice(0, 1);
-        if (next.length && next[0].id) {
-          await sendMessage(chatId, '🎲 Cuotas del próximo partido:', { reply_markup: { inline_keyboard: buildSingleGameKeyboard(next[0].id, ['odds']) } });
-        }
-      }
-    });
+    }
   });
 
   // ---- /seguir <equipo> ----
@@ -288,24 +306,27 @@ function registerTeamsCommands(router, deps) {
     const chatId = ctx.chatId;
     const equipo = ctx.text.replace('/seguir ', '').replace('/Seguir ', '');
     const team = await cache.getTeamByName(equipo).catch(() => null);
-    await nlu.delegate(chatId, `seguir ${equipo}`, async (t) => {
-      await sendMessage(chatId, t);
-      if (team?.id) {
-        const allM = await cache.getRecentWorldCupMatchesByTeam(team.id).catch(() => []);
-        const now = Date.now();
-        const next = allM.filter((gm) => new Date(gm.startTime || gm.date || 0) > now).sort((a, b) => new Date(a.startTime || a.date) - new Date(b.startTime || b.date)).slice(0, 3);
-        if (next.length) {
-          await sendMessage(chatId, '🎲 Próximos partidos:', { reply_markup: { inline_keyboard: buildGameKeyboard(next, ['odds']) } });
-        }
+    // T1.4: directo a teams.seguirEquipo
+    const text = await useCases.teams.seguirEquipo(ctx.userId, equipo);
+    await sendMessage(chatId, text);
+    if (team?.id) {
+      const allM = await cache.getRecentWorldCupMatchesByTeam(team.id).catch(() => []);
+      const now = Date.now();
+      const next = allM.filter((gm) => new Date(gm.startTime || gm.date || 0) > now).sort((a, b) => new Date(a.startTime || a.date) - new Date(b.startTime || b.date)).slice(0, 3);
+      if (next.length) {
+        await sendMessage(chatId, '🎲 Próximos partidos:', { reply_markup: { inline_keyboard: buildGameKeyboard(next, ['odds']) } });
       }
-    });
+    }
   });
 
   // ---- /grupo <letra> ----
   router.registerPrefix(['/grupo'], async (ctx) => {
     const chatId = ctx.chatId;
     const grupo = ctx.text.replace('/grupo ', '').replace('/Grupo ', '').toUpperCase();
-    await nlu.delegate(chatId, `tabla grupo ${grupo}`, async (t) => sendMessage(chatId, t));
+    // T1.4: standings.tabla('mundial') devuelve tabla completa; el filtro
+    // por grupo se aplica después (legacy mantenía el mismo flujo).
+    const text = await useCases.standings.tabla('mundial');
+    await sendMessage(chatId, text);
     try {
       const standings = await cache.getWorldCupStandings();
       const standing = standings.find((s) => {
