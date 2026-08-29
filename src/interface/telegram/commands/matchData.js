@@ -1,16 +1,21 @@
 /**
  * src/interface/telegram/commands/matchData.js — Comandos de datos de partidos
- * (Fase 7, Fase 3). /partidos, /manana, /tabla. Relocalizados VERBATIM.
+ * (Fase 7, Fase 3, Fase 8). /partidos, /manana, /tabla.
+ *
+ * Fase 8: la llamada a `matchHandler.getPartidosHoy()` se reemplaza por
+ * `matchesList.partidosHoy` (use-case en application/matches/listMatches).
+ * El handler legacy queda como fachada y se elimina cuando ningún caller
+ * lo referencie.
  */
 
 const log = require('../../../../utils/logger');
 
-function registerMatchDataCommands(router, { matchHandler, cache, nlu, sendMessage, buildGameKeyboard }) {
+function registerMatchDataCommands(router, { matchesList, cache, nlu, sendMessage, buildGameKeyboard }) {
   // /partidos, /hoy
   router.register(['/partidos', '/hoy'], async (ctx) => {
     const chatId = ctx.chatId;
     try {
-      const text = await matchHandler.getPartidosHoy();
+      const text = await matchesList.partidosHoy();
       const today = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Costa_Rica' }).replace(/-/g, '');
       const games = await cache.getWorldCupGames({ date: today });
       if (games && games.length > 0) {

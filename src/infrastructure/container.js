@@ -74,6 +74,13 @@ const {
   getStatsRepository,
 } = require('./persistence');
 const { createListMatchesForCompetition } = require('../application/matches/listMatchesForCompetition');
+const {
+  createGetPartidosHoy,
+  createGetPartidosFecha,
+  createGetResultadoEquipo,
+  createGetProximosEquipo,
+  createGetResultadoVS,
+} = require('../application/matches/listMatches');
 
 /**
  * Composition root del bot.
@@ -109,6 +116,19 @@ function createContainer(deps) {
     betFollowerRepository,
     rememberTicket: (chatId, ticketId) => context.rememberTicket(chatId, ticketId),
   });
+
+  // Use-cases de matches (Fase 8, migración de matchHandler).
+  // Reciben el `cache` (mundialCache) directamente como dependencia — es un
+  // servicio con TTL propio que no necesita refactorizarse aún. Cuando se
+  // decida abstraerlo como port (Fase 3 o 4) se reemplaza la inyección sin
+  // tocar estos use-cases.
+  const matchesList = {
+    partidosHoy: createGetPartidosHoy({ cache, getCompetitionName }),
+    partidosFecha: createGetPartidosFecha({ cache }),
+    resultadoEquipo: createGetResultadoEquipo({ cache }),
+    proximosEquipo: createGetProximosEquipo({ cache }),
+    resultadoVS: createGetResultadoVS({ cache, mundialista365 }),
+  };
 
   // Use-cases de estadísticas (Fase 8, migración de mundialistaStatsHandler).
   // Los servicios de soporte (competitionName, images, matchSearch) siguen
@@ -175,7 +195,7 @@ function createContainer(deps) {
     getTeamBadgeUrl, getCountryFlagUrl, buildGameKeyboard, buildSingleGameKeyboard,
   });
   registerProfileCommands(router, { userStorage, pool, sendMessage });
-  registerMatchDataCommands(router, { matchHandler, cache, nlu, sendMessage, buildGameKeyboard });
+  registerMatchDataCommands(router, { matchesList, cache, nlu, sendMessage, buildGameKeyboard });
   registerPlayerCommands(router, {
     cache, scores365, mundialista365,
     getAthletePhotoUrl, getAthleteThumbUrl, getTeamBadgeUrl,
@@ -202,6 +222,7 @@ function createContainer(deps) {
         listMatchesForCompetition,
         followTicket: followTicketUseCase,
         stats: statsUseCases,
+        matches: matchesList,
       },
     };
 }
