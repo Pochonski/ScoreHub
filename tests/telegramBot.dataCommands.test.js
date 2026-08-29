@@ -40,7 +40,7 @@ jest.mock('../utils/userStorage', () => ({ getAlias: () => null, setAlias: jest.
 // Colaboradores de datos: programables por test.
 jest.mock('../services/scores365Service', () => ({ getFixtures: jest.fn() }));
 jest.mock('../services/matchSearch', () => ({ findLiveGames: jest.fn(), findGameByTeams: jest.fn() }));
-jest.mock('../handlers/mundialista365Handler', () => ({
+jest.mock('../src/legacy/scores365-formatter', () => ({
   COMPETITION_ID: 5930,
   getFixture: jest.fn(),
   getLiveGames: jest.fn(),
@@ -55,7 +55,7 @@ jest.mock('../handlers/mundialista365Handler', () => ({
 
 const scores365 = require('../services/scores365Service');
 const matchSearch = require('../services/matchSearch');
-const m365 = require('../handlers/mundialista365Handler');
+const m365 = require('../src/legacy/scores365-formatter');
 const bot = require('../telegramBot');
 
 const CHAT = 12345;

@@ -42,7 +42,7 @@ jest.mock('../handlers/mundialistaStatsHandler', () => ({
   getHistorial: jest.fn(),
   getGoleadores: jest.fn(),
 }));
-jest.mock('../handlers/mundialista365Handler', () => ({
+jest.mock('../src/legacy/scores365-formatter', () => ({
   getPrevia: jest.fn(),
   getH2H: jest.fn(),
   getOutrights: jest.fn(),
@@ -54,7 +54,7 @@ jest.mock('../services/scores365Service', () => ({
 }));
 
 const stats = require('../handlers/mundialistaStatsHandler');
-const m365 = require('../handlers/mundialista365Handler');
+const m365 = require('../src/legacy/scores365-formatter');
 const cache = require('../services/mundialCache');
 const scores365 = require('../services/scores365Service');
 const bot = require('../telegramBot');

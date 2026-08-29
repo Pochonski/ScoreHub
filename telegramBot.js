@@ -2,20 +2,18 @@
 require('dotenv').config();
 const { install: installProcessGuard } = require('./utils/processGuard');
 installProcessGuard({ name: 'telegramBot' });
-// Servicios legacy mínimos que el container sigue esperando:
+// Servicios legacy que el container sigue esperando:
 //   - matchSearch, scores365, cache: services sin port propio todavía
-//     (Fase 4 los migrará a repos cuando se use syncOrchestrator)
-//   - mundialista365: handler con las funciones de formateo que envuelve
-//     scores365UseCases. Se elimina en T2.1 cuando se migren los formatters
-//     al adapter de scores365.
-//   - userStorage, pool: lo usa registerProfileCommands (legacy).
-//   - messageHandler: lo usa useNlu use-case (que se elimina en T1.5
-//     cuando los nlu.delegate() se migren a use-cases directos).
+//   - userStorage, pool: lo usa registerProfileCommands (legacy)
+//   - scores365-formatter (legacy/scores365-formatter.js): formatters de
+//     365scores que se migrarán al adapter en una fase futura. Por ahora
+//     scores365UseCases lo envuelve con Proxy enforcement.
+// T2.1: messageHandler ya no se importa — todos los flows NL van por
+// routeIntent (inyectado vía container más abajo).
 const matchSearch = require('./services/matchSearch');
 const scores365 = require('./services/scores365Service');
 const cache = require('./services/mundialCache');
-const mundialista365 = require('./handlers/mundialista365Handler');
-const messageHandler = require('./handlers/messageHandler');
+const mundialista365 = require('./src/legacy/scores365-formatter');
 const { getAthletePhotoUrl, getAthleteThumbUrl, getCountryFlagUrl, getTeamBadgeUrl } = require('./services/images');
 const { pool, testConnection } = require('./database/connection');
 const userStorage = require('./utils/userStorage');
@@ -73,6 +71,41 @@ async function saveHistory(userId, text, tipo, response) {
 }
 
 /**
+ * T2.1: handleNL — fallback NL unificado. Parsea con intentParser y
+ * dispatcha vía routeIntent. Devuelve true si el mensaje fue atendido.
+ *
+ * El container se construye una sola vez al boot del proceso y se guarda
+ * en `nlContext`. processMessage lo consume sin re-construirlo en cada
+ * mensaje (caro: implica require de todo el árbol de use-cases).
+ */
+let nlContext = null;
+async function ensureNLContext() {
+  if (nlContext) return nlContext;
+  const container = createContainer({
+    matchSearch, scores365, mundialista365, cache, userStorage, pool,
+    sendMessage, sendPhoto, sendMediaGroup,
+    getTeamBadgeUrl, getCountryFlagUrl, getAthletePhotoUrl, getAthleteThumbUrl,
+  });
+  const { intentParser: ip, routeIntent: ri, context: ctx } = container.useCases;
+  nlContext = { ip, ri, ctx };
+  return nlContext;
+}
+
+async function handleNL({ userId, text }) {
+  const { ip, ri, ctx } = await ensureNLContext();
+  try {
+    const chatContext = ctx.summarize(userId);
+    const parsed = await ip.parseIntent(text, chatContext);
+    if (!ip.isConfident(parsed)) return false;
+    await ri({ userId, text, parsed });
+    return true;
+  } catch (e) {
+    console.error('[telegramBot] handleNL error:', e.message);
+    return false;
+  }
+}
+
+/**
  * Procesa un mensaje de Telegram (comando o chat)
  */
 async function processMessage(chatId, userId, text, user) {
@@ -104,48 +137,20 @@ async function processMessage(chatId, userId, text, user) {
     }
     const textSinComando = text.replace(/^\/[a-z@0-9_]+\s*/i, '').trim();
     if (textSinComando) {
-      const msgObj = {
-        from: chatId.toString(),
-        body: textSinComando,
-        hasMedia: false,
-        reply: async (t) => await sendMessage(chatId, t)
-      };
-      await messageHandler(null, msgObj);
+      // Slash commands sin trigger registrado → fallback al parser NL.
+      await handleNL({ userId: String(userId), text: textSinComando });
       return;
     }
   } else {
-    try {
-      // T1.1: el flow NL lo maneja routeIntent (inyectado vía container).
-      // Primero parsea con intentParser (que ya usa IGeminiNluRepository
-      // desde Fase 3), luego dispatch por intent.
-      const containerResult = require('./src/infrastructure/container')
-        .createContainer({});
-      const { intentParser: ip, routeIntent: ri } = containerResult.useCases;
-      const chatContext = containerResult.useCases.context.summarize(String(userId));
-      const parsed = await ip.parseIntent(text, chatContext);
-      if (ip.isConfident(parsed)) {
-        await ri({ userId: String(userId), text, parsed });
-        return;
-      }
-    } catch (e) {
-      console.error('[telegramBot] NL dispatch error:', e.message);
-    }
+    // T1.1 + T2.1: texto libre va por routeIntent (parsea con intentParser,
+    // dispatch por intent). Si el parser no es confiable, respondemos con
+    // un mensaje genérico — antes caía al messageHandler legacy.
+    const handled = await handleNL({ userId: String(userId), text });
+    if (handled) return;
   }
 
-  try {
-    const messageObj = {
-      from: chatId.toString(),
-      body: text,
-      hasMedia: false,
-      reply: async (responseText) => {
-        await sendMessage(chatId, responseText);
-      }
-    };
-    await messageHandler(null, messageObj);
-  } catch (error) {
-    console.error('Error procesando mensaje Telegram:', error);
-    await sendMessage(chatId, '⚠️ Ocurrió un error. Intenta de nuevo.');
-  }
+  // Si llegamos acá, ningún handler entendió el mensaje.
+  await sendMessage(chatId, '🤔 No entendí. Escribí *ayuda* para ver los comandos.');
 }
 
 
@@ -156,7 +161,7 @@ async function processMessage(chatId, userId, text, user) {
 // vive en este archivo). Solo arranca el proceso cuando se ejecuta como entry
 // point; bajo `require()` (tests) no se inicia polling, socket ni señales.
 const { router, handleCallback } = createContainer({
-  matchSearch, scores365, mundialista365, messageHandler, cache, userStorage, pool,
+  matchSearch, scores365, mundialista365, cache, userStorage, pool,
   sendMessage, sendPhoto, sendMediaGroup,
   getTeamBadgeUrl, getCountryFlagUrl, getAthletePhotoUrl, getAthleteThumbUrl,
 });
