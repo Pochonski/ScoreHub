@@ -1,17 +1,17 @@
 /**
- * tests/unit/container.test.js — Auditoría 2026-Q3 Fase 8.6
+ * tests/unit/container.test.js — Post-T2.x
  *
  * Verifica que el composition root (src/infrastructure/container.js) cablea
  * correctamente los adaptadores, use-cases y command handlers.
  *
- * Estrategia: mockear todos los `deps` con stubs mínimos que capturen las
- * llamadas. Luego verificar que las llamadas fluyen correctamente.
+ * Estrategia: mockear todos los `deps` con stubs mínimos. Luego verificar
+ * que las llamadas fluyen correctamente y los use-cases reciben sus deps.
  */
 
 process.env.NODE_ENV = 'test';
 
-// Mockear los gateways legacy — usamos stubs en vez de los reales porque
-// tienen side effects (DB, HTTP, etc).
+// Mocks de use-cases y commands — stubs que sólo verifican que el
+// container los cablea con las deps correctas.
 const mockUseCases = {
   createGetLiveMatches: jest.fn(() => 'getLiveMatches-fn'),
   createGetFixture: jest.fn(() => 'getFixture-fn'),
@@ -19,25 +19,16 @@ const mockUseCases = {
   createTrendsUseCases: jest.fn(() => ({ trends: 'fn' })),
   createContentUseCases: jest.fn(() => ({ content: 'fn' })),
 };
-const mockHelpCmd = jest.fn(() => 'help-cmd');
-const mockLiveCmd = jest.fn(() => 'live-cmd');
-const mockFixtureCmd = jest.fn(() => 'fixture-cmd');
-const mockRegisterMatchDetail = jest.fn();
-const mockRegisterTrends = jest.fn();
-const mockRegisterContent = jest.fn();
-const mockRegisterTeams = jest.fn();
-const mockRegisterProfile = jest.fn();
-const mockRegisterMatchData = jest.fn();
-const mockRegisterPlayers = jest.fn();
-const mockCallbackDispatcher = jest.fn(() => jest.fn());
+
 const mockRouter = {
   register: jest.fn(),
   registerPrefix: jest.fn(),
   has: jest.fn(),
   dispatch: jest.fn(),
 };
+const mockCallbackDispatcher = jest.fn(() => jest.fn());
 
-// Mockear todos los módulos que el container importa, antes del require del container.
+// Mocks de los módulos que el container importa.
 jest.mock('../../src/interface/telegram/router', () => ({
   createRouter: () => mockRouter,
 }));
@@ -48,8 +39,6 @@ jest.mock('../../src/infrastructure/scores365/scoresGateway', () => ({
 jest.mock('../../src/infrastructure/content/contentGateway', () => ({
   createContentGateway: jest.fn(() => ({ __gateway: 'content' })),
 }));
-// Fase 3: el módulo messageHandlerGateway se eliminó. useNlu toma su
-// lugar (ver src/application/orchestration/useNlu.js).
 jest.mock('../../src/interface/telegram/callbacks', () => ({
   createCallbackDispatcher: mockCallbackDispatcher,
 }));
@@ -76,19 +65,17 @@ jest.mock('../../src/application/content/contentUseCases', () => ({
 
 jest.mock('../../src/interface/telegram/commands/help', () => ({
   TRIGGERS: ['/help', '/ayuda'],
-  createHelpCommand: () => mockHelpCmd,
+  createHelpCommand: () => 'help-cmd',
 }));
 jest.mock('../../src/interface/telegram/commands/live', () => ({
   TRIGGERS: ['/live', '/partidos'],
-  createLiveCommand: () => mockLiveCmd,
+  createLiveCommand: () => 'live-cmd',
 }));
 jest.mock('../../src/interface/telegram/commands/fixture', () => ({
   TRIGGERS: ['/fixture', '/calendario'],
-  createFixtureCommand: () => mockFixtureCmd,
+  createFixtureCommand: () => 'fixture-cmd',
 }));
-// Auditoría 2026-Q3 Fase 8.6: los mocks de register*Commands simulan lo
-// que harían los reales — llamar router.register(...) para registrar comandos.
-// (Jest requiere que el factory esté prefijado con `mock` para acceder desde jest.mock.)
+
 const mockMakeRegistrator = (stubTrigger) => (router, deps) => {
   router.register([stubTrigger], jest.fn());
 };
@@ -123,14 +110,14 @@ describe('createContainer — composition root del bot', () => {
 
   function makeDeps() {
     return {
-      // Legacy handlers (stubs)
+      // Servicios legacy que el container pasa a use-cases/gateways.
+      // Mundialista365 queda sólo como wrapper de formatters 365scores
+      // (src/legacy/scores365-formatter.js — se elimina cuando se migren
+      // los formatters al adapter de scores365UseCases).
       mundialista365: { __legacy: 'mundialista365' },
-      mundialistaStats: { __legacy: 'mundialistaStats' },
       matchSearch: { __legacy: 'matchSearch' },
       scores365: { __legacy: 'scores365' },
-      matchHandler: { __legacy: 'matchHandler' },
       cache: { __legacy: 'cache' },
-      messageHandler: { __legacy: 'messageHandler' },
       userStorage: { __legacy: 'userStorage' },
       pool: { __legacy: 'pool' },
       // Telegram transport
@@ -155,7 +142,6 @@ describe('createContainer — composition root del bot', () => {
   test('cablea use cases con los gateways', () => {
     createContainer(makeDeps());
 
-    // Cada use case recibe un gateway (o un gateway + contentGateway).
     expect(mockUseCases.createGetLiveMatches).toHaveBeenCalledTimes(1);
     expect(mockUseCases.createGetLiveMatches).toHaveBeenCalledWith(
       expect.objectContaining({ scoresGateway: expect.any(Object) })
@@ -176,12 +162,10 @@ describe('createContainer — composition root del bot', () => {
 
   test('registra todos los command handlers en el router', () => {
     createContainer(makeDeps());
-    // El container invoca router.register(...) 3 veces directo + 7 comandos
-    // via register*Commands (mockMakeRegistrator). Total: 10 (3 + 7).
-    // Si cambia la cantidad de comandos, este número refleja los stubs.
+    // Container hace 3 router.register(...) directos (help, live, fixture)
+    // + 7 via register*Commands mockeados. Total: 10.
     const totalCalls = mockRouter.register.mock.calls.length;
     expect(totalCalls).toBeGreaterThanOrEqual(9);
-    // Verificar que los stubs marker son visibles.
     const calls = mockRouter.register.mock.calls.map((c) => JSON.stringify(c[0]));
     expect(calls.some((c) => c.includes('md-stub'))).toBe(true);
     expect(calls.some((c) => c.includes('help'))).toBe(true);
@@ -192,22 +176,21 @@ describe('createContainer — composition root del bot', () => {
     const result = createContainer(makeDeps());
     expect(mockCallbackDispatcher).toHaveBeenCalledTimes(1);
     expect(mockCallbackDispatcher).toHaveBeenCalledWith(
-      expect.objectContaining({ scoresGateway: expect.any(Object), cache: expect.any(Object), sendMessage: expect.any(Function) })
+      expect.objectContaining({
+        scoresGateway: expect.any(Object),
+        cache: expect.any(Object),
+        sendMessage: expect.any(Function),
+      })
     );
     expect(typeof result.handleCallback).toBe('function');
   });
 
   test('pasar deps mínimos no lanza', () => {
-    // Container sólo usa algunas keys — el resto son opcionales para los
-    // command handlers que no se inyectan.
     expect(() => createContainer({
       mundialista365: {},
-      mundialistaStats: {},
       matchSearch: {},
       scores365: {},
-      matchHandler: {},
       cache: {},
-      messageHandler: {},
       userStorage: {},
       pool: {},
       sendMessage: () => {},
