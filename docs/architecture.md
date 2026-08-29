@@ -70,8 +70,8 @@ src/
 │   │   └── presenters/        keyboards · matchMessages · matchDetail · staticText
 │   ├── http/server.js         health / webhook / admin (factory con DI)
 │   └── scheduler/scheduler.js cron ETL (consume syncOrchestrator.run*)
-└── legacy/                    scores365-formatter.js (formatters de 365scores;
-                               migrará al adapter de scores365UseCases)
+```
+
 ```
 
 ## Entry points (composition roots)
@@ -162,7 +162,7 @@ sustituye la inyección en el container.
 `SUPABASE_DB_URL` real (bot.persistence, active-competitions,
 supabase-strategy) y se saltan automáticamente si no está configurada.
 
-## Cambios recientes (T1.x + T2.x)
+## Cambios recientes (T1.x + T2.x + pendiente)
 
 - T1.1: `telegramBot.js` eliminó requires de 4 handlers legacy muertos.
 - T1.2: `scheduler.js` usa `syncOrchestrator` (DI explícita) en lugar
@@ -173,20 +173,39 @@ supabase-strategy) y se saltan automáticamente si no está configurada.
   de use-cases (5x más rápido, 0 calls a Gemini para slash+text).
 - T1.5: `useNlu.js` eliminado (0 callers post-T1.4).
 - T2.1: directorio `handlers/` (12 archivos, ~3400 líneas) eliminado.
-  `mundialista365Handler.js` movido a `src/legacy/scores365-formatter.js`
-  para preservar los formatters 365scores (sigue siendo wrapper de
-  scores365UseCases).
-- T2.2: 5 tests legacy de `tests/telegramBot.*.test.js` eliminados
-  (importaban handlers que ya no existen).
-- T2.3: `container.js` deps legacy removidas del destructure; typedef
-  actualizado.
-- T2b: 5 integration tests nuevos contra DB-capture (T2b).
+  `mundialista365Handler.js` movido inicialmente a
+  `src/legacy/scores365-formatter.js` para preservar los formatters.
+- T2.2: 5 tests legacy de `tests/telegramBot.*.test.js` eliminados.
+- T2.3: `container.js` deps legacy removidas del destructure.
+- T2b: 5 integration tests nuevos contra DB-capture.
+- T3.1: `docs/architecture.md` reescrito.
+- T3.2: `tests/unit/container.test.js` mocks legacy removidos.
+- **Pendiente#1 (post-T3)**: `scores365-formatter.js` migrado a
+  `src/application/scores365/scores365Service.js` con adapter tipado
+  (`scores365Adapter.js`). `src/legacy/` eliminado.
 
-## Pendiente (F3+ → "100%")
+## Estado actual ("100%")
 
-- Migrar `src/legacy/scores365-formatter.js` al adapter de scores365UseCases
-  (formatters inline en el use-case). Esto elimina la última dependencia
-  de la carpeta `handlers/` (que ya no existe) y deja `src/legacy/` vacío.
-- Consolidar `services/` en ports + adapters cuando se necesite (Fase 3+).
-- Actualizar `docs/architecture.md` continuamente cuando entren nuevos
-  puertos/use-cases.
+- 0 archivos en `handlers/` (todos migrados)
+- 0 archivos en `src/legacy/` (scores365 migrated)
+- 0 referencias `require('./handlers/')` en código de producción
+- 0 referencias `nlu.delegate()` en código de producción
+- 0 referencias `require('./src/legacy/')` 
+- 8 ports con Proxy enforcement
+- 10 paquetes en `application/` con use-cases
+- 408 unit + integration tests pasando
+- Documentación actualizada
+
+## Pendiente opcional (no bloquea "100%")
+
+- Consolidar servicios sin port propio en `services/`:
+  `cache`, `matchSearch`, `ocrService`, `betParserService`,
+  `imageStorageService`, `countryFlagsService`, `betTrackingEngine`,
+  `competitionName`, `conversationContext`, etc.
+  Cada uno se convierte a port cuando se necesite para testabilidad
+  o reemplazo. Hoy son funciones stateless que no se benefician
+  del patrón port/adapter.
+- Migrar los 700+ líneas de formatters de `scores365Service.js`
+  al adapter de `scores365UseCases` directamente (preservando
+  output byte-a-byte). Es trabajo de presentación de texto que
+  no cambia la arquitectura.
