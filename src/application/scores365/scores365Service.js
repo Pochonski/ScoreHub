@@ -1,10 +1,10 @@
-const matchSearch = require('../services/matchSearch');
-const mundialCache = require('../services/mundialCache');
-const { getCompetitionName } = require('../services/competitionName');
-const { pool } = require('../database/connection');
-const db = require('../database/db');
-const logger = require('../utils/logger');
-const { PRIMARY_COMPETITION_ID: COMPETITION_ID } = require('../services/config');
+const matchSearch = require('../../../services/matchSearch');
+const mundialCache = require('../../../services/mundialCache');
+const { getCompetitionName } = require('../../../services/competitionName');
+const { pool } = require('../../../database/connection');
+const db = require('../../../database/db');
+const logger = require('../../../utils/logger');
+const { PRIMARY_COMPETITION_ID: COMPETITION_ID } = require('../../../services/config');
 
 const STAT_LABELS = {
   1: 'Goles',

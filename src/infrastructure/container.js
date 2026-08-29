@@ -221,7 +221,12 @@ function createContainer(deps) {
   // T1.3: scores365UseCases se construye ANTES de matchesList porque
   // resultadoEquipo y resultadoVS lo necesitan como dep (en lugar de
   // mundialista365 directo, que se elimina en T2.1).
-  const scores365UseCases = createScores365UseCases({ handler: mundialista365 });
+  // T-pre-final: el handler se reemplaza por `scores365Adapter` (Proxy
+  // enforcement sobre los formatters legacy). Migración completa de
+  // los formatters al use-case queda como follow-up.
+  const { createScores365Adapter } = require('../application/scores365/scores365Adapter');
+  const scores365Adapter = createScores365Adapter();
+  const scores365UseCases = createScores365UseCases({ handler: scores365Adapter });
 
   // Use-cases de matches (Fase 8, migración de matchHandler).
   // Reciben el `cache` (mundialCache) directamente como dependencia — es un

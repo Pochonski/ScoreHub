@@ -5,15 +5,15 @@ installProcessGuard({ name: 'telegramBot' });
 // Servicios legacy que el container sigue esperando:
 //   - matchSearch, scores365, cache: services sin port propio todavía
 //   - userStorage, pool: lo usa registerProfileCommands (legacy)
-//   - scores365-formatter (legacy/scores365-formatter.js): formatters de
-//     365scores que se migrarán al adapter en una fase futura. Por ahora
-//     scores365UseCases lo envuelve con Proxy enforcement.
+// T-pre-final: scores365Adapter (src/application/scores365/scores365Adapter.js)
+//   encapsula los formatters de 365scores — el container lo construye y
+//   lo pasa a scores365UseCases. telegramBot.js ya no requiere el legacy
+//   directamente; el container es quien conoce el adapter.
 // T2.1: messageHandler ya no se importa — todos los flows NL van por
 // routeIntent (inyectado vía container más abajo).
 const matchSearch = require('./services/matchSearch');
 const scores365 = require('./services/scores365Service');
 const cache = require('./services/mundialCache');
-const mundialista365 = require('./src/legacy/scores365-formatter');
 const { getAthletePhotoUrl, getAthleteThumbUrl, getCountryFlagUrl, getTeamBadgeUrl } = require('./services/images');
 const { pool, testConnection } = require('./database/connection');
 const userStorage = require('./utils/userStorage');
@@ -82,7 +82,7 @@ let nlContext = null;
 async function ensureNLContext() {
   if (nlContext) return nlContext;
   const container = createContainer({
-    matchSearch, scores365, mundialista365, cache, userStorage, pool,
+    matchSearch, scores365, cache, userStorage, pool,
     sendMessage, sendPhoto, sendMediaGroup,
     getTeamBadgeUrl, getCountryFlagUrl, getAthletePhotoUrl, getAthleteThumbUrl,
   });
@@ -161,7 +161,7 @@ async function processMessage(chatId, userId, text, user) {
 // vive en este archivo). Solo arranca el proceso cuando se ejecuta como entry
 // point; bajo `require()` (tests) no se inicia polling, socket ni señales.
 const { router, handleCallback } = createContainer({
-  matchSearch, scores365, mundialista365, cache, userStorage, pool,
+  matchSearch, scores365, cache, userStorage, pool,
   sendMessage, sendPhoto, sendMediaGroup,
   getTeamBadgeUrl, getCountryFlagUrl, getAthletePhotoUrl, getAthleteThumbUrl,
 });

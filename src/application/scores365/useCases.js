@@ -3,20 +3,24 @@
  *
  * Reemplazan el módulo `handlers/mundialista365Handler.js` (735 líneas, 19
  * funciones). La estrategia de Fase 2/8 es crear factories de use-case que
- * reciben el handler legacy como dep — la lógica de formateo y orquestación
- * sigue viviendo donde está (cambiarla toda llevaría varias horas sin valor
- * inmediato; el contrato externo ya está cubierto por `scoresGateway`).
+ * reciben el adapter legacy como dep — la lógica de formateo y orquestación
+ * sigue viviendo en `src/legacy/scores365-formatter.js` (cambiarla toda
+ * llevaría varias horas sin valor inmediato; el contrato externo ya está
+ * cubierto por `scoresGateway`).
  *
  * Fase 3+ (consolidación 365scores): migrar cada función a un use-case
- * propio con DB+cache+formateo inyectados, eliminando el handler legacy.
+ * propio con DB+cache+formateo inyectados, eliminando el adapter legacy.
  *
  * Mientras tanto, este módulo cumple tres objetivos:
  *   1. Punto único de inyección para el container — el gateway recibe
- *      `scores365UseCases` y deja de importar `mundialista365Handler`.
- *   2. Proxy enforcement: si una función se elimina del handler, el
+ *      `scores365UseCases` y deja de importar el adapter legacy.
+ *   2. Proxy enforcement: si una función se elimina del adapter, el
  *      use-case falla ruidosamente (no `undefined is not a function`).
  *   3. API estable: cuando las funciones se migren, los call-sites no
  *      cambian.
+ *
+ * El adapter debe pasar por `createScores365Adapter()` antes de inyectarse
+ * acá — eso valida boot-time que las 13 funciones requeridas existan.
  */
 
 const REQUIRED_METHODS = [
