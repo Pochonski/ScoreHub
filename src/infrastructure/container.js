@@ -72,6 +72,7 @@ const {
   getUserRepository,
   getBetFollowerRepository,
   getStatsRepository,
+  getBetRepository,
 } = require('./persistence');
 const { createListMatchesForCompetition } = require('../application/matches/listMatchesForCompetition');
 const {
@@ -92,6 +93,11 @@ const {
   createAnalizarEquipo,
 } = require('../application/betting/useCases');
 const { createHandleConversationalMessage } = require('../application/bets/conversationalFollow');
+const {
+  createProcessBetImage,
+  createGetApuestasUsuario,
+  createFormatearApuesta,
+} = require('../application/bets/processBetImage');
 
 /**
  * Composition root del bot.
@@ -116,6 +122,7 @@ function createContainer(deps) {
   const userRepository = getUserRepository();
   const betFollowerRepository = getBetFollowerRepository();
   const statsRepository = getStatsRepository();
+  const betRepository = getBetRepository();
   const listMatchesForCompetition = createListMatchesForCompetition({ matchRepository });
 
   // Use-case de seguimiento de tickets (Fase 8, migración de followHandler).
@@ -154,6 +161,30 @@ function createContainer(deps) {
     analizarEnfrentamiento: createAnalizarEnfrentamiento({ cache }),
     analizarEquipo: createAnalizarEquipo({ cache }),
   };
+
+  // Use-cases de bet image (Fase 8, migración de betImageHandler).
+  // Recibe todos los servicios como deps para no acoplarse al filesystem
+  // ni a servicios globales. El container pasa referencias lazy-loaded.
+  const ocrService = require('../../services/ocrService');
+  const { parseBetText, toJSON, buscarPartidoReal } = require('../../services/betParserService');
+  const { guardarImagen, generarNombreArchivo } = require('../../services/imageStorageService');
+  const { formatTeamWithFlag } = require('../../services/countryFlagsService');
+  const betTrackingEngine = require('../../services/betTrackingEngine');
+
+  const processBetImageUseCase = createProcessBetImage({
+    ocrService,
+    parseBetText,
+    toJSON,
+    buscarPartidoReal,
+    formatTeamWithFlag,
+    guardarImagen,
+    generarNombreArchivo,
+    betRepository,
+    betTrackingEngine,
+    testConnection,
+  });
+  const getApuestasUsuarioUseCase = createGetApuestasUsuario({ betRepository });
+  const formatearApuestaUseCase = createFormatearApuesta();
 
   // Use-cases de conversational (Fase 8, migración de conversationalHandler).
   // Recibe intentParser + context como deps; el threshold de confianza lo
@@ -265,6 +296,7 @@ function createContainer(deps) {
         user: userRepository,
         betFollower: betFollowerRepository,
         stats: statsRepository,
+        bet: betRepository,
       },
       useCases: {
         listMatchesForCompetition,
@@ -274,6 +306,11 @@ function createContainer(deps) {
         teams: teamsUseCases,
         betting: bettingUseCases,
         conversationalFollow,
+        betImage: {
+          process: processBetImageUseCase,
+          listByUser: getApuestasUsuarioUseCase,
+          formatear: formatearApuestaUseCase,
+        },
       },
     };
 }

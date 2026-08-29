@@ -15,6 +15,7 @@ const { PgCompetitorRepository } = require('./PgCompetitorRepository');
 const { PgUserRepository } = require('./PgUserRepository');
 const { PgBetFollowerRepository } = require('./PgBetFollowerRepository');
 const { PgStatsRepository } = require('./PgStatsRepository');
+const { PgBetRepository } = require('./PgBetRepository');
 
 const { createMatchRepository } = require('../../domain/ports/IMatchRepository');
 const { createCompetitionRepository } = require('../../domain/ports/ICompetitionRepository');
@@ -22,6 +23,7 @@ const { createCompetitorRepository } = require('../../domain/ports/ICompetitorRe
 const { createUserRepository } = require('../../domain/ports/IUserRepository');
 const { createBetFollowerRepository } = require('../../domain/ports/IBetFollowerRepository');
 const { createStatsRepository } = require('../../domain/ports/IStatsRepository');
+const { createBetRepository } = require('../../domain/ports/IBetRepository');
 
 const logger = require('../../../utils/logger');
 
@@ -31,6 +33,7 @@ let _competitorRepo = null;
 let _userRepo = null;
 let _betFollowerRepo = null;
 let _statsRepo = null;
+let _betRepo = null;
 
 function getMatchRepository() {
   if (!_matchRepo) {
@@ -74,6 +77,13 @@ function getStatsRepository() {
   return _statsRepo;
 }
 
+function getBetRepository() {
+  if (!_betRepo) {
+    _betRepo = createBetRepository(new PgBetRepository({ logger }));
+  }
+  return _betRepo;
+}
+
 // Reset hook — solo para tests; nunca invocar desde código de aplicación.
 function _resetForTesting() {
   _matchRepo = null;
@@ -82,6 +92,7 @@ function _resetForTesting() {
   _userRepo = null;
   _betFollowerRepo = null;
   _statsRepo = null;
+  _betRepo = null;
 }
 
 module.exports = {
@@ -91,5 +102,6 @@ module.exports = {
   getUserRepository,
   getBetFollowerRepository,
   getStatsRepository,
+  getBetRepository,
   _resetForTesting,
 };
