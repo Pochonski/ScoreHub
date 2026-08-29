@@ -43,6 +43,13 @@ const { createGetFixture } = require('../application/matches/getFixture');
 const { createMatchDetailUseCases } = require('../application/matches/matchDetail');
 const { createTrendsUseCases } = require('../application/matches/trends');
 const { createContentUseCases } = require('../application/content/contentUseCases');
+const {
+  createGetNoticias,
+  createGetEquipoIdeal,
+  createGetBracket,
+  createGetHistorial,
+  createGetGoleadores,
+} = require('../application/stats/useCases');
 const { TRIGGERS: HELP_TRIGGERS, createHelpCommand } = require('../interface/telegram/commands/help');
 const { TRIGGERS: LIVE_TRIGGERS, createLiveCommand } = require('../interface/telegram/commands/live');
 const { TRIGGERS: FIXTURE_TRIGGERS, createFixtureCommand } = require('../interface/telegram/commands/fixture');
@@ -55,6 +62,8 @@ const { registerMatchDataCommands } = require('../interface/telegram/commands/ma
 const { registerPlayerCommands } = require('../interface/telegram/commands/players');
 const { registerFollowCommands } = require('../interface/telegram/commands/follow');
 const { createFollowTicketUseCase } = require('../application/bets/followTicket');
+const { getCompetitionName, getSeasonLabel } = require('../../services/competitionName');
+const { PRIMARY_COMPETITION_ID } = require('../../services/config');
 
 const {
   getMatchRepository,
@@ -62,6 +71,7 @@ const {
   getCompetitorRepository,
   getUserRepository,
   getBetFollowerRepository,
+  getStatsRepository,
 } = require('./persistence');
 const { createListMatchesForCompetition } = require('../application/matches/listMatchesForCompetition');
 
@@ -78,18 +88,6 @@ function createContainer(deps) {
     getTeamBadgeUrl, getCountryFlagUrl, getAthletePhotoUrl, getAthleteThumbUrl,
   } = deps;
 
-  // Infraestructura (adaptadores de puertos).
-  const scoresGateway = createScoresGateway({ mundialista365, matchSearch, scores365 });
-  const contentGateway = createContentGateway({ mundialistaStats });
-  const nlu = createMessageHandlerGateway({ messageHandler });
-
-  // Aplicación (use-cases).
-  const getLiveMatches = createGetLiveMatches({ scoresGateway });
-  const getFixture = createGetFixture({ scoresGateway });
-  const matchDetail = createMatchDetailUseCases({ scoresGateway });
-  const trends = createTrendsUseCases({ scoresGateway });
-  const content = createContentUseCases({ contentGateway, scoresGateway });
-
   // Repositorios (Fase 8): disponibles para use-cases y comandos nuevos.
   // Los legacy handlers siguen accediendo a `pool` directo — se migrarán
   // en la Fase 2 del plan, uno a uno, reemplazando `pool.query(...)` por
@@ -99,6 +97,7 @@ function createContainer(deps) {
   const competitorRepository = getCompetitorRepository();
   const userRepository = getUserRepository();
   const betFollowerRepository = getBetFollowerRepository();
+  const statsRepository = getStatsRepository();
   const listMatchesForCompetition = createListMatchesForCompetition({ matchRepository });
 
   // Use-case de seguimiento de tickets (Fase 8, migración de followHandler).
@@ -110,6 +109,58 @@ function createContainer(deps) {
     betFollowerRepository,
     rememberTicket: (chatId, ticketId) => context.rememberTicket(chatId, ticketId),
   });
+
+  // Use-cases de estadísticas (Fase 8, migración de mundialistaStatsHandler).
+  // Los servicios de soporte (competitionName, images, matchSearch) siguen
+  // viviendo en `services/` — la Fase 3 los consolidará cuando se movan a
+  // la nueva arquitectura. Por ahora se inyectan tal cual.
+  const statsUseCases = {
+    noticias: createGetNoticias({
+      statsRepository,
+      matchSearch,
+      getCompetitionName,
+      competitionId: PRIMARY_COMPETITION_ID,
+    }),
+    equipoIdeal: createGetEquipoIdeal({
+      statsRepository,
+      getCompetitionName,
+      competitionId: PRIMARY_COMPETITION_ID,
+    }),
+    bracket: createGetBracket({
+      statsRepository,
+      getCompetitionName,
+      competitionId: PRIMARY_COMPETITION_ID,
+    }),
+    historial: createGetHistorial({
+      statsRepository,
+      getCompetitionName,
+      getSeasonLabel,
+      competitionId: PRIMARY_COMPETITION_ID,
+    }),
+    goleadores: createGetGoleadores({
+      statsRepository,
+      getCompetitionName,
+      getAthletePhotoUrl,
+      competitionId: PRIMARY_COMPETITION_ID,
+    }),
+  };
+
+  // Infraestructura (adaptadores de puertos).
+  const scoresGateway = createScoresGateway({ mundialista365, matchSearch, scores365 });
+  // Fase 8: contentGateway ahora recibe los use-cases de stats en lugar de
+  // el handler legacy. Los use-cases en application/stats/ encapsulan la
+  // lógica de mundialistaStatsHandler.js; el handler queda sólo como fachada
+  // para callers que lo importen directamente (puede eliminarse cuando
+  // ninguno lo referencie).
+  const contentGateway = createContentGateway({ statsUseCases });
+  const nlu = createMessageHandlerGateway({ messageHandler });
+
+  // Aplicación (use-cases).
+  const getLiveMatches = createGetLiveMatches({ scoresGateway });
+  const getFixture = createGetFixture({ scoresGateway });
+  const matchDetail = createMatchDetailUseCases({ scoresGateway });
+  const trends = createTrendsUseCases({ scoresGateway });
+  const content = createContentUseCases({ contentGateway, scoresGateway });
 
   // Interface (router + command handlers migrados).
   const router = createRouter();
@@ -145,10 +196,12 @@ function createContainer(deps) {
         competitor: competitorRepository,
         user: userRepository,
         betFollower: betFollowerRepository,
+        stats: statsRepository,
       },
       useCases: {
         listMatchesForCompetition,
         followTicket: followTicketUseCase,
+        stats: statsUseCases,
       },
     };
 }

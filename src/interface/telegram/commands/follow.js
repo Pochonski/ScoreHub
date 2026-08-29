@@ -9,8 +9,11 @@
  * nunca cae al god-function `handleCommand`.
  */
 
-const TRIGGERS_FOLLOW = ['/follow', '/seguir'];
-const TRIGGERS_UNFOLLOW = ['/unfollow', '/dejarseguir'];
+const TRIGGERS_FOLLOW = ['/follow'];
+// Nota: /dejarseguir es del dominio "teams" (dejar de seguir un equipo), no
+// de "bets". El router ya lo registra `registerTeamsCommands`; si lo
+// duplicamos acá el container falla con "trigger duplicado".
+const TRIGGERS_UNFOLLOW = ['/unfollow'];
 const TRIGGERS_LIST = ['/misapuestas', '/siguiendo'];
 
 function registerFollowCommands(router, deps) {
