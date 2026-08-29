@@ -14,13 +14,10 @@
 
 /**
  * @typedef {Object} ContainerDeps
- * @property {Object} mundialista365 - Handler legacy con getLiveGamesText, getFixtureText, etc.
- * @property {Object} mundialistaStats - Handler legacy con getNoticias, getEquipoIdeal, etc.
+ * @property {Object} mundialista365 - Formatters 365scores (src/legacy/scores365-formatter.js). Wrapper de scores365UseCases con Proxy enforcement.
  * @property {Object} matchSearch - DB-backed game search service.
  * @property {Object} scores365 - Raw HTTPS client para 365scores.
- * @property {Object} matchHandler - Legacy handler de formato de partidos.
  * @property {Object} cache - MundialCache para staleness.
- * @property {Object} messageHandler - Legacy orchestrator de NL path.
  * @property {Object} userStorage - userStorage.js (alias + clearUserData).
  * @property {Object} pool - pg Pool (para queries directos).
  * @property {(chatId:number|string, text:string, opts?:object) => Promise} sendMessage
@@ -117,8 +114,8 @@ const { createGeminiNluRepository } = require('../domain/ports/IGeminiNluReposit
  */
 function createContainer(deps) {
   const {
-    mundialista365, mundialistaStats, matchSearch, scores365, matchHandler, cache,
-    messageHandler, userStorage, pool,
+    mundialista365, matchSearch, scores365, cache,
+    userStorage, pool,
     sendMessage, sendPhoto, sendMediaGroup,
     getTeamBadgeUrl, getCountryFlagUrl, getAthletePhotoUrl, getAthleteThumbUrl,
   } = deps;
