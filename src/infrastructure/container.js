@@ -99,6 +99,12 @@ const {
   createGetApuestasUsuario,
   createFormatearApuesta,
 } = require('../application/bets/processBetImage');
+const {
+  createGetEstadisticas,
+  createGetGoleadores: createGetGoleadoresTeam,
+} = require('../application/stats/teamStats');
+const { createGetTabla } = require('../application/stats/standings');
+const { createRouteIntent } = require('../application/orchestration/routeIntent');
 
 /**
  * Composition root del bot.
@@ -161,6 +167,20 @@ function createContainer(deps) {
   const bettingUseCases = {
     analizarEnfrentamiento: createAnalizarEnfrentamiento({ cache }),
     analizarEquipo: createAnalizarEquipo({ cache }),
+  };
+
+  // Use-cases de team stats + standings (Fase 2-9, migración de
+  // statsHandler + tableHandler). statsHandler.getGoleadores choca con
+  // statsUseCases.goleadores (Fase 2-2 ya migró el de mundialistaStats);
+  // acá se exporta como goleadoresTeam para evitar la colisión.
+  const { getRecentForm } = require('../../utils/teamContext');
+  const { formatMatchLine, formatGroupTable } = require('../../utils/formatters');
+  const teamStatsUseCases = {
+    estadisticas: createGetEstadisticas({ cache, getRecentForm, formatMatchLine }),
+    goleadores: createGetGoleadoresTeam({ cache, getCompetitionName, competitionId: PRIMARY_COMPETITION_ID }),
+  };
+  const standingsUseCases = {
+    tabla: createGetTabla({ cache, getCompetitionName, primaryCompetitionId: PRIMARY_COMPETITION_ID, formatGroupTable }),
   };
 
   // Use-cases de bet image (Fase 8, migración de betImageHandler).
@@ -260,6 +280,35 @@ function createContainer(deps) {
   const contentGateway = createContentGateway({ statsUseCases });
   const nlu = createMessageHandlerGateway({ messageHandler });
 
+  // Use-cases de routeIntent (Fase 2-9, orquestador de intents NL).
+  // Reemplaza handlers/messageHandler.js. Recibe safeReply y saveHistory
+  // como deps para abstraer WhatsApp y storage.
+  const { INTENTOS } = require('../../utils/constants');
+  const routeIntent = createRouteIntent({
+    useCases: {
+      matches: matchesList,
+      teams: teamsUseCases,
+      betting: bettingUseCases,
+      teamStats: teamStatsUseCases,
+      standings: standingsUseCases,
+    },
+    INTENTOS,
+    safeReply: (msg, text) => Promise.resolve(msg.reply(text)).catch((e) => {
+      // Replicar comportamiento legacy: ignorar errores de desconexión.
+      if (!e.message?.match(/Execution context|Protocol error|target closed/)) {
+        throw e;
+      }
+    }),
+    saveHistory: async (userId, text, tipo, response) => {
+      try {
+        await pool.query(
+          'INSERT INTO historial_consultas (id_usuario, consulta, tipo, respuesta, fecha) VALUES ($1, $2, $3, $4, NOW())',
+          [String(userId), text, tipo || 'comando', response || '']
+        );
+      } catch (e) { /* noop — legacy ignoraba */ }
+    },
+  });
+
   // Aplicación (use-cases).
   const getLiveMatches = createGetLiveMatches({ scoresGateway });
   const getFixture = createGetFixture({ scoresGateway });
@@ -317,6 +366,9 @@ function createContainer(deps) {
           listByUser: getApuestasUsuarioUseCase,
           formatear: formatearApuestaUseCase,
         },
+        teamStats: teamStatsUseCases,
+        standings: standingsUseCases,
+        routeIntent,
       },
     };
 }
