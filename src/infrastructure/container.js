@@ -87,6 +87,10 @@ const {
   createDejarSeguirEquipo,
   createGetEquiposSeguidos,
 } = require('../application/teams/useCases');
+const {
+  createAnalizarEnfrentamiento,
+  createAnalizarEquipo,
+} = require('../application/betting/useCases');
 
 /**
  * Composition root del bot.
@@ -142,6 +146,12 @@ function createContainer(deps) {
     seguirEquipo: createSeguirEquipo({ userRepository, dbIsAvailable, cache }),
     dejarSeguirEquipo: createDejarSeguirEquipo({ userRepository, dbIsAvailable, cache }),
     getEquiposSeguidos: createGetEquiposSeguidos({ userRepository, dbIsAvailable }),
+  };
+
+  // Use-cases de betting (Fase 8, migración de bettingHandler).
+  const bettingUseCases = {
+    analizarEnfrentamiento: createAnalizarEnfrentamiento({ cache }),
+    analizarEquipo: createAnalizarEquipo({ cache }),
   };
 
   // Use-cases de matches (Fase 8, migración de matchHandler).
@@ -251,6 +261,7 @@ function createContainer(deps) {
         stats: statsUseCases,
         matches: matchesList,
         teams: teamsUseCases,
+        betting: bettingUseCases,
       },
     };
 }
