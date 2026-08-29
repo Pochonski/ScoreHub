@@ -2,15 +2,20 @@
 require('dotenv').config();
 const { install: installProcessGuard } = require('./utils/processGuard');
 installProcessGuard({ name: 'telegramBot' });
-const messageHandler = require('./handlers/messageHandler');
+// Servicios legacy mínimos que el container sigue esperando:
+//   - matchSearch, scores365, cache: services sin port propio todavía
+//     (Fase 4 los migrará a repos cuando se use syncOrchestrator)
+//   - mundialista365: handler con las funciones de formateo que envuelve
+//     scores365UseCases. Se elimina en T2.1 cuando se migren los formatters
+//     al adapter de scores365.
+//   - userStorage, pool: lo usa registerProfileCommands (legacy).
+//   - messageHandler: lo usa useNlu use-case (que se elimina en T1.5
+//     cuando los nlu.delegate() se migren a use-cases directos).
 const matchSearch = require('./services/matchSearch');
 const scores365 = require('./services/scores365Service');
-const followHandler = require('./handlers/followHandler');
-const conversationalHandler = require('./handlers/conversationalHandler');
-const mundialista365 = require('./handlers/mundialista365Handler');
-const mundialistaStats = require('./handlers/mundialistaStatsHandler');
 const cache = require('./services/mundialCache');
-const matchHandler = require('./handlers/matchHandler');
+const mundialista365 = require('./handlers/mundialista365Handler');
+const messageHandler = require('./handlers/messageHandler');
 const { getAthletePhotoUrl, getAthleteThumbUrl, getCountryFlagUrl, getTeamBadgeUrl } = require('./services/images');
 const { pool, testConnection } = require('./database/connection');
 const userStorage = require('./utils/userStorage');
@@ -110,14 +115,20 @@ async function processMessage(chatId, userId, text, user) {
     }
   } else {
     try {
-      const result = await conversationalHandler.handleMessage(String(userId), text);
-      if (result.handled && result.message) {
-        await sendMessage(chatId, result.message);
-        saveHistory(String(userId), text, 'conversacion', result.message);
+      // T1.1: el flow NL lo maneja routeIntent (inyectado vía container).
+      // Primero parsea con intentParser (que ya usa IGeminiNluRepository
+      // desde Fase 3), luego dispatch por intent.
+      const containerResult = require('./src/infrastructure/container')
+        .createContainer({});
+      const { intentParser: ip, routeIntent: ri } = containerResult.useCases;
+      const chatContext = containerResult.useCases.context.summarize(String(userId));
+      const parsed = await ip.parseIntent(text, chatContext);
+      if (ip.isConfident(parsed)) {
+        await ri({ userId: String(userId), text, parsed });
         return;
       }
     } catch (e) {
-      console.error('[telegramBot] conversationalHandler error:', e.message);
+      console.error('[telegramBot] NL dispatch error:', e.message);
     }
   }
 
@@ -145,8 +156,7 @@ async function processMessage(chatId, userId, text, user) {
 // vive en este archivo). Solo arranca el proceso cuando se ejecuta como entry
 // point; bajo `require()` (tests) no se inicia polling, socket ni señales.
 const { router, handleCallback } = createContainer({
-  mundialista365, mundialistaStats, matchSearch, scores365, matchHandler, cache,
-  messageHandler, userStorage, pool,
+  matchSearch, scores365, mundialista365, messageHandler, cache, userStorage, pool,
   sendMessage, sendPhoto, sendMediaGroup,
   getTeamBadgeUrl, getCountryFlagUrl, getAthletePhotoUrl, getAthleteThumbUrl,
 });
