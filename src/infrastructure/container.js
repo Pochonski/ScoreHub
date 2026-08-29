@@ -105,6 +105,8 @@ const {
 } = require('../application/stats/teamStats');
 const { createGetTabla } = require('../application/stats/standings');
 const { createRouteIntent } = require('../application/orchestration/routeIntent');
+const { GeminiNluAdapter } = require('./nlu/GeminiNluAdapter');
+const { createGeminiNluRepository } = require('../domain/ports/IGeminiNluRepository');
 
 /**
  * Composition root del bot.
@@ -280,6 +282,14 @@ function createContainer(deps) {
   const contentGateway = createContentGateway({ statsUseCases });
   const nlu = createMessageHandlerGateway({ messageHandler });
 
+  // Adaptador NLU (Fase 3): desacopla intentParser del geminiService legacy.
+  // El container expone el repo proxy-enforced; el setGeminiNluRepository()
+  // hace que intentParser use el adapter en lugar del require() directo.
+  const geminiService = require('../../services/geminiService');
+  const geminiNluRepository = createGeminiNluRepository(new GeminiNluAdapter({ geminiService }));
+  const intentParserModule = require('../../services/intentParser');
+  intentParserModule.setGeminiNluRepository(geminiNluRepository);
+
   // Use-cases de routeIntent (Fase 2-9, orquestador de intents NL).
   // Reemplaza handlers/messageHandler.js. Recibe safeReply y saveHistory
   // como deps para abstraer WhatsApp y storage.
@@ -352,6 +362,7 @@ function createContainer(deps) {
         betFollower: betFollowerRepository,
         stats: statsRepository,
         bet: betRepository,
+        geminiNlu: geminiNluRepository,
       },
       useCases: {
         listMatchesForCompetition,

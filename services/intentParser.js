@@ -1,6 +1,31 @@
 const crypto = require('crypto');
 const log = require('../utils/logger');
-const gemini = require('./geminiService');
+const defaultGemini = require('./geminiService');
+
+// Fase 3: el parser ahora recibe el Gemini NLU repository por DI en lugar
+// de requerir el servicio legacy directamente. Si nadie lo inyecta (tests
+// aislados, scripts), se usa el default (legacy geminiService).
+let geminiNluRepo = null;
+
+function setGeminiNluRepository(repo) {
+  if (!repo) {
+    throw new Error('setGeminiNluRepository: repo is required');
+  }
+  geminiNluRepo = repo;
+}
+
+function _getGemini() {
+  // Lazy bridge: si hay repo inyectado, usamos sus métodos; si no, fallback
+  // al legacy geminiService (cualquier call-site que no se haya actualizado).
+  if (geminiNluRepo) {
+    return {
+      analyzeMessageRaw: (prompt) => geminiNluRepo.analyzeMessageRaw(prompt),
+    };
+  }
+  return {
+    analyzeMessageRaw: (prompt) => defaultGemini.analyzeMessageRaw(prompt),
+  };
+}
 
 const QUICK_PARSE_SYSTEM_PROMPT = `Sos el clasificador de intenciones de "ScoreHub", un asistente de Telegram en español sobre fútbol y apuestas deportivas. Recibís mensajes coloquiales (a menudo sin acentos, jerga regional). Extraés intención y entidades.
 
@@ -152,7 +177,7 @@ async function parseIntent(message, chatContext) {
 
   try {
     const prompt = `${QUICK_PARSE_SYSTEM_PROMPT}\n\nMensaje del usuario: "${message}"\nContexto reciente: ${JSON.stringify(chatContext || {})}\n\nResponde con JSON válido:`;
-    const result = await gemini.analyzeMessageRaw(prompt);
+    const result = await _getGemini().analyzeMessageRaw(prompt);
     const parsed = result || {};
     const intent = (parsed.intent || 'chat').toLowerCase();
     const out = {
@@ -175,4 +200,4 @@ function isConfident(intent) {
   return intent.confidence >= CONFIDENCE_THRESHOLD;
 }
 
-module.exports = { parseIntent, isConfident, quickParse, CONFIDENCE_THRESHOLD };
+module.exports = { parseIntent, isConfident, quickParse, setGeminiNluRepository, CONFIDENCE_THRESHOLD };
