@@ -36,7 +36,7 @@ const { createRouter } = require('../interface/telegram/router');
 const { createScoresGateway } = require('./scores365/scoresGateway');
 const { createScores365UseCases } = require('../application/scores365/useCases');
 const { createContentGateway } = require('./content/contentGateway');
-const { createMessageHandlerGateway } = require('./nlu/messageHandlerGateway');
+// messageHandlerGateway eliminado en Fase 3 — useNlu toma su lugar.
 const { createCallbackDispatcher } = require('../interface/telegram/callbacks');
 const { buildGameKeyboard, buildSingleGameKeyboard } = require('../interface/telegram/presenters/keyboards');
 const { createGetLiveMatches } = require('../application/matches/getLiveMatches');
@@ -105,8 +105,10 @@ const {
 } = require('../application/stats/teamStats');
 const { createGetTabla } = require('../application/stats/standings');
 const { createRouteIntent } = require('../application/orchestration/routeIntent');
+const { createUseNlu } = require('../application/orchestration/useNlu');
 const { GeminiNluAdapter } = require('./nlu/GeminiNluAdapter');
 const { createGeminiNluRepository } = require('../domain/ports/IGeminiNluRepository');
+// messageHandlerGateway eliminado en Fase 3 — useNlu toma su lugar.
 
 /**
  * Composition root del bot.
@@ -279,8 +281,13 @@ function createContainer(deps) {
   // lógica de mundialistaStatsHandler.js; el handler queda sólo como fachada
   // para callers que lo importen directamente (puede eliminarse cuando
   // ninguno lo referencie).
+  // useNlu (Fase 3): wrapper que reemplaza al messageHandlerGateway para
+  // los comandos que aún sintetizan frases NL. Mismo shape (`delegate`),
+  // pero vive en application/ y se inyecta por DI. Cuando los comandos
+  // se refactoricen para llamar use-cases directos, este binding desaparece.
+  const useNlu = createUseNlu({ messageHandler });
+
   const contentGateway = createContentGateway({ statsUseCases });
-  const nlu = createMessageHandlerGateway({ messageHandler });
 
   // Adaptador NLU (Fase 3): desacopla intentParser del geminiService legacy.
   // El container expone el repo proxy-enforced; el setGeminiNluRepository()
@@ -335,11 +342,11 @@ function createContainer(deps) {
   registerTrendsCommands(router, { trends, sendMessage });
   registerContentCommands(router, { content, sendMessage, sendPhoto });
   registerTeamsCommands(router, {
-    nlu, cache, matchSearch, sendMessage, sendPhoto, sendMediaGroup,
+    nlu: useNlu, cache, matchSearch, sendMessage, sendPhoto, sendMediaGroup,
     getTeamBadgeUrl, getCountryFlagUrl, buildGameKeyboard, buildSingleGameKeyboard,
   });
   registerProfileCommands(router, { userStorage, pool, sendMessage });
-  registerMatchDataCommands(router, { matchesList, cache, nlu, sendMessage, buildGameKeyboard });
+  registerMatchDataCommands(router, { matchesList, cache, nlu: useNlu, sendMessage, buildGameKeyboard });
   registerPlayerCommands(router, {
     cache, scores365, mundialista365,
     getAthletePhotoUrl, getAthleteThumbUrl, getTeamBadgeUrl,

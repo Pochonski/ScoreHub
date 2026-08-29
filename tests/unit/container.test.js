@@ -48,9 +48,8 @@ jest.mock('../../src/infrastructure/scores365/scoresGateway', () => ({
 jest.mock('../../src/infrastructure/content/contentGateway', () => ({
   createContentGateway: jest.fn(() => ({ __gateway: 'content' })),
 }));
-jest.mock('../../src/infrastructure/nlu/messageHandlerGateway', () => ({
-  createMessageHandlerGateway: jest.fn(() => ({ __gateway: 'nlu' })),
-}));
+// Fase 3: el módulo messageHandlerGateway se eliminó. useNlu toma su
+// lugar (ver src/application/orchestration/useNlu.js).
 jest.mock('../../src/interface/telegram/callbacks', () => ({
   createCallbackDispatcher: mockCallbackDispatcher,
 }));
