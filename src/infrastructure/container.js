@@ -36,7 +36,8 @@ const { createRouter } = require('../interface/telegram/router');
 const { createScoresGateway } = require('./scores365/scoresGateway');
 const { createScores365UseCases } = require('../application/scores365/useCases');
 const { createContentGateway } = require('./content/contentGateway');
-// messageHandlerGateway eliminado en Fase 3 — useNlu toma su lugar.
+// messageHandlerGateway eliminado en Fase 3, useNlu eliminado en T1.5.
+// NL flow para texto libre: intentParser → routeIntent use-case.
 const { createCallbackDispatcher } = require('../interface/telegram/callbacks');
 const { buildGameKeyboard, buildSingleGameKeyboard } = require('../interface/telegram/presenters/keyboards');
 const { createGetLiveMatches } = require('../application/matches/getLiveMatches');
@@ -105,11 +106,9 @@ const {
 } = require('../application/stats/teamStats');
 const { createGetTabla } = require('../application/stats/standings');
 const { createRouteIntent } = require('../application/orchestration/routeIntent');
-const { createUseNlu } = require('../application/orchestration/useNlu');
 const { createSyncOrchestrator } = require('../application/sync/orchestrator');
 const { GeminiNluAdapter } = require('./nlu/GeminiNluAdapter');
 const { createGeminiNluRepository } = require('../domain/ports/IGeminiNluRepository');
-// messageHandlerGateway eliminado en Fase 3 — useNlu toma su lugar.
 
 /**
  * Composition root del bot.
@@ -286,11 +285,6 @@ function createContainer(deps) {
   // lógica de mundialistaStatsHandler.js; el handler queda sólo como fachada
   // para callers que lo importen directamente (puede eliminarse cuando
   // ninguno lo referencie).
-  // useNlu (Fase 3): wrapper que reemplaza al messageHandlerGateway para
-  // los comandos que aún sintetizan frases NL. Mismo shape (`delegate`),
-  // pero vive en application/ y se inyecta por DI. Cuando los comandos
-  // se refactoricen para llamar use-cases directos, este binding desaparece.
-  const useNlu = createUseNlu({ messageHandler });
 
   const contentGateway = createContentGateway({ statsUseCases });
 
