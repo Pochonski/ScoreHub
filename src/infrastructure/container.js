@@ -53,6 +53,17 @@ const { registerTeamsCommands } = require('../interface/telegram/commands/teams'
 const { registerProfileCommands } = require('../interface/telegram/commands/profile');
 const { registerMatchDataCommands } = require('../interface/telegram/commands/matchData');
 const { registerPlayerCommands } = require('../interface/telegram/commands/players');
+const { registerFollowCommands } = require('../interface/telegram/commands/follow');
+const { createFollowTicketUseCase } = require('../application/bets/followTicket');
+
+const {
+  getMatchRepository,
+  getCompetitionRepository,
+  getCompetitorRepository,
+  getUserRepository,
+  getBetFollowerRepository,
+} = require('./persistence');
+const { createListMatchesForCompetition } = require('../application/matches/listMatchesForCompetition');
 
 /**
  * Composition root del bot.
@@ -79,6 +90,27 @@ function createContainer(deps) {
   const trends = createTrendsUseCases({ scoresGateway });
   const content = createContentUseCases({ contentGateway, scoresGateway });
 
+  // Repositorios (Fase 8): disponibles para use-cases y comandos nuevos.
+  // Los legacy handlers siguen accediendo a `pool` directo — se migrarán
+  // en la Fase 2 del plan, uno a uno, reemplazando `pool.query(...)` por
+  // `matchRepository.findByCompetitionAndDate(...)`, etc.
+  const matchRepository = getMatchRepository();
+  const competitionRepository = getCompetitionRepository();
+  const competitorRepository = getCompetitorRepository();
+  const userRepository = getUserRepository();
+  const betFollowerRepository = getBetFollowerRepository();
+  const listMatchesForCompetition = createListMatchesForCompetition({ matchRepository });
+
+  // Use-case de seguimiento de tickets (Fase 8, migración de followHandler).
+  // `rememberTicket` se inyecta desde el conversationContext legacy para no
+  // acoplar el use-case al módulo global; cuando ese módulo se mueva a la
+  // nueva arquitectura, se reemplaza la inyección sin tocar el use-case.
+  const context = require('../../services/conversationContext');
+  const followTicketUseCase = createFollowTicketUseCase({
+    betFollowerRepository,
+    rememberTicket: (chatId, ticketId) => context.rememberTicket(chatId, ticketId),
+  });
+
   // Interface (router + command handlers migrados).
   const router = createRouter();
   router.register(HELP_TRIGGERS, createHelpCommand({ sendMessage }));
@@ -98,11 +130,27 @@ function createContainer(deps) {
     getAthletePhotoUrl, getAthleteThumbUrl, getTeamBadgeUrl,
     sendMessage, sendPhoto, sendMediaGroup, buildSingleGameKeyboard,
   });
+  registerFollowCommands(router, { followTicketUseCase, sendMessage });
 
   // Dispatcher de callbacks de botones inline (reusa el ScoresGateway).
   const handleCallback = createCallbackDispatcher({ scoresGateway, cache, sendMessage });
 
-  return { router, handleCallback };
+    return {
+      router,
+      handleCallback,
+      // Fase 8: repositorios expuestos para migración incremental de Fase 2.
+      repositories: {
+        match: matchRepository,
+        competition: competitionRepository,
+        competitor: competitorRepository,
+        user: userRepository,
+        betFollower: betFollowerRepository,
+      },
+      useCases: {
+        listMatchesForCompetition,
+        followTicket: followTicketUseCase,
+      },
+    };
 }
 
 module.exports = { createContainer };

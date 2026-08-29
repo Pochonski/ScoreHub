@@ -8,6 +8,10 @@ build/
 .cache/
 .claude/
 # Cosmos DB bootstrap state (caches what's already ingested)
+# graphify knowledge graph (local-only; regenerable via /graphify)
+graphify-out/
+# opencode config + plugins (local tooling; not source of truth)
+.opencode/
 coverage/
 dashboard/dist/
 dashboard/tsconfig.app.tsbuildinfo

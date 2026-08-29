@@ -78,23 +78,11 @@ async function processMessage(chatId, userId, text, user) {
     const botSuffix = '@botmundialistabot';
     const cleaned = lowerText.split(' ')[0].split('@')[0];
 
-    if (cleaned === '/follow') {
-      const args = text.replace(/^\/[a-z@0-9_]+/i, '').trim();
-      const result = await followHandler.handleFollowCommand(String(userId), args);
-      await sendMessage(chatId, result.message);
-      return;
-    }
-    if (cleaned === '/unfollow' || cleaned === '/dejarseguir') {
-      const args = text.replace(/^\/[a-z@0-9_]+/i, '').trim();
-      const result = await followHandler.handleUnfollowCommand(String(userId), args);
-      await sendMessage(chatId, result.message);
-      return;
-    }
-    if (cleaned === '/misapuestas' || cleaned === '/siguiendo' || cleaned === '/siguiendo@botmundialistabot') {
-      const result = await followHandler.handleListCommand(String(userId));
-      await sendMessage(chatId, result.message);
-      return;
-    }
+    // Fase 8: /follow, /unfollow, /misapuestas se atienden por el router
+    // registrado en `container.js` (`registerFollowCommands`). El router
+    // corre antes de handleCommand; si matchea, este if-else legacy se
+    // salta por completo. Conservamos los handlers antiguos sólo como
+    // fachada para callers que los importen directamente (tests, scripts).
 
     let handled = false;
     try {

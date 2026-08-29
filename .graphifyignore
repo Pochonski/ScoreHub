@@ -1,0 +1,54 @@
+# .graphifyignore — excludes local tooling from the knowledge graph
+# Merged with .gitignore (graphify reads both; .graphifyignore wins on conflicts).
+# Syntax: same as .gitignore, including ! negation.
+
+# opencode / claude tooling configs and plugins
+.opencode/
+.claude/
+
+# graphify's own outputs (would create self-referential noise)
+graphify-out/
+
+# secrets and local-only state (already in .gitignore but reinforced)
+.env
+.env.*
+.env.local
+
+# build outputs
+dist/
+build/
+dashboard/dist/
+dashboard/tsconfig.app.tsbuildinfo
+dashboard/tsconfig.tsbuildinfo
+*.tsbuildinfo
+
+# caches and test artifacts
+coverage/
+.nyc_output/
+.cache/
+.parcel-cache/
+.eslintcache
+.stylelintcache
+node_modules/
+
+# ephemeral runtime state
+logs/
+*.log
+session/
+.wwebjs_auth/
+admin/public/images/*.png
+admin/public/images/*.jpg
+admin/public/images/*.jpeg
+database/.conversation-context.json*
+database/.scores365-state.json*
+
+# IDE / OS
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# vercel / zcode / supabase CLI scratch
+.vercel/
+.zcode/
+supabase/.temp/
