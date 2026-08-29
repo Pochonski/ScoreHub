@@ -91,6 +91,7 @@ const {
   createAnalizarEnfrentamiento,
   createAnalizarEquipo,
 } = require('../application/betting/useCases');
+const { createHandleConversationalMessage } = require('../application/bets/conversationalFollow');
 
 /**
  * Composition root del bot.
@@ -153,6 +154,16 @@ function createContainer(deps) {
     analizarEnfrentamiento: createAnalizarEnfrentamiento({ cache }),
     analizarEquipo: createAnalizarEquipo({ cache }),
   };
+
+  // Use-cases de conversational (Fase 8, migración de conversationalHandler).
+  // Recibe intentParser + context como deps; el threshold de confianza lo
+  // maneja el parser internamente, no se duplica acá.
+  const intentParser = require('../../services/intentParser');
+  const conversationalFollow = createHandleConversationalMessage({
+    intentParser,
+    followTicketUseCase,
+    context,
+  });
 
   // Use-cases de matches (Fase 8, migración de matchHandler).
   // Reciben el `cache` (mundialCache) directamente como dependencia — es un
@@ -262,6 +273,7 @@ function createContainer(deps) {
         matches: matchesList,
         teams: teamsUseCases,
         betting: bettingUseCases,
+        conversationalFollow,
       },
     };
 }
