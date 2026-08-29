@@ -106,6 +106,7 @@ const {
 const { createGetTabla } = require('../application/stats/standings');
 const { createRouteIntent } = require('../application/orchestration/routeIntent');
 const { createUseNlu } = require('../application/orchestration/useNlu');
+const { createSyncOrchestrator } = require('../application/sync/orchestrator');
 const { GeminiNluAdapter } = require('./nlu/GeminiNluAdapter');
 const { createGeminiNluRepository } = require('../domain/ports/IGeminiNluRepository');
 // messageHandlerGateway eliminado en Fase 3 — useNlu toma su lugar.
@@ -297,6 +298,11 @@ function createContainer(deps) {
   const intentParserModule = require('../../services/intentParser');
   intentParserModule.setGeminiNluRepository(geminiNluRepository);
 
+  // Sync orchestrator (Fase 4): factory que recibe clock + runIdGenerator
+  // + logger por DI. Reemplaza al `syncAll()` legacy de syncService.js para
+  // callers nuevos; el legacy queda como fachada para el scheduler actual.
+  const syncOrchestrator = createSyncOrchestrator();
+
   // Use-cases de routeIntent (Fase 2-9, orquestador de intents NL).
   // Reemplaza handlers/messageHandler.js. Recibe safeReply y saveHistory
   // como deps para abstraer WhatsApp y storage.
@@ -387,6 +393,7 @@ function createContainer(deps) {
         teamStats: teamStatsUseCases,
         standings: standingsUseCases,
         routeIntent,
+        sync: syncOrchestrator,
       },
     };
 }
