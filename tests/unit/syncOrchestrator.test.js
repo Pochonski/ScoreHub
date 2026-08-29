@@ -50,9 +50,9 @@ describe('createSyncOrchestrator', () => {
     expect(result.totalJobs).toBe(3);
     expect(result.successful).toBe(2);
     expect(result.failed).toBe(1);
-    expect(result.jobs[0].ok).toBe(true);
+    expect(result.jobs[0].jobOk).toBe(true);
     expect(result.jobs[0].rows).toBe(3);
-    expect(result.jobs[2].ok).toBe(false);
+    expect(result.jobs[2].jobOk).toBe(false);
     expect(result.jobs[2].error).toBe('boom');
     expect(logs.length).toBeGreaterThanOrEqual(2);
     expect(logs.some((l) => l.includes('run-1'))).toBe(true);

@@ -69,9 +69,13 @@ function createSyncOrchestrator({
         const step = plan[i];
         try {
           const r = await step();
-          results.push({ index: i, ok: true, ...(r || {}) });
+          // El campo `ok` es interno del orquestador — si el use-case
+          // devuelve su propio `{ ok: 0 }` (semánticamente éxito pero
+          // numéricamente falsy), no lo pisamos. Usamos `jobOk` para el
+          // status interno y mergeamos los campos del result con spread.
+          results.push({ index: i, jobOk: true, ...(r || {}) });
         } catch (e) {
-          results.push({ index: i, ok: false, error: e.message });
+          results.push({ index: i, jobOk: false, error: e.message });
           logger?.(`[sync:${runId}] Job ${i} failed: ${e.message}`);
         }
       }
@@ -85,8 +89,8 @@ function createSyncOrchestrator({
       finishedAt,
       jobs: results,
       totalJobs: plan.length,
-      successful: results.filter((r) => r.ok).length,
-      failed: results.filter((r) => !r.ok).length,
+      successful: results.filter((r) => r.jobOk).length,
+      failed: results.filter((r) => !r.jobOk).length,
     };
   }
 
