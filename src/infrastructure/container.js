@@ -81,6 +81,12 @@ const {
   createGetProximosEquipo,
   createGetResultadoVS,
 } = require('../application/matches/listMatches');
+const {
+  createGetInfoEquipo,
+  createSeguirEquipo,
+  createDejarSeguirEquipo,
+  createGetEquiposSeguidos,
+} = require('../application/teams/useCases');
 
 /**
  * Composition root del bot.
@@ -116,6 +122,27 @@ function createContainer(deps) {
     betFollowerRepository,
     rememberTicket: (chatId, ticketId) => context.rememberTicket(chatId, ticketId),
   });
+
+  // Use-cases de teams (Fase 8, migración de teamHandler).
+  // `dbIsAvailable` se inyecta como callback — los handlers legacy hacían
+  // un `testConnection()` cacheado; acá lo hacemos en cada write para no
+  // atar la disponibilidad al ciclo de vida del container. Si la DB está
+  // caída el callback devuelve false y el use-case devuelve mensaje de error.
+  const { testConnection } = require('../../database/connection');
+  const dbIsAvailable = async () => {
+    try { return !!(await testConnection()); } catch { return false; }
+  };
+  const teamsUseCases = {
+    infoEquipo: createGetInfoEquipo({
+      cache,
+      getFlag: (name) => require('../../utils/teamContext').getFlag(name),
+      getConfederation: (name) => require('../../utils/teamContext').getConfederation(name),
+      getRecentForm: (matches, id, n) => require('../../utils/teamContext').getRecentForm(matches, id, n),
+    }),
+    seguirEquipo: createSeguirEquipo({ userRepository, dbIsAvailable, cache }),
+    dejarSeguirEquipo: createDejarSeguirEquipo({ userRepository, dbIsAvailable, cache }),
+    getEquiposSeguidos: createGetEquiposSeguidos({ userRepository, dbIsAvailable }),
+  };
 
   // Use-cases de matches (Fase 8, migración de matchHandler).
   // Reciben el `cache` (mundialCache) directamente como dependencia — es un
@@ -223,6 +250,7 @@ function createContainer(deps) {
         followTicket: followTicketUseCase,
         stats: statsUseCases,
         matches: matchesList,
+        teams: teamsUseCases,
       },
     };
 }
