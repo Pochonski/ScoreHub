@@ -134,10 +134,10 @@ function createContainer(deps) {
   const listMatchesForCompetition = createListMatchesForCompetition({ matchRepository });
 
   // Use-case de seguimiento de tickets (Fase 8, migración de followHandler).
-  // `rememberTicket` se inyecta desde el conversationContext legacy para no
-  // acoplar el use-case al módulo global; cuando ese módulo se mueva a la
-  // nueva arquitectura, se reemplaza la inyección sin tocar el use-case.
-  const context = require('../../services/conversationContext');
+  // `rememberTicket` se inyecta desde el IConversationContext port (vía
+  // adapter) — desacopla el use-case del módulo global legacy.
+  const { createConversationContextAdapter } = require('../infrastructure/conversation/ConversationContextAdapter');
+  const context = createConversationContextAdapter();
   const followTicketUseCase = createFollowTicketUseCase({
     betFollowerRepository,
     rememberTicket: (chatId, ticketId) => context.rememberTicket(chatId, ticketId),
