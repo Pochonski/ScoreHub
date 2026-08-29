@@ -1,37 +1,39 @@
 /**
  * src/infrastructure/scores365/scoresGateway.js — Adapter del puerto ScoresGateway
- * (Fase 7, Fase 2).
+ * (Fase 7, Fase 2, Fase 8).
  *
- * Wrapper DELGADO sobre los colaboradores 365scores existentes
- * (`mundialista365Handler`, `matchSearch`, `scores365Service`). No reescribe su
- * lógica interna — solo los expone bajo la forma del puerto `domain/ports/scoresGateway`.
+ * Fase 8: el adapter ya no envuelve `mundialista365Handler` directamente.
+ * Recibe los use-cases de `application/scores365/useCases.js` (que a su vez
+ * envuelven al handler legacy como stepping stone). Cuando la Fase 3+ migre
+ * las funciones internas, los use-cases dejarán de delegar y este gateway
+ * no cambia.
  */
 
-function createScoresGateway({ mundialista365, matchSearch, scores365 }) {
+function createScoresGateway({ scores365UseCases, matchSearch, scores365 }) {
+  if (!scores365UseCases) {
+    throw new Error('createScoresGateway: scores365UseCases is required');
+  }
   return {
-    getLiveGamesText: () => mundialista365.getLiveGames(),
+    getLiveGamesText: () => scores365UseCases.getLiveGames(),
     findLiveGames: () => matchSearch.findLiveGames(),
-    getFixtureText: () => mundialista365.getFixture(),
+    getFixtureText: () => scores365UseCases.getFixture(),
     getFixtures: (competitionId) => scores365.getFixtures(competitionId),
     get competitionId() {
-      return mundialista365.COMPETITION_ID;
+      return scores365UseCases.getCompetitionId();
     },
-    // Detalle de partido / competición (Fase 3).
-    getOutrights: () => mundialista365.getOutrights(),
-    getPrevia: (id) => mundialista365.getPrevia(id),
-    getH2H: (id) => mundialista365.getH2H(id),
-    getOdds: (id) => mundialista365.getOdds(id),
-    getStatsVivo: (id) => mundialista365.getStatsVivo(id),
-    getPredicciones: (id) => mundialista365.getPredicciones(id),
-    // Tips y tendencias (Fase 3 batch A2).
-    getTipPartido: (home, away) => mundialista365.getTipPartido(home, away),
-    getTendencias: (scope, id, limit) => mundialista365.getTendencias(scope, id, limit),
-    getTendenciasByTeams: (home, away, limit) => mundialista365.getTendenciasByTeams(home, away, limit),
+    getOutrights: () => scores365UseCases.getOutrights(),
+    getPrevia: (id) => scores365UseCases.getPrevia(id),
+    getH2H: (id) => scores365UseCases.getH2H(id),
+    getOdds: (id) => scores365UseCases.getOdds(id),
+    getStatsVivo: (id) => scores365UseCases.getStatsVivo(id),
+    getPredicciones: (id) => scores365UseCases.getPredicciones(id),
+    getTipPartido: (home, away) => scores365UseCases.getTipPartido(home, away),
+    getTendencias: (scope, id, limit) => scores365UseCases.getTendencias(scope, id, limit),
+    getTendenciasByTeams: (home, away, limit) => scores365UseCases.getTendenciasByTeams(home, away, limit),
     findGameByTeams: (home, away) => matchSearch.findGameByTeams(home, away),
-    // Usados por el dispatcher de callbacks de botones inline (Fase 3 broche).
-    getAlineacion: (id) => mundialista365.getAlineacion(id),
-    formatTipForGame: (game) => mundialista365.formatTipForGame(game),
-    getTendenciasForGame: (gameId) => mundialista365.getTendencias('game', gameId),
+    getAlineacion: (id) => scores365UseCases.getAlineacion(id),
+    formatTipForGame: (game) => scores365UseCases.formatTipForGame(game),
+    getTendenciasForGame: (gameId) => scores365UseCases.getTendencias('game', gameId),
   };
 }
 

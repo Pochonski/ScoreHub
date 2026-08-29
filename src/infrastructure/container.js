@@ -34,6 +34,7 @@
 
 const { createRouter } = require('../interface/telegram/router');
 const { createScoresGateway } = require('./scores365/scoresGateway');
+const { createScores365UseCases } = require('../application/scores365/useCases');
 const { createContentGateway } = require('./content/contentGateway');
 const { createMessageHandlerGateway } = require('./nlu/messageHandlerGateway');
 const { createCallbackDispatcher } = require('../interface/telegram/callbacks');
@@ -245,7 +246,12 @@ function createContainer(deps) {
   };
 
   // Infraestructura (adaptadores de puertos).
-  const scoresGateway = createScoresGateway({ mundialista365, matchSearch, scores365 });
+  // Fase 8: scoresGateway ahora recibe scores365UseCases (que envuelve al
+  // handler legacy) en lugar de mundialista365 directo. Esto aísla el
+  // gateway del handler — cuando se migre la lógica interna, el gateway
+  // no cambia.
+  const scores365UseCases = createScores365UseCases({ handler: mundialista365 });
+  const scoresGateway = createScoresGateway({ scores365UseCases, matchSearch, scores365 });
   // Fase 8: contentGateway ahora recibe los use-cases de stats en lugar de
   // el handler legacy. Los use-cases en application/stats/ encapsulan la
   // lógica de mundialistaStatsHandler.js; el handler queda sólo como fachada
