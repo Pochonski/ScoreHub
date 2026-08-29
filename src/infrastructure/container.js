@@ -222,6 +222,11 @@ function createContainer(deps) {
     context,
   });
 
+  // T1.3: scores365UseCases se construye ANTES de matchesList porque
+  // resultadoEquipo y resultadoVS lo necesitan como dep (en lugar de
+  // mundialista365 directo, que se elimina en T2.1).
+  const scores365UseCases = createScores365UseCases({ handler: mundialista365 });
+
   // Use-cases de matches (Fase 8, migración de matchHandler).
   // Reciben el `cache` (mundialCache) directamente como dependencia — es un
   // servicio con TTL propio que no necesita refactorizarse aún. Cuando se
@@ -230,9 +235,9 @@ function createContainer(deps) {
   const matchesList = {
     partidosHoy: createGetPartidosHoy({ cache, getCompetitionName }),
     partidosFecha: createGetPartidosFecha({ cache }),
-    resultadoEquipo: createGetResultadoEquipo({ cache }),
+    resultadoEquipo: createGetResultadoEquipo({ cache, scores365UseCases }),
     proximosEquipo: createGetProximosEquipo({ cache }),
-    resultadoVS: createGetResultadoVS({ cache, mundialista365 }),
+    resultadoVS: createGetResultadoVS({ cache, scores365UseCases }),
   };
 
   // Use-cases de estadísticas (Fase 8, migración de mundialistaStatsHandler).
@@ -275,7 +280,6 @@ function createContainer(deps) {
   // handler legacy) en lugar de mundialista365 directo. Esto aísla el
   // gateway del handler — cuando se migre la lógica interna, el gateway
   // no cambia.
-  const scores365UseCases = createScores365UseCases({ handler: mundialista365 });
   const scoresGateway = createScoresGateway({ scores365UseCases, matchSearch, scores365 });
   // Fase 8: contentGateway ahora recibe los use-cases de stats en lugar de
   // el handler legacy. Los use-cases en application/stats/ encapsulan la

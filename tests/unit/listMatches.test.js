@@ -22,6 +22,14 @@ function makeCache(overrides = {}) {
   };
 }
 
+function makeScores365UseCases(overrides = {}) {
+  return {
+    getTipPartido: jest.fn(),
+    getTendenciasByTeams: jest.fn(),
+    ...overrides,
+  };
+}
+
 const silentLogger = { error: jest.fn(), warn: jest.fn() };
 
 describe('createGetPartidosHoy', () => {
@@ -112,19 +120,21 @@ describe('createGetPartidosFecha', () => {
 });
 
 describe('createGetResultadoEquipo', () => {
+  const scores365 = makeScores365UseCases();
+
   test('throws if cache missing', () => {
     expect(() => createGetResultadoEquipo({})).toThrow(/cache required/);
   });
 
   test('returns error when teamName empty', async () => {
-    const uc = createGetResultadoEquipo({ cache: makeCache(), logger: silentLogger });
+    const uc = createGetResultadoEquipo({ cache: makeCache(), scores365UseCases: scores365, logger: silentLogger });
     expect(await uc('')).toMatch(/No especificaste el equipo/);
   });
 
   test('returns not-found when team lookup fails', async () => {
     const cache = makeCache();
     cache.getTeamByName.mockResolvedValue(null);
-    const uc = createGetResultadoEquipo({ cache, logger: silentLogger });
+    const uc = createGetResultadoEquipo({ cache, scores365UseCases: scores365, logger: silentLogger });
     expect(await uc('Brasil')).toMatch(/No encontré al equipo/);
   });
 
@@ -132,7 +142,7 @@ describe('createGetResultadoEquipo', () => {
     const cache = makeCache();
     cache.getTeamByName.mockResolvedValue({ id: 100, name: 'Brasil' });
     cache.getRecentWorldCupMatchesByTeam.mockResolvedValue([]);
-    const uc = createGetResultadoEquipo({ cache, logger: silentLogger });
+    const uc = createGetResultadoEquipo({ cache, scores365UseCases: scores365, logger: silentLogger });
     expect(await uc('Brasil')).toMatch(/No encontré partidos recientes/);
   });
 
@@ -143,7 +153,7 @@ describe('createGetResultadoEquipo', () => {
       { id: 1, homeCompetitor: { id: 100, name: 'Brasil', score: 2 }, awayCompetitor: { id: 200, name: 'Argentina', score: 1 }, startTime: '2026-01-02T18:00:00Z' },
       { id: 2, homeCompetitor: { id: 300, name: 'Francia', score: 0 }, awayCompetitor: { id: 100, name: 'Brasil', score: 0 }, startTime: '2026-01-01T18:00:00Z' },
     ]);
-    const uc = createGetResultadoEquipo({ cache, logger: silentLogger });
+    const uc = createGetResultadoEquipo({ cache, scores365UseCases: scores365, logger: silentLogger });
     const out = await uc('Brasil');
     expect(out).toMatch(/ÚLTIMOS PARTIDOS - BRASIL/);
     expect(out).toMatch(/Sigue en competencia/);
@@ -152,7 +162,7 @@ describe('createGetResultadoEquipo', () => {
   test('accepts object form', async () => {
     const cache = makeCache();
     cache.getRecentWorldCupMatchesByTeam.mockResolvedValue([]);
-    const uc = createGetResultadoEquipo({ cache, logger: silentLogger });
+    const uc = createGetResultadoEquipo({ cache, scores365UseCases: scores365, logger: silentLogger });
     expect(await uc({ id: 100, nombre: 'Brasil' })).toMatch(/No encontré partidos recientes/);
   });
 });
@@ -191,14 +201,20 @@ describe('createGetProximosEquipo', () => {
 });
 
 describe('createGetResultadoVS', () => {
+  const scores365 = makeScores365UseCases();
+
   test('throws if cache missing', () => {
-    expect(() => createGetResultadoVS({})).toThrow(/cache required/);
+    expect(() => createGetResultadoVS({ scores365UseCases: scores365 })).toThrow(/cache required/);
+  });
+
+  test('throws if scores365UseCases missing', () => {
+    expect(() => createGetResultadoVS({ cache: makeCache() })).toThrow(/scores365UseCases required/);
   });
 
   test('returns error when home team not found', async () => {
     const cache = makeCache();
     cache.getTeamByName.mockResolvedValue(null);
-    const uc = createGetResultadoVS({ cache, logger: silentLogger });
+    const uc = createGetResultadoVS({ cache, scores365UseCases: scores365, logger: silentLogger });
     expect(await uc('Brasil', 'Argentina')).toMatch(/No encontré al equipo "Brasil"/);
   });
 
@@ -207,7 +223,7 @@ describe('createGetResultadoVS', () => {
     cache.getTeamByName.mockImplementation(async (name) =>
       name === 'Brasil' ? { id: 100, name: 'Brasil' } : null
     );
-    const uc = createGetResultadoVS({ cache, logger: silentLogger });
+    const uc = createGetResultadoVS({ cache, scores365UseCases: scores365, logger: silentLogger });
     expect(await uc('Brasil', 'Argentina')).toMatch(/No encontré al equipo "Argentina"/);
   });
 
@@ -221,7 +237,7 @@ describe('createGetResultadoVS', () => {
         { id: 1, homeCompetitor: { id: 100, name: 'Brasil', score: 2 }, awayCompetitor: { id: 200, name: 'Argentina', score: 1 }, startTime: '2025-01-01T18:00:00Z' },
       ],
     });
-    const uc = createGetResultadoVS({ cache, logger: silentLogger });
+    const uc = createGetResultadoVS({ cache, scores365UseCases: scores365, logger: silentLogger });
     const out = await uc('Brasil', 'Argentina');
     expect(out).toMatch(/ENFRENTAMIENTOS — BRASIL VS ARGENTINA/);
     expect(out).toMatch(/Últimos 1 enfrentamientos/);
@@ -234,7 +250,7 @@ describe('createGetResultadoVS', () => {
     );
     cache.getMatchH2H.mockResolvedValue({ h2hGames: [] });
     cache.findGameByCompetitors.mockResolvedValue(null);
-    const uc = createGetResultadoVS({ cache, logger: silentLogger });
+    const uc = createGetResultadoVS({ cache, scores365UseCases: scores365, logger: silentLogger });
     expect(await uc('Brasil', 'Argentina')).toMatch(/No encontré enfrentamientos directos/);
   });
 });

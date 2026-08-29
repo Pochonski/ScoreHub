@@ -193,8 +193,9 @@ function createGetPartidosFecha({ cache, logger = console }) {
 /* /resultado <equipo>                                                         */
 /* ────────────────────────────────────────────────────────────────────────── */
 
-function createGetResultadoEquipo({ cache, logger = console }) {
+function createGetResultadoEquipo({ cache, scores365UseCases, logger = console }) {
   if (!cache) throw new Error('createGetResultadoEquipo: cache required');
+  if (!scores365UseCases) throw new Error('createGetResultadoEquipo: scores365UseCases required');
 
   return async function getResultadoEquipo(equipo) {
     try {
@@ -354,8 +355,9 @@ function createGetProximosEquipo({ cache, logger = console }) {
 /* /resultado <eq1> vs <eq2>                                                   */
 /* ────────────────────────────────────────────────────────────────────────── */
 
-function createGetResultadoVS({ cache, mundialista365, logger = console }) {
+function createGetResultadoVS({ cache, scores365UseCases, logger = console }) {
   if (!cache) throw new Error('createGetResultadoVS: cache required');
+  if (!scores365UseCases) throw new Error('createGetResultadoVS: scores365UseCases required');
 
   async function getUpcomingMatchTips(homeTeam, awayTeam) {
     try {
@@ -376,8 +378,8 @@ function createGetResultadoVS({ cache, mundialista365, logger = console }) {
       msg += '\n\n';
 
       const [tip, trends] = await Promise.all([
-        mundialista365.getTipPartido(homeTeam.name, awayTeam.name).catch(() => null),
-        mundialista365.getTendenciasByTeams(homeTeam.name, awayTeam.name, 5).catch(() => null),
+        scores365UseCases.getTipPartido(homeTeam.name, awayTeam.name).catch(() => null),
+        scores365UseCases.getTendenciasByTeams(homeTeam.name, awayTeam.name, 5).catch(() => null),
       ]);
       if (tip) msg += `${tip}\n\n`;
       if (trends) msg += `${trends}`;
