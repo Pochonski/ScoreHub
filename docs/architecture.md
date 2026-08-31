@@ -125,6 +125,30 @@ Telegram update → lifecycle.handleWebhookUpdate → processMessage
 
 El `container.js` los expone como singletons lazy via `persistence/index.js`.
 
+## Puertos de servicios (Fase 8+ — consolidación services/)
+
+Servicios con state o side effects (file I/O, DB connections, in-memory
+state) se consolidaron a ports con adapter:
+
+| Port | Adapter | Servicio legacy |
+|---|---|---|
+| `IGeminiNluRepository` | `GeminiNluAdapter` | `services/geminiService.js` (Fase 3) |
+| `IConversationContext` | `ConversationContextAdapter` | `services/conversationContext.js` |
+| `ICache` | `CacheAdapter` | `services/mundialCache.js` |
+| `IScores365UseCases` | (proxy-enforced wrapper) | `src/legacy/scores365-formatter.js` (Fase 2-8) |
+
+Servicios stateless restantes en `services/` (no requieren port porque
+no tienen state que mockear):
+- `matchSearch`, `betParserService`, `ocrService`, `imageStorageService`,
+  `countryFlagsService`, `betTrackingEngine`, `teamAliases`,
+  `competitionName`, `config`, `syncCompetitions`, `liveGamesPoller`,
+  `telegramNotifier`, `notifier`, `notificationService`,
+  `marketNormalizer`.
+
+Si alguno de estos servicios gana state o necesita swappability (ej.
+cambiar OCR provider, swap por cache distribuido), se convierte a port
+siguiendo el patrón de Fase 8+.
+
 ## Cross-cutting compartido
 
 `utils/logger`, `utils/dbStats`, `database/connection` (+ `withTransaction`),
