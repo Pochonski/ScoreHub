@@ -56,10 +56,13 @@ async function getWorldCupGames({ date, onlyMajorGames = true, range = 1 } = {})
 }
 
 async function getRecentWorldCupGames({ limit = 88 } = {}) {
+  // El parámetro `limit` se IGNORABA antes (bug silencioso — el SELECT no
+  // aplicaba LIMIT y devolvía todos los partidos del comp). Lo aplicamos
+  // ahora: acotar el resultado también acota el egress. (Fase egress-2026)
   return cached('games:all', ttl(15 * 60 * 1000), async () => {
     const rows = await db.execAdvanced(
-      'SELECT data FROM games WHERE competition_id = $1 ORDER BY start_time DESC',
-      [COMPETITION_ID]
+      'SELECT data FROM games WHERE competition_id = $1 ORDER BY start_time DESC LIMIT $2',
+      [COMPETITION_ID, limit]
     );
     return rows.map(r => r.data);
   });
@@ -76,7 +79,10 @@ async function getWorldCupStandings() {
 }
 
 async function getMatchStats(gameId) {
-  return cached(`stats:${gameId}`, ttl(15 * 1000), async () => {
+  // TTL subido de 15s → 5min (Fase egress-2026): las stats de un partido
+  // cambian lento durante un encuentro. Cold-miss cada 15s multiplicaba
+  // el egress 20x vs un TTL razonable.
+  return cached(`stats:${gameId}`, ttl(5 * 60 * 1000), async () => {
     const rows = await db.execAdvanced('SELECT data FROM game_stats WHERE game_id = $1', [gameId]);
     return rows.length ? (rows[0].data?.statistics || []) : [];
   });
@@ -192,12 +198,16 @@ async function findGameByCompetitors(compIdA, compIdB) {
 }
 
 async function getRecentWorldCupMatchesByTeam(teamId) {
+  // LIMIT 30 — Fase egress-2026: sin esto, equipos con muchas temporadas
+  // devuelven 100+ filas × ~30KB de JSON c/u (1-6 MB por cold miss).
+  // 30 partidos cubre la pantalla de /equipos y las stats razonablemente.
   return cached(`teamMatches:${teamId}`, ttl(60 * 60 * 1000), async () => {
     const tid = Number(teamId);
     const rows = await db.execAdvanced(
       `SELECT data FROM games WHERE competition_id = $1
         AND (home_competitor_id = $2 OR away_competitor_id = $2)
-        ORDER BY start_time DESC`,
+        ORDER BY start_time DESC
+        LIMIT 30`,
       [COMPETITION_ID, tid]
     );
     return rows.map(r => r.data);
@@ -208,9 +218,16 @@ async function searchAthletes(query) {
   const target = normalizeName(query);
   const parts = target.split(/\s+/);
   const athletes = await cached('athletes:all', ttl(24 * 60 * 60 * 1000), async () => {
+    // Fase egress-2026: acotar a partidos de los últimos 90 días para no
+    // jalar todos los overviews históricos de la competencia en el cold
+    // load. Los atletas relevantes son los del Mundial activo.
     const overviewRows = await db.execAdvanced(
       `SELECT data FROM game_overviews
-        WHERE game_id IN (SELECT id FROM games WHERE competition_id = $1)`,
+        WHERE game_id IN (
+          SELECT id FROM games
+          WHERE competition_id = $1
+            AND start_time >= now() - interval '90 days'
+        )`,
       [COMPETITION_ID]
     );
     const seen = new Set();

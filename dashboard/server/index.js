@@ -3,6 +3,7 @@ const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
+const compression = require('compression');
 const path = require('path');
 const pinoHttp = require('pino-http');
 const footballRoutes = require('./routes/football');
@@ -40,6 +41,11 @@ app.use(helmet());
 app.set('trust proxy', 1);
 app.use(cors({ origin: whitelist }));
 app.use(express.json({ limit: '100kb' }));
+// Fase egress-2026: gzip todas las respuestas JSON. El dashboard hace
+// polling cada ~5s por partido y las respuestas de ~50KB salen ahora como
+// ~8KB — recupera ~60-80% del egress HTTP del dashboard. compression()
+// setea Vary: Accept-Encoding automáticamente.
+app.use(compression());
 
 app.use('/api/', rateLimit({
   windowMs: 60 * 1000,
