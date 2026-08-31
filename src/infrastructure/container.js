@@ -133,6 +133,13 @@ function createContainer(deps) {
   const betRepository = getBetRepository();
   const listMatchesForCompetition = createListMatchesForCompetition({ matchRepository });
 
+  // T-pendiente: cacheAdapter envuelve services/mundialCache con Proxy
+  // enforcement del ICache port. Los use-cases reciben `cachePort`
+  // (typed) en lugar del module legacy directo.
+  const { createCache } = require('../domain/ports/ICache');
+  const { createCacheAdapter } = require('../infrastructure/cache/CacheAdapter');
+  const cachePort = createCache(createCacheAdapter());
+
   // Use-case de seguimiento de tickets (Fase 8, migración de followHandler).
   // `rememberTicket` se inyecta desde el IConversationContext port (vía
   // adapter) — desacopla el use-case del módulo global legacy.
@@ -159,15 +166,15 @@ function createContainer(deps) {
       getConfederation: (name) => require('../../utils/teamContext').getConfederation(name),
       getRecentForm: (matches, id, n) => require('../../utils/teamContext').getRecentForm(matches, id, n),
     }),
-    seguirEquipo: createSeguirEquipo({ userRepository, dbIsAvailable, cache }),
-    dejarSeguirEquipo: createDejarSeguirEquipo({ userRepository, dbIsAvailable, cache }),
+    seguirEquipo: createSeguirEquipo({ userRepository, dbIsAvailable, cache: cachePort }),
+    dejarSeguirEquipo: createDejarSeguirEquipo({ userRepository, dbIsAvailable, cache: cachePort }),
     getEquiposSeguidos: createGetEquiposSeguidos({ userRepository, dbIsAvailable }),
   };
 
   // Use-cases de betting (Fase 8, migración de bettingHandler).
   const bettingUseCases = {
-    analizarEnfrentamiento: createAnalizarEnfrentamiento({ cache }),
-    analizarEquipo: createAnalizarEquipo({ cache }),
+    analizarEnfrentamiento: createAnalizarEnfrentamiento({ cache: cachePort }),
+    analizarEquipo: createAnalizarEquipo({ cache: cachePort }),
   };
 
   // Use-cases de team stats + standings (Fase 2-9, migración de
@@ -177,11 +184,11 @@ function createContainer(deps) {
   const { getRecentForm } = require('../../utils/teamContext');
   const { formatMatchLine, formatGroupTable } = require('../../utils/formatters');
   const teamStatsUseCases = {
-    estadisticas: createGetEstadisticas({ cache, getRecentForm, formatMatchLine }),
-    goleadores: createGetGoleadoresTeam({ cache, getCompetitionName, competitionId: PRIMARY_COMPETITION_ID }),
+    estadisticas: createGetEstadisticas({ cache: cachePort, getRecentForm, formatMatchLine }),
+    goleadores: createGetGoleadoresTeam({ cache: cachePort, getCompetitionName, competitionId: PRIMARY_COMPETITION_ID }),
   };
   const standingsUseCases = {
-    tabla: createGetTabla({ cache, getCompetitionName, primaryCompetitionId: PRIMARY_COMPETITION_ID, formatGroupTable }),
+    tabla: createGetTabla({ cache: cachePort, getCompetitionName, primaryCompetitionId: PRIMARY_COMPETITION_ID, formatGroupTable }),
   };
 
   // Use-cases de bet image (Fase 8, migración de betImageHandler).
@@ -228,17 +235,23 @@ function createContainer(deps) {
   const scores365Adapter = createScores365Adapter();
   const scores365UseCases = createScores365UseCases({ handler: scores365Adapter });
 
+  // T-pendiente: cacheAdapter envuelve services/mundialCache con Proxy
+  // enforcement del ICache port. Los use-cases reciben `cachePort`
+  // (typed) en lugar del module legacy directo.
+  // (cachePort se define arriba, antes de los teams/stats use-cases.)
+  const _dup_remove = null;
+
   // Use-cases de matches (Fase 8, migración de matchHandler).
   // Reciben el `cache` (mundialCache) directamente como dependencia — es un
   // servicio con TTL propio que no necesita refactorizarse aún. Cuando se
   // decida abstraerlo como port (Fase 3 o 4) se reemplaza la inyección sin
   // tocar estos use-cases.
   const matchesList = {
-    partidosHoy: createGetPartidosHoy({ cache, getCompetitionName }),
+    partidosHoy: createGetPartidosHoy({ cache: cachePort, getCompetitionName }),
     partidosFecha: createGetPartidosFecha({ cache }),
-    resultadoEquipo: createGetResultadoEquipo({ cache, scores365UseCases }),
+    resultadoEquipo: createGetResultadoEquipo({ cache: cachePort, scores365UseCases }),
     proximosEquipo: createGetProximosEquipo({ cache }),
-    resultadoVS: createGetResultadoVS({ cache, scores365UseCases }),
+    resultadoVS: createGetResultadoVS({ cache: cachePort, scores365UseCases }),
   };
 
   // Use-cases de estadísticas (Fase 8, migración de mundialistaStatsHandler).

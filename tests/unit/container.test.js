@@ -108,7 +108,17 @@ describe('createContainer — composition root del bot', () => {
     jest.clearAllMocks();
   });
 
-  function makeDeps() {
+  function makeCacheStub() {
+  return {
+    COMPETITION_ID: 7,
+    getWorldCupGames: jest.fn(), getWorldCupStandings: jest.fn(),
+    getRecentWorldCupMatchesByTeam: jest.fn(), getMatchStats: jest.fn(),
+    getTeamByName: jest.fn(), findGameByCompetitors: jest.fn(),
+    getTournamentTop: jest.fn(), getGameById: jest.fn(),
+  };
+}
+
+function makeDeps() {
     return {
       // Servicios legacy que el container pasa a use-cases/gateways.
       // Mundialista365 queda sólo como wrapper de formatters 365scores
@@ -117,7 +127,7 @@ describe('createContainer — composition root del bot', () => {
       mundialista365: { __legacy: 'mundialista365' },
       matchSearch: { __legacy: 'matchSearch' },
       scores365: { __legacy: 'scores365' },
-      cache: { __legacy: 'cache' },
+      cache: makeCacheStub(),
       userStorage: { __legacy: 'userStorage' },
       pool: { __legacy: 'pool' },
       // Telegram transport
@@ -190,7 +200,7 @@ describe('createContainer — composition root del bot', () => {
       mundialista365: {},
       matchSearch: {},
       scores365: {},
-      cache: {},
+      cache: makeCacheStub(),
       userStorage: {},
       pool: {},
       sendMessage: () => {},
