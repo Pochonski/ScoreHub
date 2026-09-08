@@ -18,7 +18,9 @@ async function start() {
   // Antes: `sync.syncAll()` directo sobre el módulo legacy. Ahora el
   // orchestrator devuelve {runId, jobs[], successful, failed} para mejor
   // observabilidad vía logs.
-  const sync = createSyncOrchestrator({ logger: log });
+  // El orchestrator espera `logger` como callable (`logger?.(msg)`), no como
+  // instancia pino. Le pasamos un wrapper que delega en log.info.
+  const sync = createSyncOrchestrator({ logger: (msg) => log.info(msg) });
 
   // Run full sync immediately on startup.
   // Fase 8.1: se ejecuta en background para no bloquear el startup si un job
@@ -33,57 +35,40 @@ async function start() {
   // Helper para schedulear con guard anti-solapamiento
   const every = (expr, name, fn) => cron.schedule(expr, jobGuard.wrap(name, fn));
 
-  // Live games — every 15 seconds
-  every('*/15 * * * * *', 'syncLiveGames', () => sync.runGames());
-  every('*/15 * * * * *', 'syncLiveStats', () => sync.runDetails());
+  // =====================================================================
+  // Optimización de egress (2026-09): cada `sync.runX()` se agenda UNA sola
+  // vez. Antes, cada job interno se registraba en un cron separado que
+  // disparaba el grupo entero, multiplicando el tráfico por 4-6x.
+  // =====================================================================
 
-  // Games, results, fixtures — every 60 seconds
+  // Partidos en vivo (games + detalles/live stats) — 60s. Los datos en vivo
+  // cambian rápido, pero 15s era redundante y el `jobGuard` evita solapamiento.
   every('*/60 * * * * *', 'syncGames', () => sync.runGames());
-  every('*/60 * * * * *', 'syncGamesResults', () => sync.runGames());
-  every('*/60 * * * * *', 'syncFixtures', () => sync.runGames());
 
-  // Standings, trends — every 2 minutes
-  every('*/2 * * * *', 'syncStandings', () => sync.runStandings());
-  every('*/2 * * * *', 'syncTrends', () => sync.runTrendsOdds());
+  // Live stats (overviews/h2h/lineups/stats de partidos en vivo) — 60s.
+  every('*/60 * * * * *', 'syncLiveStats', () => sync.runDetails());
 
-  // Tips por partido (feed game-level): 1 call por partido, cambian lento → 10min
-  every('*/10 * * * *', 'syncGameTrends', () => sync.runTrendsOdds());
+  // Standings (tablas de posiciones) — cada 15 min.
+  every('*/15 * * * *', 'syncStandings', () => sync.runStandings());
 
-  // Predictions, odds — every 5 minutes
-  every('*/5 * * * *', 'syncPredictions', () => sync.runTrendsOdds());
-  every('*/5 * * * *', 'syncOdds', () => sync.runTrendsOdds());
+  // Trends + predictions + odds + outrights + trend details (grupo pesado,
+  // 1 call por partido/trend) — cada 60 min.
+  every('0 * * * *', 'syncTrendsOdds', () => sync.runTrendsOdds());
 
-  // Brackets, tournament stats, team of week, game details, outrights, venues, athletes — every 10 minutes
-  every('*/10 * * * *', 'syncBrackets', () => sync.runContent());
-  every('*/10 * * * *', 'syncTournamentStats', () => sync.runContent());
-  every('*/10 * * * *', 'syncTeamOfWeek', () => sync.runContent());
-  every('*/10 * * * *', 'syncGameDetails', () => sync.runDetails());
-  every('*/10 * * * *', 'syncOutrights', () => sync.runTrendsOdds());
-  every('*/10 * * * *', 'syncVenues', () => sync.runAthletes());
-  every('*/10 * * * *', 'syncAthletes', () => sync.runAthletes());
+  // Contenido (brackets, stats, team of week, news) — cada 60 min.
+  every('0 * * * *', 'syncContent', () => sync.runContent());
 
-  // News — every 10 minutes
-  every('*/10 * * * *', 'syncNews', () => sync.runContent());
+  // Atletas + venues (cambian lento) — cada 3 horas.
+  every('0 */3 * * *', 'syncAthletes', () => sync.runAthletes());
 
-  // Bet selections — every 2 minutes (Fase 8.6+: evalúa selecciones pendientes
-  // de apuestas cuyo partido asociado terminó, actualizando estado y valor_actual)
-  every('*/2 * * * *', 'syncBetSelections', () => sync.runBetSelections());
+  // Bet selections — cada 5 min (evalúa selecciones de apuestas ya jugadas).
+  every('*/5 * * * *', 'syncBetSelections', () => sync.runBetSelections());
 
-  // Suggestions (top upcoming games) — every 30 minutes (cambian poco)
-  every('*/30 * * * *', 'syncSuggestions', () => sync.runTransfers());
-
-  // Trend details — every 30 minutes (Fase 8.3 — cierra /trends/details)
-  every('*/30 * * * *', 'syncTrendDetails', () => sync.runTrendsOdds());
-
-  // Transfers (fichajes por equipo) — cada 6 horas (cambian lento)
+  // Transfers + suggestions (fichajes, top upcoming) — cada 6 horas.
   every('0 */6 * * *', 'syncTransfers', () => sync.runTransfers());
 
-  // Catalog and countries — every 6 hours
-  every('0 */6 * * *', 'syncCatalog', () => sync.runCatalog());
-  every('0 */6 * * *', 'syncCountries', () => sync.runCatalog());
-
-  // History — every 24 hours
-  every('0 3 * * *', 'syncCompetitionHistory', () => sync.runContent());
+  // Catálogo + países — cada 12 horas.
+  every('0 */12 * * *', 'syncCatalog', () => sync.runCatalog());
 
   log.info('Todos los cron jobs scheduleados (con guards anti-solapamiento). Servicio corriendo.');
 }
