@@ -258,7 +258,7 @@ describe('syncService — golden-master de escrituras', () => {
   });
 
   test('syncVenues → extrae venues de game_overviews y escribe venues', async () => {
-    setExecResult([{ data: { game: { venue: { id: 9, name: 'MetLife Stadium', city: 'NJ' } } } }]);
+    setExecResult([{ venue: { id: 9, name: 'MetLife Stadium', city: 'NJ' } }]);
     await sync.syncVenues();
     expect(getWrites().some((w) => /INSERT INTO venues/.test(w.sql))).toBe(true);
   });
@@ -297,7 +297,7 @@ describe('syncService — golden-master de escrituras', () => {
   test('syncAthletes → roster upsert atómico (INSERT INTO athletes en tx)', async () => {
     // 1ra lectura: lineups con members; 2da: fresh rows (marca "frescos" → sin hidratar).
     setExecResults([
-      [{ lineups: { members: [{ athleteId: 100, name: 'Mbappé' }] } }],
+      [{ members: [{ athleteId: 100, name: 'Mbappé' }] }],
       [{ id: 100, updated_at: '2026-07-28T00:00:00Z', has_trophies: true, has_transfers: true, has_career: true }],
     ]);
     await sync.syncAthletes();

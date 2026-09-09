@@ -17,8 +17,10 @@ async function syncAthletes() {
     const comps = await getActiveCompetitions();
     const ids = comps.map(c => c.id);
 
+    // Egress-opt: traer sólo el array `members` del JSONB (no el lineups
+    // completo) para no enviar los ~2MB de game_lineups.data por el pooler.
     const rows = await db.execAdvanced(
-      `SELECT gl.data AS lineups
+      `SELECT gl.data -> 'members' AS members
          FROM game_lineups gl
          JOIN games g ON g.id = gl.game_id
         WHERE g.competition_id = ANY($1::int[])`,
@@ -28,7 +30,7 @@ async function syncAthletes() {
     const seen = new Set();
     const athleteIds = [];
     for (const r of rows) {
-      const members = r.lineups?.members || [];
+      const members = r.members || [];
       for (const m of members) {
         const aid = Number(m.athleteId ?? m.id);
         if (!Number.isFinite(aid) || seen.has(aid)) continue;
@@ -119,14 +121,15 @@ async function syncVenues() {
     const comps = await getActiveCompetitions();
     const ids = comps.map(c => c.id);
     const rows = await db.execAdvanced(
-      `SELECT data FROM game_overviews
+      `SELECT data -> 'game' -> 'venue' AS venue
+         FROM game_overviews
         WHERE game_id IN (SELECT id FROM games WHERE competition_id = ANY($1::int[]))`,
       [ids]
     );
     const seen = new Set();
     const venues = [];
     for (const r of rows) {
-      const venue = r.data?.game?.venue;
+      const venue = r.venue;
       if (!venue?.id || seen.has(venue.id)) continue;
       seen.add(venue.id);
       venues.push({
