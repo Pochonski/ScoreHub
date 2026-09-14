@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 
 import '@/presentation/styles/globals.css'
 import { validateEnv } from '@/infrastructure/security/envValidator'
+import RouteReporter from '@/shared/embed/RouteReporter'
 import App from './App'
 
 validateEnv()
@@ -47,6 +48,7 @@ createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
+        <RouteReporter />
         <App />
       </BrowserRouter>
     </QueryClientProvider>
