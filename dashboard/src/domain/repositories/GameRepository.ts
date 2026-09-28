@@ -11,6 +11,10 @@ export interface GetGamesParams {
   competitionId?: number
   /** If true, return games from all active competitions. */
   all?: boolean
+  /** Temporada concreta o 'all' (todas). El backend ya lo soporta. */
+  seasonNum?: number | 'all'
+  /** Tamaño de página (backend default 20, max 50). */
+  limit?: number
 }
 
 export interface GameRepository {

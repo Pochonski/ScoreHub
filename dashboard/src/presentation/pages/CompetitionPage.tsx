@@ -5,6 +5,7 @@ import { useCompetitionDetail, useCompetitions } from '@/presentation/hooks/useC
 import { useActiveCompetition } from '@/presentation/context/ActiveCompetitionContext'
 import { useStandingsSeasons } from '@/presentation/hooks/useTransfersAndMore'
 import { StandingsTab } from '@/presentation/components/competition/StandingsTab'
+import { MatchesTab } from '@/presentation/components/competition/MatchesTab'
 import { BracketsTab } from '@/presentation/components/competition/BracketsTab'
 import { StatsTab } from '@/presentation/components/competition/StatsTab'
 import { HistoryTab } from '@/presentation/components/competition/HistoryTab'
@@ -14,7 +15,7 @@ import { NewsTab } from '@/presentation/components/competition/NewsTab'
 import { CompetitionHero } from '@/presentation/components/competition/CompetitionHero'
 import { ErrorState } from '@/presentation/components/ui/ErrorState'
 
-type TabId = 'standings' | 'brackets' | 'stats' | 'transfers' | 'analysis' | 'news' | 'history'
+type TabId = 'standings' | 'matches' | 'brackets' | 'stats' | 'transfers' | 'analysis' | 'news' | 'history'
 
 interface TabDef {
   id: TabId
@@ -25,6 +26,7 @@ interface TabDef {
 
 const ALL_TABS: readonly TabDef[] = [
   { id: 'standings', label: 'Posiciones', requireFlag: 'hasGroups' },
+  { id: 'matches', label: 'Partidos' },
   { id: 'brackets', label: 'Eliminatorias', requireFlag: 'hasBrackets' },
   {
     id: 'transfers',
@@ -422,6 +424,12 @@ export function CompetitionPage() {
           <StandingsTab
             competitionId={competitionId}
             seasonNum={tabSeasonNum === 'all' || tabSeasonNum === null ? undefined : tabSeasonNum}
+          />
+        )}
+        {activeTab === 'matches' && (
+          <MatchesTab
+            competitionId={competitionId}
+            seasonNum={tabSeasonNum === null ? undefined : tabSeasonNum}
           />
         )}
         {activeTab === 'brackets' && <BracketsTab competitionId={competitionId} />}

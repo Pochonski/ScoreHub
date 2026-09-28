@@ -12,6 +12,8 @@ function buildGamesParams(params?: GetGamesParams): Record<string, string | numb
     statusGroup: params?.statusGroup,
     stage: params?.stage,
     teamId: params?.teamId,
+    seasonNum: params?.seasonNum,
+    limit: params?.limit,
   }
   if (params?.all) out.all = 'true'
   else if (params?.competitionId != null) out.competitionId = params.competitionId
