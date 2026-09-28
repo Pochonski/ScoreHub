@@ -36,6 +36,14 @@ const ALLOWED_DOMAINS = [
   'eplstatic.com',
   // BolaVIP (media.bolavip.com) — fuente frecuente en Nations League 2026.
   'bolavip.com',
+  // Prensa Ibérica (estaticos-cdn.prensaiberica.es) — Sport, etc.
+  'prensaiberica.es',
+  // Deporte Valenciano
+  'deportevalenciano.com',
+  // Mundo Deportivo (imagenes2.mundodeportivo.com)
+  'mundodeportivo.com',
+  // El Confidencial (images.ecestaticos.com)
+  'ecestaticos.com',
   // Si aparecen más dominios, añadir aquí.
 ];
 

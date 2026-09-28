@@ -190,4 +190,11 @@ describe('isAllowedHost — SLD+1 matching', () => {
     expect(isAllowedHost('media.bolavip.com')).toBe(true);
     expect(isAllowedHost('bolavip.com')).toBe(true);
   });
+
+  test('acepta CDNs de prensa deportiva española (Sport, MD, EDC)', () => {
+    expect(isAllowedHost('estaticos-cdn.prensaiberica.es')).toBe(true);
+    expect(isAllowedHost('www.deportevalenciano.com')).toBe(true);
+    expect(isAllowedHost('imagenes2.mundodeportivo.com')).toBe(true);
+    expect(isAllowedHost('images.ecestaticos.com')).toBe(true);
+  });
 });
