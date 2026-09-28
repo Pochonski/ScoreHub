@@ -6,6 +6,11 @@
   "installCommand": "npm install && npm install --prefix dashboard --legacy-peer-deps && npm install --prefix dashboard/server",
   "rewrites": [
     { "source": "/api/(.*)", "destination": "/api" },
+    { "source": "/sitemap.xml", "destination": "/api" },
+    { "source": "/partido/:path*", "destination": "/api" },
+    { "source": "/competicion/:path*", "destination": "/api" },
+    { "source": "/player/:path*", "destination": "/api" },
+    { "source": "/equipo/:path*", "destination": "/api" },
     { "source": "/((?!api/).*)", "destination": "/index.html" }
   ],
   "headers": [
