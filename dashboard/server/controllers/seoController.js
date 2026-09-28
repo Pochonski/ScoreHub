@@ -108,7 +108,7 @@ async function metaForMatch(id) {
     const as = g.away_score != null && g.away_score >= 0 ? g.away_score : null;
     const score = hs != null && as != null ? ` ${hs}-${as}` : '';
     return {
-      title: `${g.home_name || 'Local'}${score} ${g.away_name || 'Visita'} · ScoreHub`,
+      title: `${g.home_name || 'Local'}${score} vs ${g.away_name || 'Visita'} · ScoreHub`,
       description: `Partido${score} — previa, estadísticas, alineaciones y tendencias en ScoreHub.`,
       image: `https://imagecache.365scores.com/image/upload/f_png,w_96,h_96,c_limit,q_auto:eco,dpr_1/v1/Competitors/${g.home_competitor_id}`,
     };
