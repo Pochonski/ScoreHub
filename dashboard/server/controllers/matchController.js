@@ -603,17 +603,29 @@ async function getMatchTimeline(req, res, next) {
       { onConflict: 'game_id', ttlMs: 30 * 1000 },
     );
 
-    const rawEvents = ovRow?.data?.game?.events || [];
+    const gameDoc = ovRow?.data?.game || null;
+    const rawEvents = gameDoc?.events || [];
     if (!rawEvents.length) return res.json([]);
 
-    const playerIds = [...new Set(rawEvents.flatMap(e => [e.playerId, ...(e.extraPlayers || [])]).filter(Boolean))];
+    // Nombres: primero desde `members` del overview (siempre presente con
+    // el partido; event.playerId === member.id). Antes solo se miraba la
+    // tabla `athletes` y los jugadores no sincronizados quedaban sin nombre
+    // (caso 4672374: 0/23 en athletes). La tabla canónica pisa si existe.
     const playerNameMap = {};
+    for (const m of gameDoc?.members || []) {
+      if (m?.id != null && m?.name) playerNameMap[m.id] = m.name;
+      if (m?.athleteId != null && m?.name) playerNameMap[m.athleteId] = m.name;
+    }
+
+    const playerIds = [...new Set(rawEvents.flatMap(e => [e.playerId, ...(e.extraPlayers || [])]).filter(Boolean))];
     if (playerIds.length) {
       const playerRows = await db.execAdvanced(
         `SELECT id, data->>'name' as name FROM athletes WHERE id = ANY($1::bigint[])`,
         [playerIds]
       );
-      for (const r of playerRows) playerNameMap[r.id] = r.name;
+      for (const r of playerRows) {
+        if (r.name) playerNameMap[r.id] = r.name;
+      }
     }
 
     const data = rawEvents
