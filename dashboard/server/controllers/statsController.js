@@ -128,6 +128,7 @@ async function getTeamOfWeek(req, res, next) {
     if (!lineup?.members?.length) return res.json(null);
 
     const members = lineup.members.map(m => ({
+      athleteId: m.athleteId ?? m.id ?? null,
       name: m.name,
       position: m.position?.name || m.positionName || '',
       rating: m.ranking,

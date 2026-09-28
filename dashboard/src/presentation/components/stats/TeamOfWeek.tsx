@@ -1,6 +1,7 @@
 import { useState } from 'react'
 
 export interface TeamOfWeekPlayer {
+  athleteId?: number | null
   name: string
   position: string
   rating?: number

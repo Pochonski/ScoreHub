@@ -4,7 +4,13 @@ import { DiContainer } from '@/infrastructure/di/DiContainer'
 
 interface TeamOfWeekData {
   formation: string
-  players: Array<{ name: string; rating: number; position: string; photoUrl?: string }>
+  players: Array<{
+    athleteId?: number | null
+    name: string
+    rating: number
+    position: string
+    photoUrl?: string
+  }>
 }
 
 interface TournamentStatsData {

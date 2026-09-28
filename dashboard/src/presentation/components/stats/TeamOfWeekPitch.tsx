@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import type { TeamOfWeekPlayer } from './TeamOfWeek'
 
 interface TeamOfWeekPitchProps {
@@ -101,7 +102,64 @@ function PitchLines() {
   )
 }
 
+/**
+ * Nodo de jugador: clicable (click + Enter/Espacio) cuando tiene athleteId,
+ * igual que StatRow en goleadores/asistencias. Sin id queda estático.
+ */
+export function PlayerNode({
+  player,
+  onSelect,
+}: {
+  player: TeamOfWeekPlayer
+  onSelect?: (athleteId: number) => void
+}) {
+  const clickable = player.athleteId != null && onSelect != null
+  const handleActivate = () => {
+    if (clickable) onSelect(player.athleteId as number)
+  }
+  return (
+    <div
+      className={`flex w-16 flex-col items-center gap-1 ${clickable ? 'cursor-pointer' : ''}`}
+      {...(clickable
+        ? {
+            role: 'button',
+            tabIndex: 0,
+            'aria-label': `Ver perfil de ${player.name}`,
+            onClick: handleActivate,
+            onKeyDown: (e: React.KeyboardEvent) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault()
+                handleActivate()
+              }
+            },
+          }
+        : {})}
+    >
+      <div className="relative">
+        <div
+          className={`bg-bg-card h-11 w-11 overflow-hidden rounded-full border-2 shadow-lg transition-colors ${
+            clickable
+              ? 'border-border-hover hover:border-accent-gold focus-visible:border-accent-gold'
+              : 'border-border-hover'
+          }`}
+        >
+          <PlayerAvatar name={player.name} photoUrl={player.photoUrl} />
+        </div>
+        {player.rating != null && (
+          <span className="bg-accent-gold text-bg-base font-display absolute -right-1 -bottom-1 rounded-full px-1 text-[10px] font-bold shadow">
+            {player.rating.toFixed(1)}
+          </span>
+        )}
+      </div>
+      <span className="max-w-full truncate rounded bg-black/40 px-1 text-center text-[10px] leading-tight font-medium text-white">
+        {player.name}
+      </span>
+    </div>
+  )
+}
+
 export function TeamOfWeekPitch({ formation, players }: TeamOfWeekPitchProps) {
+  const navigate = useNavigate()
   if (players.length === 0) return null
 
   const ordered = orderPlayersByLine(players)
@@ -110,26 +168,13 @@ export function TeamOfWeekPitch({ formation, players }: TeamOfWeekPitchProps) {
   // Offset de inicio de cada fila (suma de las anteriores) — sin mutar
   // variables en render (regla react-hooks/purity).
   const starts = rows.map((_, i) => rows.slice(0, i).reduce((a, b) => a + b, 0))
+  const handleSelect = (athleteId: number) => navigate(`/player/${athleteId}`)
   const rowNodes = rows.map((count, rowIndex) => {
     const rowPlayers = ordered.slice(starts[rowIndex], starts[rowIndex] + count)
     return (
       <div key={rowIndex} className="flex items-center justify-around px-2">
         {rowPlayers.map((p, i) => (
-          <div key={i} className="flex w-16 flex-col items-center gap-1">
-            <div className="relative">
-              <div className="border-border-hover bg-bg-card h-11 w-11 overflow-hidden rounded-full border-2 shadow-lg">
-                <PlayerAvatar name={p.name} photoUrl={p.photoUrl} />
-              </div>
-              {p.rating != null && (
-                <span className="bg-accent-gold text-bg-base font-display absolute -right-1 -bottom-1 rounded-full px-1 text-[10px] font-bold shadow">
-                  {p.rating.toFixed(1)}
-                </span>
-              )}
-            </div>
-            <span className="max-w-full truncate rounded bg-black/40 px-1 text-center text-[10px] leading-tight font-medium text-white">
-              {p.name}
-            </span>
-          </div>
+          <PlayerNode key={p.athleteId ?? `${p.name}-${i}`} player={p} onSelect={handleSelect} />
         ))}
       </div>
     )
