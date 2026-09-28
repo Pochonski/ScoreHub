@@ -63,5 +63,21 @@ module.exports = {
         NODE_ENV: 'production',
       },
     },
+    {
+      name: 'telegram-bot',
+      script: 'telegramBot.js',
+      exec_mode: 'fork',
+      instances: 1,
+      autorestart: true,
+      max_memory_restart: '500M',
+      time: true,
+      // Long-polling contra Telegram. Sin watch: los cambios de código
+      // se aplican con `pm2 restart telegram-bot` (watch reiniciaría el
+      // polling en cada cambio y perdería el offset).
+      watch: false,
+      env: {
+        NODE_ENV: 'production',
+      },
+    },
   ],
 }

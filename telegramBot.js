@@ -58,9 +58,16 @@ async function handleCommand(chatId, text, userName, userId) {
 /**
  * Guarda consulta en historial_consultas (solo si DB disponible)
  */
-async function saveHistory(userId, text, tipo, response) {
+async function saveHistory(userId, text, tipo, response, userName) {
   if (!dbAvailable) return;
   try {
+    // Asegurar fila en usuarios (FK de historial_consultas): un usuario nuevo
+    // que nunca puso alias no tiene fila y el INSERT de historial fallaba.
+    await pool.query(
+      `INSERT INTO usuarios (id, alias, estado) VALUES ($1, $2, 'registrado')
+       ON CONFLICT (id) DO NOTHING`,
+      [String(userId), userName || 'Usuario']
+    );
     await pool.query(
       'INSERT INTO historial_consultas (id_usuario, consulta, tipo, respuesta, fecha) VALUES ($1, $2, $3, $4, NOW())',
       [String(userId), text, tipo || 'comando', response || '']
@@ -132,7 +139,7 @@ async function processMessage(chatId, userId, text, user) {
     }
     if (handled) {
       const tipo = cleaned === '/start' ? 'inicio' : cleaned.replace('/', '').split(' ')[0];
-      saveHistory(String(userId), text, tipo, '');
+      saveHistory(String(userId), text, tipo, '', user);
       return;
     }
     const textSinComando = text.replace(/^\/[a-z@0-9_]+\s*/i, '').trim();
