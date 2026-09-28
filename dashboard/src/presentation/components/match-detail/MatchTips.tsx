@@ -17,8 +17,9 @@ export const MatchTips = memo(function MatchTips({ tips }: MatchTipsProps) {
         {tips.topTrends.map((trend, i) => (
           <div key={i} className="flex items-center justify-between">
             <span className="font-body text-text-primary text-xs">{trend.text}</span>
+            {/* percentage viene como fracción 0-1 del API: multiplicar ×100. */}
             <span className="text-accent-gold ml-2 font-mono text-xs">
-              {(trend.percentage ?? 0).toFixed(0)}%
+              {((trend.percentage ?? 0) * 100).toFixed(0)}%
             </span>
           </div>
         ))}

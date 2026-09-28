@@ -1,6 +1,7 @@
 export interface Trend {
   id?: number
   text: string
+  /** Fracción 0-1 (NO 0-100). La UI debe multiplicar ×100 al mostrar. */
   percentage: number
   betCTA?: string
   cause?: string
