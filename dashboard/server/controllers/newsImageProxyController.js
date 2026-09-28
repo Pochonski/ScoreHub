@@ -34,6 +34,8 @@ const ALLOWED_DOMAINS = [
   'as.com',
   // EPL static (usado en internacionales)
   'eplstatic.com',
+  // BolaVIP (media.bolavip.com) — fuente frecuente en Nations League 2026.
+  'bolavip.com',
   // Si aparecen más dominios, añadir aquí.
 ];
 

@@ -184,4 +184,10 @@ describe('isAllowedHost — SLD+1 matching', () => {
     expect(ALLOWED_DOMAINS).toContain('epimg.es');
     expect(ALLOWED_DOMAINS).toContain('elmundo.es');
   });
+
+  test('acepta media.bolavip.com (fuente Nations League)', () => {
+    expect(ALLOWED_DOMAINS).toContain('bolavip.com');
+    expect(isAllowedHost('media.bolavip.com')).toBe(true);
+    expect(isAllowedHost('bolavip.com')).toBe(true);
+  });
 });
