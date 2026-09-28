@@ -14,6 +14,7 @@ export const ENDPOINTS = {
   matchPredictions: (id: number | string) => `/matches/${id}/predictions`,
   matchTimeline: (id: number | string) => `/matches/${id}/timeline`,
   matchSuggestions: (id: number | string) => `/matches/${id}/suggestions`,
+  matchPreview: (id: number | string) => `/matches/${id}/preview`,
   standings: `/standings`,
   brackets: `/brackets`,
   history: `/history`,

@@ -25,7 +25,7 @@ async function getGameDetailBy(table, gameId) {
   return data?.data ?? null;
 }
 const scores365 = require('../../../services/scores365Service');
-const { enrichGame, enrichTrend, extractLineup, buildLineups, buildMatchupId, SCORE_STAT_IDS, MAJOR_STAT_IDS } = require('../utils/mappers');
+const { enrichGame, enrichTrend, extractLineup, buildLineups, buildMatchupId, transformStandingRow, SCORE_STAT_IDS, MAJOR_STAT_IDS } = require('../utils/mappers');
 const { resolveCompetition, resolveCompetitionIds } = require('../utils/competition');
 
 /**
@@ -308,6 +308,24 @@ async function getMatchStats(req, res, next) {
   }
 }
 
+/**
+ * Lee el doc H2H (DB-first con write-back). Compartido por getMatchH2h y
+ * getMatchPreview para no duplicar el fetcher.
+ */
+async function fetchH2hDoc(gid) {
+  const { data: h2hRow } = await db.readThrough(
+    'game_h2h',
+    { select: 'data', eq: { game_id: gid }, maybeSingle: true },
+    async () => {
+      const live = await scores365.getGameH2H(gid, undefined, true);
+      if (!live) return null;
+      return { game_id: gid, data: JSON.stringify(live) };
+    },
+    { onConflict: 'game_id', ttlMs: 60 * 60 * 1000 },
+  );
+  return h2hRow?.data ?? null;
+}
+
 async function getMatchH2h(req, res, next) {
   try {
     const { id } = req.params;
@@ -315,17 +333,7 @@ async function getMatchH2h(req, res, next) {
 
     // DB-first con write-back: el H2H se auto-puebla al primer view
     // (igual que stats/lineups). TTL largo: no cambia tras el pitazo final.
-    const { data: h2hRow } = await db.readThrough(
-      'game_h2h',
-      { select: 'data', eq: { game_id: gid }, maybeSingle: true },
-      async () => {
-        const live = await scores365.getGameH2H(gid, undefined, true);
-        if (!live) return null;
-        return { game_id: gid, data: JSON.stringify(live) };
-      },
-      { onConflict: 'game_id', ttlMs: 60 * 60 * 1000 },
-    );
-    const doc = h2hRow?.data ?? null;
+    const doc = await fetchH2hDoc(gid);
     if (!doc) return res.json({ recentGames: [], h2hGames: [] });
     const result = { recentGames: [], h2hGames: [] };
     if (doc?.game?.homeCompetitor?.recentGames) {
@@ -690,6 +698,154 @@ async function getMatchSuggestions(req, res, next) {
   }
 }
 
+/**
+ * Resultado W/D/L de un partido enriquecido desde la perspectiva de un equipo.
+ * Solo aplica a finalizados con marcador conocido.
+ */
+function formResult(g, teamId) {
+  if (g.status !== 'finished') return null;
+  const hs = g.homeTeam?.score;
+  const as = g.awayTeam?.score;
+  if (hs == null || as == null) return null;
+  const isHome = g.homeTeam?.id === teamId;
+  const gf = isHome ? hs : as;
+  const ga = isHome ? as : hs;
+  const result = gf > ga ? 'W' : gf < ga ? 'L' : 'D';
+  return { gameId: g.id, result, scoreFor: gf, scoreAgainst: ga, startTime: g.startTime };
+}
+
+/**
+ * GET /matches/:id/preview — bundle de previa en 1 request.
+ * Junta H2H, forma reciente (últimos 5 finalizados por equipo), fila de
+ * tabla de cada equipo, top tendencias y predicciones. La UI de previa
+ * (/partido/:id/previa) lo consume sin hacer 6 requests.
+ */
+async function getMatchPreview(req, res, next) {
+  try {
+    const gid = Number(req.params.id);
+    if (!Number.isFinite(gid)) return res.status(400).json({ error: 'id inválido' });
+
+    // IDs base desde la fila games (barato, por columnas).
+    const baseRows = await db.execAdvanced(
+      'SELECT id, competition_id, home_competitor_id, away_competitor_id, status_group FROM games WHERE id = $1',
+      [gid]
+    );
+    const base = baseRows[0] || null;
+    let competitionId = base?.competition_id ?? null;
+    let homeId = base?.home_competitor_id ?? null;
+    let awayId = base?.away_competitor_id ?? null;
+
+    const ovRow = await getGameDetailBy('game_overviews', gid);
+    const ovGame = ovRow?.game ?? null;
+    if (competitionId == null && ovGame) {
+      competitionId = ovGame.competitionId ?? null;
+      homeId = homeId ?? ovGame.homeCompetitor?.id ?? null;
+      awayId = awayId ?? ovGame.awayCompetitor?.id ?? null;
+    }
+    if (competitionId == null || homeId == null || awayId == null) {
+      return res.status(404).json({ error: 'Partido no encontrado' });
+    }
+
+    // H2H + forma reciente en paralelo.
+    const [h2hDoc, homeRows, awayRows] = await Promise.all([
+      fetchH2hDoc(gid).catch(() => null),
+      db.execAdvanced(
+        `SELECT data FROM games
+          WHERE status_group = 4 AND (home_competitor_id = $1 OR away_competitor_id = $1)
+          ORDER BY start_time DESC LIMIT 8`,
+        [homeId]
+      ).catch(() => []),
+      db.execAdvanced(
+        `SELECT data FROM games
+          WHERE status_group = 4 AND (home_competitor_id = $1 OR away_competitor_id = $1)
+          ORDER BY start_time DESC LIMIT 8`,
+        [awayId]
+      ).catch(() => []),
+    ]);
+
+    const toForm = (rows, teamId) =>
+      rows
+        .map((r) => enrichGame(r.data))
+        .filter(Boolean)
+        .map((g) => ({ game: g, form: formResult(g, teamId) }))
+        .filter((x) => x.form)
+        .slice(0, 5);
+
+    const homeForm = toForm(homeRows, homeId);
+    const awayForm = toForm(awayRows, awayId);
+
+    const h2hGames = (h2hDoc?.game?.h2hGames || []).map(enrichGame).filter(Boolean);
+    const splitRecent = (list) => (list || []).map(enrichGame).filter(Boolean).slice(0, 5);
+
+    // Filas de tabla de cada equipo (última temporada cacheada).
+    let tableHome = null;
+    let tableAway = null;
+    try {
+      const stRows = await db.execAdvanced(
+        'SELECT data FROM standings WHERE competition_id = $1 ORDER BY season_num DESC LIMIT 1',
+        [competitionId]
+      );
+      const stagesArr = stRows[0]?.data?.standings ?? [];
+      const all = stagesArr.length ? stagesArr[0].rows || [] : [];
+      const pick = (teamId) => {
+        const r = all.find((x) => x.competitor?.id === teamId);
+        if (!r) return null;
+        const t = transformStandingRow(r, teamId);
+        return {
+          position: t.position ?? null,
+          played: t.played ?? null,
+          won: t.won ?? null,
+          drawn: t.drawn ?? null,
+          lost: t.lost ?? null,
+          points: t.points ?? null,
+        };
+      };
+      tableHome = pick(homeId);
+      tableAway = pick(awayId);
+    } catch (_) {
+      /* tabla opcional */
+    }
+
+    // Top tendencias del partido.
+    let trends = [];
+    try {
+      const tRows = await db.execAdvanced(
+        `SELECT data FROM trends
+          WHERE game_id = $1 AND scope IN ('competition', 'game')
+          ORDER BY (data->>'percentage')::numeric DESC NULLS LAST
+          LIMIT 6`,
+        [gid]
+      );
+      trends = tRows.map((r) => enrichTrend(r.data));
+    } catch (_) {
+      /* tendencias opcionales */
+    }
+
+    const predictions = mapPredictions(ovGame?.promotedPredictions?.predictions || []);
+
+    res.json({
+      gameId: gid,
+      competitionId,
+      homeTeamId: homeId,
+      awayTeamId: awayId,
+      form: {
+        home: homeForm.map((x) => ({ ...x.form, game: x.game })),
+        away: awayForm.map((x) => ({ ...x.form, game: x.game })),
+      },
+      h2h: {
+        h2hGames,
+        homeRecent: splitRecent(h2hDoc?.game?.homeCompetitor?.recentGames),
+        awayRecent: splitRecent(h2hDoc?.game?.awayCompetitor?.recentGames),
+      },
+      table: { home: tableHome, away: tableAway },
+      trends,
+      predictions,
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
 module.exports = {
   getMatches,
   getLiveMatches,
@@ -704,4 +860,5 @@ module.exports = {
   getMatchPredictions,
   getMatchTimeline,
   getMatchSuggestions,
+  getMatchPreview,
 };

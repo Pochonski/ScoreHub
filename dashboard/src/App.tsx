@@ -26,6 +26,9 @@ const HistoryEditionPage = lazy(() =>
 const MatchDetailPage = lazy(() =>
   import('@/presentation/pages/MatchDetailPage').then((m) => ({ default: m.MatchDetailPage }))
 )
+const PreviaPage = lazy(() =>
+  import('@/presentation/pages/PreviaPage').then((m) => ({ default: m.PreviaPage }))
+)
 
 function PageSkeleton() {
   return (
@@ -87,6 +90,7 @@ export default function App() {
             <Route path="/historial/:seasonNum" element={<HistoryEditionPage />} />
             <Route path="/player/:id" element={<PlayerProfilePage />} />
             <Route path="/equipo/:id" element={<TeamDetailPage />} />
+            <Route path="/partido/:id/previa" element={<PreviaPage />} />
             <Route path="/partido/:id" element={<MatchDetailPage />} />
             {/* Catch-all */}
             <Route path="*" element={<Navigate to="/" replace />} />

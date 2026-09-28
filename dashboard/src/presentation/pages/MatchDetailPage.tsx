@@ -58,6 +58,17 @@ export function MatchDetailPage() {
     <div className="mx-auto max-w-4xl space-y-6 px-4 py-8">
       <MatchHeader />
       <MatchScoreCard game={game} />
+      {game.status !== 'finished' && (
+        <div className="flex justify-center">
+          <button
+            type="button"
+            onClick={() => navigate(`/partido/${game.id}/previa`)}
+            className="font-body bg-accent-gold/10 text-accent-gold hover:bg-accent-gold/20 focus-visible rounded-xl px-6 py-2.5 text-sm font-medium transition-colors"
+          >
+            Ver previa del partido →
+          </button>
+        </div>
+      )}
       <div id="estadisticas" className="scroll-mt-20">
         <MatchStatsTable stats={stats} />
       </div>
