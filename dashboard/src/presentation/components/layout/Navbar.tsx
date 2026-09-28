@@ -109,7 +109,7 @@ export function Navbar() {
           {dropdownOpen && (
             <div
               role="menu"
-              className="bg-bg-card border-border-card animate-fade-in-up absolute top-full right-0 left-auto z-50 mt-2 flex max-h-[70dvh] w-80 max-w-[calc(100vw-2rem)] flex-col overflow-hidden rounded-xl border shadow-xl"
+              className="bg-bg-card border-border-card animate-fade-in-up fixed top-14 right-4 left-4 z-50 mt-2 flex max-h-[70dvh] flex-col overflow-hidden rounded-xl border shadow-xl sm:absolute sm:top-full sm:right-0 sm:left-auto sm:w-80"
             >
               <div className="overflow-y-auto p-1.5">
                 {competitions.length === 0 && (
