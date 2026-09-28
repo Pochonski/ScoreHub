@@ -6,16 +6,54 @@ interface TeamOfWeekPitchProps {
   players: TeamOfWeekPlayer[]
 }
 
-// Filas por formación: [portero, defensa, medio, ...ataque]
-const formationRows: Record<string, number[]> = {
-  '4-4-2': [1, 4, 4, 2],
-  '4-3-3': [1, 4, 3, 3],
-  '4-2-3-1': [1, 4, 2, 3, 1],
-  '4-5-1': [1, 4, 5, 1],
-  '3-5-2': [1, 3, 5, 2],
-  '3-4-3': [1, 3, 4, 3],
-  '5-3-2': [1, 5, 3, 2],
-  '5-4-1': [1, 5, 4, 1],
+/**
+ * Línea táctica de un jugador (0=portero … 3=delantero, 4=desconocida).
+ * El upstream trae `position` en español ("Portero", "Defensor",
+ * "Mediocampista", "Delantero") pero se aceptan variantes EN por robustez.
+ * -1 = no-jugador (DT, staff): se excluye del once.
+ */
+export function playerLine(position: string | null | undefined): number {
+  const p = (position || '').toLowerCase()
+  if (!p) return 4
+  if (/direc|entrenador|t[eé]cnico|coach|manager|staff|fisio|m[eé]dico|utilero|preparador/.test(p)) return -1
+  if (/porter|goalkeeper|arquero|golero/.test(p)) return 0
+  if (/defens|zaguero|lateral|central|carrilero|full[\s-]?back|centre[\s-]?back|defender/.test(p)) return 1
+  if (/mediocamp|centrocamp|midfield|pivote|volante|interior/.test(p)) return 2
+  if (/delanter|atacant|forward|striker|extremo|winger|ariete/.test(p)) return 3
+  return 4
+}
+
+/**
+ * Parsea '4-2-3-1' → [1,4,2,3,1] (portero + líneas). Fallback 4-4-2 si la
+ * formación no parsea o no suma un once válido (10-12 incl. portero).
+ */
+export function parseFormation(formation: string): number[] {
+  const fallback = [1, 4, 4, 2]
+  const parts = (formation || '').split('-').map((s) => parseInt(s.trim(), 10))
+  if (parts.length < 3 || parts.some((n) => !Number.isFinite(n) || n < 1 || n > 6)) {
+    return fallback
+  }
+  const rows = [1, ...parts]
+  const total = rows.reduce((a, b) => a + b, 0)
+  if (total < 10 || total > 12) return fallback
+  return rows
+}
+
+/**
+ * Ordena el once por línea (portero primero) y rating desc dentro de cada
+ * línea. El upstream NO viene ordenado posicionalmente, así que repartir
+ * el array crudo por filas ponía a cualquiera en cualquier lado.
+ */
+export function orderPlayersByLine<T extends { position?: string | null; rating?: number | null }>(
+  players: T[]
+): T[] {
+  return [...players]
+    .filter((p) => playerLine(p.position) !== -1)
+    .sort((a, b) => {
+      const lineDiff = playerLine(a.position) - playerLine(b.position)
+      if (lineDiff !== 0) return lineDiff
+      return (b.rating ?? -1) - (a.rating ?? -1)
+    })
 }
 
 function PlayerAvatar({ name, photoUrl }: { name: string; photoUrl?: string }) {
@@ -66,12 +104,14 @@ function PitchLines() {
 export function TeamOfWeekPitch({ formation, players }: TeamOfWeekPitchProps) {
   if (players.length === 0) return null
 
-  const rows = formationRows[formation] || formationRows['4-4-2']
+  const ordered = orderPlayersByLine(players)
+  if (ordered.length === 0) return null
+  const rows = parseFormation(formation)
   // Offset de inicio de cada fila (suma de las anteriores) — sin mutar
   // variables en render (regla react-hooks/purity).
   const starts = rows.map((_, i) => rows.slice(0, i).reduce((a, b) => a + b, 0))
   const rowNodes = rows.map((count, rowIndex) => {
-    const rowPlayers = players.slice(starts[rowIndex], starts[rowIndex] + count)
+    const rowPlayers = ordered.slice(starts[rowIndex], starts[rowIndex] + count)
     return (
       <div key={rowIndex} className="flex items-center justify-around px-2">
         {rowPlayers.map((p, i) => (
