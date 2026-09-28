@@ -15,7 +15,7 @@ export function Ratings({ ratings, hideTitle }: RatingsProps) {
     <div>
       {!hideTitle && (
         <h3 className="font-body text-text-muted mb-2 flex items-center gap-1.5 text-xs font-semibold tracking-wider uppercase">
-          <span>⭐</span> Valoraciones
+          Valoraciones
         </h3>
       )}
       <div className="space-y-0.5">

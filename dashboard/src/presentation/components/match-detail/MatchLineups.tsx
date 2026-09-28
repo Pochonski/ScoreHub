@@ -13,7 +13,7 @@ const PlayerPhoto = memo(function PlayerPhoto({ src, alt }: { src: string; alt: 
   if (error || !src) {
     return (
       <div className="flex h-8 w-8 items-center justify-center rounded-full bg-bg-elevated">
-        <span className="text-[10px] text-text-dim">{alt.charAt(0)}</span>
+        <span className="text-[11px] sm:text-[10px] text-text-dim">{alt.charAt(0)}</span>
       </div>
     )
   }
@@ -58,7 +58,7 @@ function LineupSide({
 
       {subs.length > 0 && (
         <>
-          <p className="mt-3 mb-1.5 text-[10px] uppercase tracking-wider text-text-dim">Suplentes</p>
+          <p className="mt-3 mb-1.5 text-[11px] sm:text-[10px] uppercase tracking-wider text-text-dim">Suplentes</p>
           <ul className="space-y-1">
             {subs.map((m, i) => (
               <LineupMemberRow key={`b-${i}`} member={m} compact />
@@ -74,13 +74,13 @@ function LineupMemberRow({ member, compact = false }: { member: LineupMember; co
   return (
     <li className={`flex items-center gap-2 ${compact ? 'text-[11px]' : 'text-xs'}`}>
       {member.shirtNumber != null && (
-        <span className="w-5 shrink-0 text-right font-mono text-[10px] text-text-dim">{member.shirtNumber}</span>
+        <span className="w-5 shrink-0 text-right font-mono text-[11px] sm:text-[10px] text-text-dim">{member.shirtNumber}</span>
       )}
       {!compact && <PlayerPhoto src={member.photoUrl ?? ''} alt={member.name} />}
       <span className="truncate text-text-muted">{member.name}</span>
-      {member.position && <span className="ml-auto shrink-0 text-[10px] text-text-dim">{member.position}</span>}
+      {member.position && <span className="ml-auto shrink-0 text-[11px] sm:text-[10px] text-text-dim">{member.position}</span>}
       {member.rating != null && !compact && (
-        <span className="shrink-0 font-mono text-[10px] text-accent-gold">{Number(member.rating).toFixed(1)}</span>
+        <span className="shrink-0 font-mono text-[11px] sm:text-[10px] text-accent-gold">{Number(member.rating).toFixed(1)}</span>
       )}
     </li>
   )

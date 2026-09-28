@@ -170,7 +170,7 @@ function SeasonSelector({
               }`}
             >
               <span>Temporada actual</span>
-              <span className="text-text-dim font-mono text-[10px]">#{activeSeasonNum}</span>
+              <span className="text-text-dim font-mono text-[11px] sm:text-[10px]">#{activeSeasonNum}</span>
             </button>
           </li>
           {allSeasons.length > 0 && (
@@ -194,7 +194,7 @@ function SeasonSelector({
                   }`}
                 >
                   <span>Temporada #{s}</span>
-                  <span className="text-text-dim font-mono text-[10px]">
+                  <span className="text-text-dim font-mono text-[11px] sm:text-[10px]">
                     {seasons.find(x => x.seasonNum === s)?.seasonName || ''}
                   </span>
                 </button>

@@ -99,7 +99,7 @@ export function FeaturedHero({ game, competitionName }: FeaturedHeroProps) {
             {[competitionName, game.stageName || game.stage].filter(Boolean).join(' · ') || 'Partido'}
           </span>
           <span
-            className={`font-body shrink-0 rounded-full px-2.5 py-0.5 text-[10px] font-semibold tracking-wider uppercase ${
+            className={`font-body shrink-0 rounded-full px-2.5 py-0.5 text-[11px] sm:text-[10px] font-semibold tracking-wider uppercase ${
               isLive
                 ? 'bg-accent-live/15 text-accent-live'
                 : isFinished
@@ -120,7 +120,7 @@ export function FeaturedHero({ game, competitionName }: FeaturedHeroProps) {
             {isUpcoming ? (
               countdown ? (
                 <>
-                  <span className="text-text-dim font-body text-[10px] font-semibold tracking-wider uppercase">
+                  <span className="text-text-dim font-body text-[11px] sm:text-[10px] font-semibold tracking-wider uppercase">
                     Comienza en
                   </span>
                   <div className="font-display text-accent-gold text-3xl font-bold tabular-nums tracking-tight sm:text-4xl">

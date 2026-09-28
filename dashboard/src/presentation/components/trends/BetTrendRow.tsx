@@ -46,7 +46,7 @@ export const BetTrendRow = memo(function BetTrendRow({ trend }: { trend: Trend }
         <div className="flex items-center gap-2">
           {category && (
             <span
-              className={`font-body shrink-0 rounded-full px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wider ${t.chip}`}
+              className={`font-body shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wider ${t.chip}`}
             >
               {category}
             </span>

@@ -17,7 +17,10 @@ export const StatRow = memo(function StatRow({ entry, maxValue, position }: Stat
       className="group hover:bg-bg-elevated/50 -mx-2 flex min-h-[44px] cursor-pointer items-center gap-3 rounded-lg px-2 py-2.5 transition-colors"
       onClick={() => navigate(`/player/${entry.athleteId}`)}
       onKeyDown={(e) => {
-        if (e.key === 'Enter') navigate(`/player/${entry.athleteId}`)
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault()
+          navigate(`/player/${entry.athleteId}`)
+        }
       }}
       tabIndex={0}
       role="button"

@@ -33,7 +33,7 @@ function AccordionSection({
         className="hover:bg-bg-elevated/20 focus-visible flex w-full items-center justify-between px-5 py-4 text-left transition-colors"
         aria-expanded={open}
       >
-        <span className="font-body text-text-dim text-[10px] tracking-wider uppercase">{title}</span>
+        <span className="font-body text-text-dim text-[11px] sm:text-[10px] tracking-wider uppercase">{title}</span>
         <span
           className={`text-text-dim shrink-0 transition-transform duration-200 ${open ? 'rotate-180' : ''}`}
         >
@@ -167,17 +167,17 @@ export function HistoryEditionPage() {
                   {side.players.map((p, i) => (
                     <li key={i} className="font-body text-text-muted flex items-center gap-2 text-xs">
                       {p.shirtNumber != null && (
-                        <span className="text-text-dim w-5 shrink-0 text-right font-mono text-[10px]">
+                        <span className="text-text-dim w-5 shrink-0 text-right font-mono text-[11px] sm:text-[10px]">
                           {p.shirtNumber}
                         </span>
                       )}
                       <span className="truncate">{p.name}</span>
-                      {p.isCaptain && <span className="text-accent-gold shrink-0 text-[10px]">(C)</span>}
+                      {p.isCaptain && <span className="text-accent-gold shrink-0 text-[11px] sm:text-[10px]">(C)</span>}
                     </li>
                   ))}
                 </ul>
                 {side.coach && (
-                  <p className="font-body text-text-dim border-border-card/30 mt-3 border-t pt-3 text-[10px]">
+                  <p className="font-body text-text-dim border-border-card/30 mt-3 border-t pt-3 text-[11px] sm:text-[10px]">
                     Entrenador: {side.coach}
                   </p>
                 )}

@@ -30,9 +30,9 @@ export function AccordionSection({
         className="hover:bg-bg-elevated/30 focus-visible flex w-full items-center gap-2 px-5 py-4 text-left transition-colors"
       >
         {icon && <span aria-hidden="true">{icon}</span>}
-        <span className="font-body text-text-dim flex-1 text-[10px] tracking-wider uppercase">{title}</span>
+        <span className="font-body text-text-dim flex-1 text-[11px] sm:text-[10px] tracking-wider uppercase">{title}</span>
         {badge != null && (
-          <span className="text-text-dim bg-bg-elevated rounded px-1.5 py-0.5 font-mono text-[10px]">
+          <span className="text-text-dim bg-bg-elevated rounded px-1.5 py-0.5 font-mono text-[11px] sm:text-[10px]">
             {badge}
           </span>
         )}

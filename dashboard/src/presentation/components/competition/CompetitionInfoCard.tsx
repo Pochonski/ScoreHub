@@ -73,7 +73,7 @@ export function CompetitionInfoCard({ competitionId: propId, compact = false }: 
       <div className="p-5 sm:p-6">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="min-w-0 flex-1">
-            <p className="font-body text-text-dim mb-1 text-[10px] font-medium tracking-[0.2em] uppercase">
+            <p className="font-body text-text-dim mb-1 text-[11px] sm:text-[10px] font-medium tracking-[0.2em] uppercase">
               Competición activa
             </p>
             <h1 className="font-display text-text-primary truncate text-2xl font-bold tracking-wide sm:text-3xl">

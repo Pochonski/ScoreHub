@@ -144,7 +144,7 @@ export function PlayerProfile({ athlete, career, trophies, transfers, partialDat
                     }}
                   />
                 ) : (
-                  <span className="bg-bg-elevated font-body text-text-dim flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px]">
+                  <span className="bg-bg-elevated font-body text-text-dim flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[11px] sm:text-[10px]">
                     {s.team.charAt(0)}
                   </span>
                 )}
@@ -246,7 +246,7 @@ export function PlayerProfile({ athlete, career, trophies, transfers, partialDat
                         }}
                       />
                     ) : t.competitorName ? (
-                      <span className="bg-bg-elevated font-body text-text-dim flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px]">
+                      <span className="bg-bg-elevated font-body text-text-dim flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[11px] sm:text-[10px]">
                         {t.competitorName.charAt(0)}
                       </span>
                     ) : null}

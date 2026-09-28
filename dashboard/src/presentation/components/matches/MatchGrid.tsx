@@ -103,7 +103,7 @@ export function MatchGrid({
           <div className="mb-5">
             <div className="mb-2 flex items-center gap-3">
               <div className="via-border-card h-px flex-1 bg-gradient-to-r from-transparent to-transparent" />
-              <span className="text-text-dim font-mono text-[10px] tracking-[0.2em] uppercase">
+              <span className="text-text-dim font-mono text-[11px] sm:text-[10px] tracking-[0.2em] uppercase">
                 {group.labelUpper}
               </span>
               <div className="via-border-card h-px flex-1 bg-gradient-to-r from-transparent to-transparent" />

@@ -316,8 +316,8 @@ export function DashboardPage() {
 
       {liveGames.length > 0 && (
         <div className="mt-1 flex justify-end px-4 lg:px-0" aria-live="polite" aria-atomic="true" role="status">
-          <span className="text-text-dim flex items-center gap-1.5 font-mono text-[10px]">
-            <span className="bg-accent-live/60 h-1.5 w-1.5 animate-pulse rounded-full" />
+          <span className="text-text-dim flex items-center gap-1.5 font-mono text-[11px]">
+            <span className="bg-accent-live/60 h-1.5 w-1.5 animate-pulse rounded-full" aria-hidden="true" />
             Actualizando cada 30s
           </span>
         </div>
@@ -345,7 +345,7 @@ export function DashboardPage() {
 
       {liveError && (
         <div className="mt-2 px-4 lg:px-0">
-          <p className="text-accent-red font-mono text-[10px]">{liveError}</p>
+          <p className="text-accent-red font-mono text-[11px]">{liveError}</p>
         </div>
       )}
 
@@ -466,7 +466,22 @@ export function DashboardPage() {
           <div className="bg-bg-card border-border-card rounded-2xl border p-4">
             <div className="mb-3 flex items-center justify-between gap-2">
               <h2 className="font-display text-text-primary flex items-center gap-1.5 text-lg font-semibold">
-                <span className="text-base">🏆</span> Equipo de la jornada
+                <svg
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="text-accent-gold"
+                  aria-hidden="true"
+                >
+                  <path d="M8 21h8M12 17v4M7 4h10v6a5 5 0 0 1-10 0V4Z" />
+                  <path d="M7 6H4a2 2 0 0 0 2 4h1M17 6h3a2 2 0 0 1-2 4h-1" />
+                </svg>
+                Equipo de la jornada
               </h2>
               <span className="bg-bg-elevated text-text-muted font-mono rounded-full px-2 py-0.5 text-[11px] tracking-wider">
                 {teamOfWeek.formation}

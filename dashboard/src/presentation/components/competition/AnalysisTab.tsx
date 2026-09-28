@@ -86,7 +86,7 @@ function MatchTipCard({ game, tips }: { game: Game; tips: BettingTip | null }) {
             ) : (
               <div className="font-display text-text-dim text-sm font-bold">VS</div>
             )}
-            <div className="font-mono text-text-dim mt-0.5 text-[9px] leading-tight">
+            <div className="font-mono text-text-dim mt-0.5 text-[11px] sm:text-[9px] leading-tight">
               {isLive ? (
                 <span className="text-accent-green">● {game.statusText || 'En vivo'}</span>
               ) : isUpcoming ? (
@@ -111,7 +111,7 @@ function MatchTipCard({ game, tips }: { game: Game; tips: BettingTip | null }) {
         {topTips.length > 0 ? (
           <>
             <div className="mb-2 flex items-center justify-between px-1">
-              <span className="font-body text-text-muted text-[10px] font-semibold uppercase tracking-wider">
+              <span className="font-body text-text-muted text-[11px] sm:text-[10px] font-semibold uppercase tracking-wider">
                 Tips del partido
               </span>
               <span className="font-mono text-accent-gold text-[11px]">{confidence}% confianza</span>

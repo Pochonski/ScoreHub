@@ -111,11 +111,11 @@ export function BracketTree() {
                                 {game.score.home}–{game.score.away}
                               </span>
                             ) : game.startTime ? (
-                              <span className="text-text-dim block font-mono text-[10px] leading-tight">
+                              <span className="text-text-dim block font-mono text-[11px] sm:text-[10px] leading-tight">
                                 {formatTime(game.startTime)}
                               </span>
                             ) : (
-                              <span className="text-text-dim font-mono text-[10px]">VS</span>
+                              <span className="text-text-dim font-mono text-[11px] sm:text-[10px]">VS</span>
                             )}
                           </div>
                           <div className="flex min-w-0 flex-1 items-center justify-end gap-1.5">

@@ -55,7 +55,7 @@ export function TeamOfWeek({ formation, players }: TeamOfWeekProps) {
   return (
     <div>
       <h3 className="font-body text-text-muted mb-3 flex items-center gap-1.5 text-xs font-semibold tracking-wider uppercase">
-        <span>🏆</span> Once Ideal · {formation}
+        Once Ideal · {formation}
       </h3>
       <div className="bg-bg-elevated/40 space-y-2 rounded-xl p-4">
         {rowLayout.map((count, rowIndex) => (
@@ -69,11 +69,11 @@ export function TeamOfWeek({ formation, players }: TeamOfWeekProps) {
                   <div className="bg-bg-card border-border-card h-8 w-8 overflow-hidden rounded-full border">
                     <PlayerAvatar name={player.name} photoUrl={player.photoUrl} />
                   </div>
-                  <span className="font-body text-text-primary w-full truncate text-center text-[10px] leading-tight">
+                  <span className="font-body text-text-primary w-full truncate text-center text-[11px] sm:text-[10px] leading-tight">
                     {player.name}
                   </span>
                   {player.rating != null && (
-                    <span className="text-accent-gold font-mono text-[10px]">{player.rating.toFixed(1)}</span>
+                    <span className="text-accent-gold font-mono text-[11px] sm:text-[10px]">{player.rating.toFixed(1)}</span>
                   )}
                 </div>
               )

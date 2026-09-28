@@ -35,7 +35,7 @@ function TeamCrestSmall({ src, name }: { src?: string; name: string }) {
   const [failed, setFailed] = useState(false)
   if (!src || failed) {
     return (
-      <span className="bg-bg-elevated text-text-muted flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[10px] font-bold">
+      <span className="bg-bg-elevated text-text-muted flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[11px] sm:text-[10px] font-bold">
         {name.charAt(0)}
       </span>
     )
@@ -60,7 +60,7 @@ function StatCell({
 }) {
   return (
     <div className="min-w-0">
-      <p className="font-body text-text-dim text-[10px] font-semibold uppercase tracking-wider">{label}</p>
+      <p className="font-body text-text-dim text-[11px] sm:text-[10px] font-semibold uppercase tracking-wider">{label}</p>
       <div className="mt-1 flex items-center gap-2">
         {media}
         <div className="min-w-0">
@@ -131,7 +131,7 @@ export function CompetitionHero({
                 </>
               )}
               {formatLabel && (
-                <span className="bg-accent-gold/10 text-accent-gold ml-1 rounded-full px-2 py-0.5 text-[10px] font-semibold tracking-wider uppercase">
+                <span className="bg-accent-gold/10 text-accent-gold ml-1 rounded-full px-2 py-0.5 text-[11px] sm:text-[10px] font-semibold tracking-wider uppercase">
                   {formatLabel}
                 </span>
               )}

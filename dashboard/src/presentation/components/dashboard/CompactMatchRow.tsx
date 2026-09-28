@@ -32,12 +32,12 @@ export const CompactMatchRow = memo(function CompactMatchRow({ game, onSelect }:
         {isLive ? (
           <>
             <span className="bg-accent-live live-pulse mb-0.5 h-1.5 w-1.5 rounded-full" />
-            <span className="text-accent-live font-mono text-[10px] font-bold leading-none">
+            <span className="text-accent-live font-mono text-[11px] sm:text-[10px] font-bold leading-none">
               {game.minute != null ? `${game.minute}'` : 'EN VIVO'}
             </span>
           </>
         ) : isFinished ? (
-          <span className="text-text-dim font-body text-[10px] font-semibold uppercase leading-tight">
+          <span className="text-text-dim font-body text-[11px] sm:text-[10px] font-semibold uppercase leading-tight">
             Fin
           </span>
         ) : (

@@ -212,7 +212,7 @@ export function LeaguesRail({
                     {comp.shortName || comp.displayName}
                   </span>
                   {comp.countryName && (
-                    <span className="text-text-dim shrink-0 font-mono text-[10px] uppercase">
+                    <span className="text-text-dim shrink-0 font-mono text-[11px] sm:text-[10px] uppercase">
                       {comp.countryName}
                     </span>
                   )}

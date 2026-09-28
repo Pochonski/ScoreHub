@@ -25,7 +25,6 @@ export function StandingsRail({ competitionId, seasonNum }: StandingsRailProps) 
 
   return (
     <CollapsibleSection
-      icon="🏆"
       storageKey="rail:standings"
       title={
         <>
@@ -51,7 +50,7 @@ export function StandingsRail({ competitionId, seasonNum }: StandingsRailProps) 
       ) : (
         <div className="px-1 py-1.5">
           {/* Encabezado de columnas */}
-          <div className="text-text-dim font-mono grid grid-cols-[1.25rem_1fr_1.5rem_1.75rem] items-center gap-2 px-2 py-1 text-[10px] uppercase">
+          <div className="text-text-dim font-mono grid grid-cols-[1.25rem_1fr_1.5rem_1.75rem] items-center gap-2 px-2 py-1 text-[11px] sm:text-[10px] uppercase">
             <span className="text-center">#</span>
             <span>Equipo</span>
             <span className="text-center">PJ</span>

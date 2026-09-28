@@ -34,9 +34,9 @@ export function BettingTrends({ trends, limit = 8 }: BettingTrendsProps) {
   return (
     <>
       <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-        {rows.map((t, i) => (
+        {rows.map((t) => (
           <button
-            key={i}
+            key={`${t.betCTA || t.text}-${t.percentage}`}
             type="button"
             onClick={() => setSelected(t)}
             className="focus-visible hover:ring-border-card block rounded-xl text-left transition hover:ring-1"
@@ -46,7 +46,7 @@ export function BettingTrends({ trends, limit = 8 }: BettingTrendsProps) {
           </button>
         ))}
       </div>
-      <p className="font-body text-text-dim mt-2 text-center text-[10px]">
+      <p className="font-body text-text-dim mt-2 text-center text-[11px]">
         Toca una tendencia para ver los partidos que la soportan
       </p>
       <TrendDetailModal trend={selected} onClose={() => setSelected(null)} />

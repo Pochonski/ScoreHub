@@ -58,7 +58,7 @@ export function CompeticionesPage() {
                 </p>
               </div>
               {c.isFeatured && (
-                <span className="bg-accent-gold/10 text-accent-gold font-body shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider">
+                <span className="bg-accent-gold/10 text-accent-gold font-body shrink-0 rounded-full px-2 py-0.5 text-[11px] sm:text-[10px] font-semibold uppercase tracking-wider">
                   Destacada
                 </span>
               )}

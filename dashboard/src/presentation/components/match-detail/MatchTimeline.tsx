@@ -10,13 +10,42 @@ interface MatchTimelineProps {
 function EventIcon({ type }: { type: MatchEvent['type'] }) {
   switch (type) {
     case 'goal':
-      return <span className="text-base" aria-hidden>⚽</span>
+      return (
+        <svg
+          width="16"
+          height="16"
+          viewBox="0 0 16 16"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.5"
+          className="text-text-primary"
+          aria-hidden="true"
+        >
+          <circle cx="8" cy="8" r="6.5" />
+          <path d="M8 4.5 10.8 6.5 9.7 9.8H6.3L5.2 6.5Z" strokeLinejoin="round" />
+        </svg>
+      )
     case 'yellow_card':
       return <span className="inline-block h-3.5 w-2.5 rounded-sm bg-yellow-400" aria-label="Tarjeta amarilla" />
     case 'red_card':
       return <span className="inline-block h-3.5 w-2.5 rounded-sm bg-red-500" aria-label="Tarjeta roja" />
     case 'substitution':
-      return <span className="text-sm" aria-hidden>🔁</span>
+      return (
+        <svg
+          width="16"
+          height="16"
+          viewBox="0 0 16 16"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          className="text-text-muted"
+          aria-hidden="true"
+        >
+          <path d="M2 5.5h8M7.5 3 10 5.5 7.5 8M14 10.5H6M8.5 8l-2.5 2.5L8.5 13" />
+        </svg>
+      )
     default:
       return null
   }

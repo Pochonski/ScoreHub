@@ -6,12 +6,12 @@ import { Ratings } from '@/presentation/components/stats/Ratings'
 import { TeamOfWeekPitch } from '@/presentation/components/stats/TeamOfWeekPitch'
 import type { TeamOfWeekPlayer } from '@/presentation/components/stats/TeamOfWeek'
 
-function StatCard({ icon, title, children }: { icon: string; title: string; children: ReactNode }) {
+function StatCard({ title, children }: { title: string; children: ReactNode }) {
   return (
     <div className="bg-bg-card border-border-card overflow-hidden rounded-2xl border">
       <div className="border-border-card border-b px-4 py-3">
         <h3 className="font-body text-text-muted flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider">
-          <span aria-hidden="true">{icon}</span> {title}
+          {title}
         </h3>
       </div>
       <div className="px-2 py-2">{children}</div>
@@ -32,13 +32,13 @@ export function StatsTab({ competitionId, seasonNum }: { competitionId?: number;
     )
   }
 
-  const lists: { icon: string; title: string; node: ReactNode }[] = []
+  const lists: { title: string; node: ReactNode }[] = []
   if (scorers.length > 0)
-    lists.push({ icon: '⚽', title: 'Goleadores', node: <TopScorers scorers={scorers} hideTitle /> })
+    lists.push({ title: 'Goleadores', node: <TopScorers scorers={scorers} hideTitle /> })
   if (assists.length > 0)
-    lists.push({ icon: '🅰️', title: 'Asistencias', node: <Assists assists={assists} hideTitle /> })
+    lists.push({ title: 'Asistencias', node: <Assists assists={assists} hideTitle /> })
   if (ratings.length > 0)
-    lists.push({ icon: '⭐', title: 'Valoraciones', node: <Ratings ratings={ratings} hideTitle /> })
+    lists.push({ title: 'Valoraciones', node: <Ratings ratings={ratings} hideTitle /> })
 
   const hasTeamOfWeek = !!teamOfWeek && teamOfWeek.players.length > 0
 
@@ -59,7 +59,7 @@ export function StatsTab({ competitionId, seasonNum }: { competitionId?: number;
       {lists.length > 0 && (
         <div className={`grid grid-cols-1 gap-4 ${gridCols}`}>
           {lists.map((l) => (
-            <StatCard key={l.title} icon={l.icon} title={l.title}>
+            <StatCard key={l.title} title={l.title}>
               {l.node}
             </StatCard>
           ))}
@@ -70,7 +70,7 @@ export function StatsTab({ competitionId, seasonNum }: { competitionId?: number;
         <div className="bg-bg-card border-border-card rounded-2xl border p-5">
           <div className="mb-3 flex items-center justify-between gap-2">
             <h3 className="font-body text-text-muted flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider">
-              <span aria-hidden="true">🏆</span> Once Ideal
+              Once Ideal
             </h3>
             <span className="bg-bg-elevated text-text-muted font-mono rounded-full px-2 py-0.5 text-[11px] tracking-wider">
               {teamOfWeek.formation}

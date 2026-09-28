@@ -27,7 +27,7 @@ export const MatchNews = memo(function MatchNews({ news }: MatchNewsProps) {
   return (
     <div className="bg-bg-card border-border-card overflow-hidden rounded-xl border">
       <div className="border-border-card/50 border-b px-5 py-4">
-        <h3 className="font-body text-text-dim text-[10px] tracking-wider uppercase">Noticias</h3>
+        <h3 className="font-body text-text-dim text-[11px] sm:text-[10px] tracking-wider uppercase">Noticias</h3>
       </div>
       <div className="space-y-3 p-5">
         {news.slice(0, 5).map((article, i) => (
@@ -40,7 +40,7 @@ export const MatchNews = memo(function MatchNews({ news }: MatchNewsProps) {
                 <p className="font-body text-text-primary group-hover:text-accent-blue line-clamp-2 text-sm font-medium transition-colors">
                   {article.title}
                 </p>
-                <p className="font-body text-text-dim mt-1 text-[10px]">{formatDate(article.publishDate)}</p>
+                <p className="font-body text-text-dim mt-1 text-[11px] sm:text-[10px]">{formatDate(article.publishDate)}</p>
               </div>
             </div>
           </a>

@@ -50,13 +50,13 @@ export function TeamCard({ team, matches = [] }: TeamCardProps) {
 
           {nextMatch && (
             <div className="border-border-card border-t pt-2">
-              <span className="font-body text-text-dim text-[10px] tracking-wider uppercase">
+              <span className="font-body text-text-dim text-[11px] sm:text-[10px] tracking-wider uppercase">
                 Próximo partido
               </span>
               <p className="font-body text-text-primary mt-0.5 text-xs">
                 {nextMatch.homeTeam.name} vs {nextMatch.awayTeam.name}
               </p>
-              <p className="text-text-dim font-mono text-[10px]">
+              <p className="text-text-dim font-mono text-[11px] sm:text-[10px]">
                 {new Date(nextMatch.startTime).toLocaleDateString('es-ES', {
                   day: 'numeric',
                   month: 'short',

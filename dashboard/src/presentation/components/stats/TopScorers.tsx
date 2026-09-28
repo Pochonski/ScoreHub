@@ -15,7 +15,7 @@ export function TopScorers({ scorers, hideTitle }: TopScorersProps) {
     <div>
       {!hideTitle && (
         <h3 className="font-body text-text-muted mb-2 flex items-center gap-1.5 text-xs font-semibold tracking-wider uppercase">
-          <span>⚽</span> Goleadores
+          Goleadores
         </h3>
       )}
       <div className="space-y-0.5">

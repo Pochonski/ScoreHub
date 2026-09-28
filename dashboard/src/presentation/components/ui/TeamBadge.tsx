@@ -31,7 +31,7 @@ export const TeamBadge = memo(function TeamBadge({ src, name = '', size = 'md' }
           loading="lazy"
         />
       ) : (
-        <span className={`font-display text-text-muted font-bold ${size === 'xs' ? 'text-[10px]' : 'text-lg'}`}>
+        <span className={`font-display text-text-muted font-bold ${size === 'xs' ? 'text-[11px] sm:text-[10px]' : 'text-lg'}`}>
           {initial}
         </span>
       )}

@@ -146,12 +146,12 @@ export function PlayerNode({
           <PlayerAvatar name={player.name} photoUrl={player.photoUrl} />
         </div>
         {player.rating != null && (
-          <span className="bg-accent-gold text-bg-base font-display absolute -right-1 -bottom-1 rounded-full px-1 text-[10px] font-bold shadow">
+          <span className="bg-accent-gold text-bg-base font-display absolute -right-1 -bottom-1 rounded-full px-1 text-[11px] sm:text-[10px] font-bold shadow">
             {player.rating.toFixed(1)}
           </span>
         )}
       </div>
-      <span className="max-w-full truncate rounded bg-black/40 px-1 text-center text-[10px] leading-tight font-medium text-white">
+      <span className="max-w-full truncate rounded bg-black/40 px-1 text-center text-[11px] sm:text-[10px] leading-tight font-medium text-white">
         {player.name}
       </span>
     </div>

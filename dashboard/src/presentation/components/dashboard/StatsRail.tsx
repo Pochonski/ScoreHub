@@ -39,7 +39,7 @@ export function StatsRail({ competitionId, seasonNum }: StatsRailProps) {
 
   return (
     <>
-      <CollapsibleSection icon="⚽" title="Goleadores" storageKey="rail:scorers" action={moreLink}>
+      <CollapsibleSection title="Goleadores" storageKey="rail:scorers" action={moreLink}>
         <div className="px-2 py-2">
           {loading ? (
             <RowsSkeleton n={6} />
@@ -57,7 +57,6 @@ export function StatsRail({ competitionId, seasonNum }: StatsRailProps) {
           (muchas ligas —ej. Promerica— no los publican en la fuente). */}
       {assists.length > 0 && (
         <CollapsibleSection
-          icon="🅰️"
           title="Asistencias"
           storageKey="rail:assists"
           defaultOpen={false}
@@ -71,7 +70,6 @@ export function StatsRail({ competitionId, seasonNum }: StatsRailProps) {
 
       {ratings.length > 0 && (
         <CollapsibleSection
-          icon="⭐"
           title="Valoraciones"
           storageKey="rail:ratings"
           defaultOpen={false}

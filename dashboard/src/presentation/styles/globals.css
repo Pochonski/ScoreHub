@@ -1,5 +1,12 @@
 @import 'tailwindcss';
 
+/* Focus-not-obscured (WCAG 2.2 AA): el navbar fijo es h-14, el hero compacto
+   fijo es top-14. El scroll-padding evita que el foco de teclado / skip-link
+   quede oculto tras ellos. */
+html {
+  scroll-padding-top: 3.5rem;
+}
+
 @theme {
   --color-bg-base: #070b15;
   --color-bg-card: #111b2e;

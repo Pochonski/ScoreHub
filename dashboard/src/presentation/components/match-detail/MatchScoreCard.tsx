@@ -46,7 +46,7 @@ export const MatchScoreCard = memo(function MatchScoreCard({ game }: MatchScoreC
               <span className="font-body text-accent-live text-xs">{game.statusText}</span>
             )}
             {isFinished && (
-              <span className="font-body text-text-dim text-[10px] tracking-wider uppercase">Finalizado</span>
+              <span className="font-body text-text-dim text-[11px] sm:text-[10px] tracking-wider uppercase">Finalizado</span>
             )}
           </div>
 

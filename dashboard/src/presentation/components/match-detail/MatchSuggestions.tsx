@@ -13,7 +13,7 @@ export const MatchSuggestions = memo(function MatchSuggestions({ game, suggestio
   return (
     <div className="bg-bg-card border-border-card overflow-hidden rounded-xl border">
       <div className="border-border-card/50 border-b px-5 py-4">
-        <h3 className="font-body text-text-dim text-[10px] tracking-wider uppercase">Últimos Partidos</h3>
+        <h3 className="font-body text-text-dim text-[11px] sm:text-[10px] tracking-wider uppercase">Últimos Partidos</h3>
       </div>
       <div className="space-y-2 p-5">
         {suggestions.slice(0, 6).map((g, i) => {

@@ -9,7 +9,7 @@ import { useActiveCompetition } from '@/presentation/context/ActiveCompetitionCo
  *
  * Notas de diseño:
  * - h-16 (64px) + safe-area-inset-bottom para iOS.
- * - Cada ítem: ícono 24px + label text-[10px]; target total >= 48px.
+ * - Cada ítem: ícono 24px + label text-[11px]; target total >= 48px.
  * - Active state en accent-blue.
  * - 'Tabla' navega a la comp activa (ActiveCompetitionContext) si existe,
  *   o a /competiciones si no hay ninguna seleccionada.
@@ -129,7 +129,7 @@ export function BottomNav() {
                 >
                   {item.icon}
                 </svg>
-                <span className="font-body text-[10px] font-medium tracking-wide">
+                <span className="font-body text-[11px] font-medium tracking-wide">
                   {item.label}
                 </span>
               </button>

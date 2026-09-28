@@ -30,7 +30,22 @@ const NewsThumb = memo(function NewsThumb({ src }: { src?: string }) {
   if (!src || error) {
     return (
       <div className="bg-bg-elevated flex h-12 w-16 shrink-0 items-center justify-center rounded-lg" aria-hidden="true">
-        <span className="text-text-dim text-base">📰</span>
+        <svg
+          width="18"
+          height="18"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.8"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          className="text-text-dim"
+        >
+          <rect x="3" y="5" width="18" height="14" rx="2" />
+          <line x1="7" y1="9" x2="13" y2="9" />
+          <line x1="7" y1="13" x2="13" y2="13" />
+          <line x1="16" y1="9" x2="16" y2="13" />
+        </svg>
       </div>
     )
   }
@@ -54,7 +69,7 @@ function NewsRow({ item }: { item: News }) {
         <h3 className="font-body text-text-primary group-hover:text-accent-blue line-clamp-2 text-[13px] leading-snug font-medium transition-colors">
           {item.title}
         </h3>
-        <p className="text-text-dim mt-0.5 font-mono text-[10px]">{timeAgo(item.publishDate)}</p>
+        <p className="text-text-dim mt-0.5 font-mono text-[11px] sm:text-[10px]">{timeAgo(item.publishDate)}</p>
       </div>
     </a>
   )
@@ -67,7 +82,6 @@ export function NewsRail({ competitionId }: NewsRailProps) {
 
   return (
     <CollapsibleSection
-      icon="📰"
       title="Noticias"
       storageKey="rail:news"
       action={

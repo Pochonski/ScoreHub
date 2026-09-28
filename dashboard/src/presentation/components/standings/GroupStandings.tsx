@@ -115,7 +115,7 @@ export function GroupStandings({ groups, hideHeader }: GroupStandingsProps) {
                         </span>
                         {row.trend != null && row.trend !== 0 && (
                           <span
-                            className={`font-mono text-[10px] ${
+                            className={`font-mono text-[11px] sm:text-[10px] ${
                               row.trend > 0 ? 'text-accent-green' : 'text-accent-red'
                             }`}
                             title={`${row.trend > 0 ? '↑' : '↓'} ${Math.abs(row.trend)}`}
@@ -132,7 +132,7 @@ export function GroupStandings({ groups, hideHeader }: GroupStandingsProps) {
                           {row.team.name}
                           {row.hasPointsDeduction && (
                             <span
-                              className="font-body ml-1 text-[10px] text-accent-red"
+                              className="font-body ml-1 text-[11px] sm:text-[10px] text-accent-red"
                               title="Deducción de puntos"
                             >
                               *
@@ -203,7 +203,7 @@ export function GroupStandings({ groups, hideHeader }: GroupStandingsProps) {
                           <span className="font-body text-text-primary max-w-[80px] truncate text-xs">
                             {row.nextMatch.opponent?.name}
                           </span>
-                          <span className="text-text-dim font-mono text-[10px]">
+                          <span className="text-text-dim font-mono text-[11px] sm:text-[10px]">
                             {formatMatchTime(row.nextMatch.startTime)}
                           </span>
                         </button>

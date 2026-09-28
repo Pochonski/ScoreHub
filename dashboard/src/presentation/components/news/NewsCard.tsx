@@ -29,7 +29,22 @@ const NewsImage = memo(function NewsImage({ src, alt }: { src: string; alt: stri
   if (error) {
     return (
       <div className="bg-bg-elevated flex aspect-[16/9] items-center justify-center" aria-hidden="true">
-        <span className="font-display text-text-dim text-3xl">📰</span>
+        <svg
+          width="32"
+          height="32"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          className="text-text-dim"
+        >
+          <rect x="3" y="5" width="18" height="14" rx="2" />
+          <line x1="7" y1="9" x2="13" y2="9" />
+          <line x1="7" y1="13" x2="13" y2="13" />
+          <line x1="16" y1="9" x2="16" y2="13" />
+        </svg>
       </div>
     )
   }
@@ -57,10 +72,23 @@ export const NewsCard = memo(function NewsCard({ item }: NewsCardProps) {
       {item.image ? (
         <NewsImage src={proxyImageUrl(item.image) || item.image} alt={item.title} />
       ) : (
-        <div className="bg-bg-elevated flex aspect-[16/9] items-center justify-center">
-          <span role="img" aria-label="Noticia" className="font-display text-text-dim text-3xl">
-            📰
-          </span>
+        <div className="bg-bg-elevated flex aspect-[16/9] items-center justify-center" aria-hidden="true">
+          <svg
+            width="32"
+            height="32"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className="text-text-dim"
+          >
+            <rect x="3" y="5" width="18" height="14" rx="2" />
+            <line x1="7" y1="9" x2="13" y2="9" />
+            <line x1="7" y1="13" x2="13" y2="13" />
+            <line x1="16" y1="9" x2="16" y2="13" />
+          </svg>
         </div>
       )}
       <div className="p-3">

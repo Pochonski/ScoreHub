@@ -59,8 +59,8 @@ function AccordionCard({
               <span className="text-text-primary flex shrink-0 items-center gap-0.5 font-mono text-[11px] font-bold">
                 {scoreText}
                 {edition.penalties && (
-                  <span className="text-[10px]" title="Definido por penales">
-                    ⚽
+                  <span className="text-[11px] font-bold" title="Definido por penales">
+                    (P)
                   </span>
                 )}
               </span>
@@ -76,7 +76,7 @@ function AccordionCard({
               </>
             )}
             {isBackToBack && (
-              <span className="font-body text-accent-blue bg-accent-blue/10 shrink-0 rounded px-1.5 py-0.5 text-[9px] font-semibold">
+              <span className="font-body text-accent-blue bg-accent-blue/10 shrink-0 rounded px-1.5 py-0.5 text-[11px] sm:text-[9px] font-semibold">
                 Bicampeón
               </span>
             )}
@@ -103,19 +103,19 @@ function AccordionCard({
           <div className="border-border-card/50 space-y-3 border-t px-4 pt-3 pb-4">
             {edition.venue && (
               <div>
-                <p className="font-body text-text-dim mb-1 text-[10px] tracking-wider uppercase">Sede</p>
+                <p className="font-body text-text-dim mb-1 text-[11px] sm:text-[10px] tracking-wider uppercase">Sede</p>
                 <p className="font-body text-text-primary text-sm">{edition.venue}</p>
               </div>
             )}
             {edition.host && (
               <div>
-                <p className="font-body text-text-dim mb-1 text-[10px] tracking-wider uppercase">País</p>
+                <p className="font-body text-text-dim mb-1 text-[11px] sm:text-[10px] tracking-wider uppercase">País</p>
                 <p className="font-body text-text-primary text-sm">{edition.host}</p>
               </div>
             )}
             {edition.startTime && (
               <div>
-                <p className="font-body text-text-dim mb-1 text-[10px] tracking-wider uppercase">Partido</p>
+                <p className="font-body text-text-dim mb-1 text-[11px] sm:text-[10px] tracking-wider uppercase">Partido</p>
                 <p className="font-body text-text-primary text-sm">
                   {edition.champion?.name} {edition.homeScore ?? ''}—{edition.awayScore ?? ''}{' '}
                   {edition.runnerUp?.name}

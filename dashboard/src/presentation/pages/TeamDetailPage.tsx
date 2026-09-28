@@ -127,7 +127,7 @@ export function TeamDetailPage() {
                 </span>
               )}
               {info.popularityRank != null && (
-                <span className="font-mono text-[10px]">
+                <span className="font-mono text-[11px] sm:text-[10px]">
                   <span className="text-text-dim">·</span> rank {info.popularityRank}
                 </span>
               )}
@@ -138,7 +138,7 @@ export function TeamDetailPage() {
           <div className="flex items-center gap-3">
             <div className="text-center">
               <div className="font-display text-text-primary text-lg font-bold">{formStats.w + formStats.d + formStats.l}</div>
-              <div className="font-body text-text-dim text-[10px] uppercase tracking-wider">Últimos 5</div>
+              <div className="font-body text-text-dim text-[11px] sm:text-[10px] uppercase tracking-wider">Últimos 5</div>
             </div>
             <div className="flex items-center gap-1.5">
               {Array.from({ length: 5 }).map((_, i) => {
@@ -242,7 +242,7 @@ export function TeamDetailPage() {
                   <li key={t.id} className="flex items-center justify-between gap-3 px-3 py-2">
                     <div className="flex items-center gap-2">
                       <span
-                        className={`font-body shrink-0 rounded px-1.5 py-0.5 text-[9px] font-bold uppercase ${
+                        className={`font-body shrink-0 rounded px-1.5 py-0.5 text-[11px] sm:text-[9px] font-bold uppercase ${
                           isArrival
                             ? 'bg-accent-green/15 text-accent-green'
                             : 'bg-accent-red/15 text-accent-red'
@@ -254,7 +254,7 @@ export function TeamDetailPage() {
                         {t.athleteName || (t.data && typeof t.data === 'object' ? (t.data as Record<string, unknown>).athleteName as string : null) || `#${t.athleteId}`}
                       </span>
                     </div>
-                    <span className="font-mono text-[10px] text-text-dim">{formatDate(t.time ?? undefined)}</span>
+                    <span className="font-mono text-[11px] sm:text-[10px] text-text-dim">{formatDate(t.time ?? undefined)}</span>
                   </li>
                 )
               })}
@@ -274,7 +274,7 @@ function GameRow({ game, teamId, onClick }: { game: RawGame; teamId: number; onC
       className="bg-bg-card border-border-card hover:bg-bg-elevated/30 flex w-full items-center justify-between gap-3 rounded-xl border px-4 py-3 text-left transition-colors"
     >
       <div className="flex items-center gap-3">
-        <span className="font-body text-text-dim text-[10px] font-mono">{formatDate(game.startTime)}</span>
+        <span className="font-body text-text-dim text-[11px] sm:text-[10px] font-mono">{formatDate(game.startTime)}</span>
         <TeamBadge src={game.homeCompetitor?.badgeUrl ?? null} name={game.homeCompetitor?.name || '?'} size="sm" />
         <span className="font-body text-text-primary text-sm">{game.homeCompetitor?.name}</span>
         <span className="text-text-dim font-mono text-xs">vs</span>
@@ -282,7 +282,7 @@ function GameRow({ game, teamId, onClick }: { game: RawGame; teamId: number; onC
         <TeamBadge src={game.awayCompetitor?.badgeUrl ?? null} name={game.awayCompetitor?.name || '?'} size="sm" />
       </div>
       <span
-        className={`font-body shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider ${
+        className={`font-body shrink-0 rounded-full px-2 py-0.5 text-[11px] sm:text-[10px] font-medium uppercase tracking-wider ${
           game.homeCompetitor?.id === teamId || game.awayCompetitor?.id === teamId
             ? 'bg-accent-gold/15 text-accent-gold'
             : 'bg-bg-elevated text-text-muted'

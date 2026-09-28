@@ -20,7 +20,7 @@ export function ErrorState({ message, code, onRetry, onAction, actionLabel, full
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01" />
           </svg>
         </div>
-        <p className="font-body text-text-muted mb-1 text-sm">
+        <p className="font-body text-text-muted mb-1 text-sm" role="alert">
           {message || 'Ocurrió un error al cargar los datos'}
         </p>
         {code && <p className="text-text-dim mb-4 font-mono text-[11px]">{code}</p>}

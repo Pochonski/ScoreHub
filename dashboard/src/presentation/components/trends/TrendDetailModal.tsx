@@ -62,7 +62,7 @@ export function TrendDetailModal({ trend, onClose }: Props) {
       >
         <div className="border-border-card/50 flex items-start justify-between gap-3 border-b px-5 py-4">
           <div className="flex-1">
-            <p className="font-body text-accent-gold text-[10px] font-semibold tracking-wider uppercase">
+            <p className="font-body text-accent-gold text-[11px] sm:text-[10px] font-semibold tracking-wider uppercase">
               Tendencia #{trend.id}
             </p>
             <h2 className="font-display text-text-primary mt-1 text-lg font-bold leading-tight">
@@ -87,7 +87,7 @@ export function TrendDetailModal({ trend, onClose }: Props) {
           {/* Stats resumen */}
           <div className="bg-bg-elevated/30 flex items-center gap-4 rounded-lg p-3">
             <div>
-              <p className="font-body text-text-dim text-[10px] tracking-wider uppercase">
+              <p className="font-body text-text-dim text-[11px] sm:text-[10px] tracking-wider uppercase">
                 Confianza
               </p>
               <p className="font-display text-accent-gold text-2xl font-bold">
@@ -96,13 +96,13 @@ export function TrendDetailModal({ trend, onClose }: Props) {
             </div>
             <div className="bg-border-card h-10 w-px" />
             <div>
-              <p className="font-body text-text-dim text-[10px] tracking-wider uppercase">
+              <p className="font-body text-text-dim text-[11px] sm:text-[10px] tracking-wider uppercase">
                 Muestra
               </p>
               <p className="font-display text-text-primary text-2xl font-bold">
                 {evidence.length > 0 ? evidence.length : '—'}
               </p>
-              <p className="font-body text-text-muted text-[10px]">
+              <p className="font-body text-text-muted text-[11px] sm:text-[10px]">
                 {evidence.length > 0 ? 'partidos analizados' : 'cargando…'}
               </p>
             </div>
@@ -110,7 +110,7 @@ export function TrendDetailModal({ trend, onClose }: Props) {
               <>
                 <div className="bg-border-card h-10 w-px" />
                 <div>
-                  <p className="font-body text-text-dim text-[10px] tracking-wider uppercase">
+                  <p className="font-body text-text-dim text-[11px] sm:text-[10px] tracking-wider uppercase">
                     Outcome prom.
                   </p>
                   <p className="font-display text-text-primary text-2xl font-bold">{avgOutcome}</p>
@@ -122,14 +122,14 @@ export function TrendDetailModal({ trend, onClose }: Props) {
           {/* Causa */}
           {trend.cause && (
             <div>
-              <p className="font-body text-text-dim text-[10px] tracking-wider uppercase">Causa</p>
+              <p className="font-body text-text-dim text-[11px] sm:text-[10px] tracking-wider uppercase">Causa</p>
               <p className="font-body text-text-primary mt-1 text-sm">{trend.cause}</p>
             </div>
           )}
 
           {/* Juegos de soporte */}
           <div>
-            <p className="font-body text-text-dim mb-2 text-[10px] tracking-wider uppercase">
+            <p className="font-body text-text-dim mb-2 text-[11px] sm:text-[10px] tracking-wider uppercase">
               Partidos que soportan esta tendencia
             </p>
             {loading ? (
@@ -166,7 +166,7 @@ export function TrendDetailModal({ trend, onClose }: Props) {
                       <span className="font-body max-w-[80px] truncate">
                         {g.game.homeCompetitor?.name}
                       </span>
-                      <span className="text-text-dim font-mono text-[10px]">
+                      <span className="text-text-dim font-mono text-[11px] sm:text-[10px]">
                         {g.game.homeCompetitor?.score ?? 0}-
                         {g.game.awayCompetitor?.score ?? 0}
                       </span>
@@ -180,7 +180,7 @@ export function TrendDetailModal({ trend, onClose }: Props) {
                       />
                     </button>
                     <span
-                      className={`font-body shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${
+                      className={`font-body shrink-0 rounded-full px-2 py-0.5 text-[11px] sm:text-[10px] font-bold uppercase ${
                         g.outcome === 1 || g.outcome === 2
                           ? 'bg-accent-green/15 text-accent-green'
                           : g.outcome === 3

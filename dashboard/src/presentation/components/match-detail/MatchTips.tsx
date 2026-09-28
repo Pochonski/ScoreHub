@@ -11,7 +11,7 @@ export const MatchTips = memo(function MatchTips({ tips }: MatchTipsProps) {
   return (
     <div className="bg-bg-card border-border-card overflow-hidden rounded-xl border">
       <div className="border-border-card/50 border-b px-5 py-4">
-        <h3 className="font-body text-text-dim text-[10px] tracking-wider uppercase">Tendencias</h3>
+        <h3 className="font-body text-text-dim text-[11px] sm:text-[10px] tracking-wider uppercase">Tendencias</h3>
       </div>
       <div className="space-y-3 p-5">
         {tips.topTrends.map((trend, i) => (

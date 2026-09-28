@@ -44,15 +44,15 @@ export function TransfersTab({ competitionId }: Props) {
       {/* Resumen del mercado */}
       <div className="grid grid-cols-3 gap-3">
         <div className="bg-bg-card border-border-card rounded-2xl border p-4">
-          <p className="font-body text-text-dim text-[10px] font-semibold uppercase tracking-wider">Equipos</p>
+          <p className="font-body text-text-dim text-[11px] sm:text-[10px] font-semibold uppercase tracking-wider">Equipos</p>
           <p className="font-display text-text-primary mt-1 text-2xl font-bold">{summary.length}</p>
         </div>
         <div className="bg-bg-card border-border-card rounded-2xl border p-4">
-          <p className="font-body text-text-dim text-[10px] font-semibold uppercase tracking-wider">Llegadas</p>
+          <p className="font-body text-text-dim text-[11px] sm:text-[10px] font-semibold uppercase tracking-wider">Llegadas</p>
           <p className="font-display text-accent-green mt-1 text-2xl font-bold">+{totalArrivals}</p>
         </div>
         <div className="bg-bg-card border-border-card rounded-2xl border p-4">
-          <p className="font-body text-text-dim text-[10px] font-semibold uppercase tracking-wider">Salidas</p>
+          <p className="font-body text-text-dim text-[11px] sm:text-[10px] font-semibold uppercase tracking-wider">Salidas</p>
           <p className="font-display text-accent-red mt-1 text-2xl font-bold">−{totalDepartures}</p>
         </div>
       </div>
@@ -172,7 +172,7 @@ export function TransfersTab({ competitionId }: Props) {
                                     </p>
                                   </div>
                                 </div>
-                                <div className="shrink-0 text-[10px] font-mono text-text-dim">
+                                <div className="shrink-0 text-[11px] sm:text-[10px] font-mono text-text-dim">
                                   {t.time ? new Date(t.time).toLocaleDateString('es-ES', { day: '2-digit', month: 'short' }) : ''}
                                 </div>
                               </li>
@@ -202,7 +202,7 @@ function FilterButton({ label, active, onClick }: { label: string; active: boole
     <button
       type="button"
       onClick={onClick}
-      className={`font-body focus-visible rounded-full px-2.5 py-1 text-[10px] font-medium transition-colors ${
+      className={`font-body focus-visible rounded-full px-2.5 py-1 text-[11px] sm:text-[10px] font-medium transition-colors ${
         active
           ? 'bg-accent-gold/15 text-accent-gold'
           : 'bg-bg-elevated/40 text-text-muted hover:text-text-primary'

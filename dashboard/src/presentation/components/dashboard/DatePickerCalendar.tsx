@@ -79,7 +79,7 @@ export function DatePickerCalendar({ selected, onSelect }: DatePickerCalendarPro
       {/* Días de la semana */}
       <div className="mb-1 grid grid-cols-7 gap-0.5">
         {WEEKDAYS.map((w, i) => (
-          <span key={i} className="text-text-dim text-center font-mono text-[10px] uppercase">
+          <span key={i} className="text-text-dim text-center font-mono text-[11px] sm:text-[10px] uppercase">
             {w}
           </span>
         ))}
