@@ -166,16 +166,27 @@ async function getMatches(req, res, next) {
       query += ' ORDER BY start_time ASC';
     }
 
-    const rows = await db.execAdvanced(query, params);
-    let games = rows.map(r => r.data);
-
+    // Egress 2026-09: paginar en SQL en vez de traer TODAS las filas y
+    // cortar en JS (una comp con muchas temporadas = MBs por request).
+    // Con filtro `stage` (filtro sobre JSONB en JS) se mantiene el path
+    // anterior para no cambiar semántica: ese filtro es raro en el frontend.
+    let games;
     if (stage) {
+      const rows = await db.execAdvanced(query, params);
       const q = stage.toLowerCase();
-      games = games.filter(g => (g.stageName || '').toLowerCase().includes(q));
+      games = rows.map(r => r.data)
+        .filter(g => (g.stageName || '').toLowerCase().includes(q))
+        .slice(offset, offset + limit);
+    } else {
+      params.push(limit);
+      query += ` LIMIT $${params.length}`;
+      params.push(offset);
+      query += ` OFFSET $${params.length}`;
+      const rows = await db.execAdvanced(query, params);
+      games = rows.map(r => r.data);
     }
 
-    const paged = games.slice(offset, offset + limit);
-    res.json(paged.map(enrichGame));
+    res.json(games.map(enrichGame));
   } catch (err) {
     next(err);
   }

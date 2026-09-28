@@ -37,16 +37,18 @@ async function fetchFromCache(competitionId, seasonNum, statCategoryId, startDat
   const rawRows = cat?.rows || [];
   const primaryTypeId = STAT_TYPE_MAP[statCategoryId];
 
-  // Pull a slim competitor index (id + name) over HTTP instead of
-  // hauling every competitor's full JSONB over the wire.
+  // Índice slim de competidores (solo id + name). La columna `name` existe
+  // en la tabla (migración 004) — NO traer `data` JSONB: eran 1000 filas
+  // × JSON completo por request × 3 endpoints (scorers/assists/ratings),
+  // uno de los mayores contribuyentes al egress (pausa 2026-09).
   const { data: compRows, error: compErr } = await db.query('competitors', {
-    select: 'id, name, data',
+    select: 'id, name',
     limit: 1000,
   });
   if (compErr) throw compErr;
   const teamMap = {};
   for (const r of compRows || []) {
-    teamMap[String(r.id)] = { name: r.data?.name || r.name || '' };
+    teamMap[String(r.id)] = { name: r.name || '' };
   }
 
   return rawRows.slice(0, 10).map(r => {

@@ -20,12 +20,15 @@ if ('serviceWorker' in navigator) {
  * TanStack Query client shared across the app.
  *
  * Defaults:
- *   - staleTime: 30s  — refetch on focus is on; stale 30s means
- *                       data shown immediately, then refetched in
+ *   - staleTime: 30s  — data shown immediately, then refetched in
  *                       background. Keeps things snappy for live data
  *                       like games.
  *   - gcTime:    5min — cached data lingers for 5 min after last use.
- *   - refetchOnWindowFocus: true — multi-comp dashboard expects this.
+ *   - refetchOnWindowFocus: false — Egress 2026-09: cada foco de tab
+ *                       disparaba ~11 requests a Supabase de golpe. Los
+ *                       datos vivos ya se pollean (refetchInterval) y el
+ *                       resto tiene staleTimes largos; el foco no necesita
+ *                       refetch. Fue contribuyente a la pausa por egress.
  *   - retry:     1     — single retry on network flakiness; we don't
  *                       want 3 retries for a real 404.
  */
@@ -34,7 +37,7 @@ const queryClient = new QueryClient({
     queries: {
       staleTime: 30 * 1000,
       gcTime: 5 * 60 * 1000,
-      refetchOnWindowFocus: true,
+      refetchOnWindowFocus: false,
       retry: 1,
       refetchOnReconnect: true,
     },

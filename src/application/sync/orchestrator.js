@@ -105,6 +105,24 @@ function createSyncOrchestrator({
     } finally { setSyncRunId(null); }
   }
 
+  // Egress 2026-09: results + fixtures cambian lento (minutos/horas), no
+  // necesitan correr cada 60s con el poll en vivo. El scheduler los mueve
+  // a 15min; runGames() se mantiene para compat (startup/full sync).
+  async function runResultsFixtures() {
+    setSyncRunId(runIdGenerator());
+    try {
+      await games.syncGamesResults();
+      await games.syncFixtures();
+    } finally { setSyncRunId(null); }
+  }
+
+  async function runLiveGames() {
+    setSyncRunId(runIdGenerator());
+    try {
+      await games.syncLiveGames();
+    } finally { setSyncRunId(null); }
+  }
+
   async function runStandings() {
     setSyncRunId(runIdGenerator());
     try { await standings.syncStandings(); }
@@ -171,6 +189,8 @@ function createSyncOrchestrator({
   return {
     runFullSync,
     runGames,
+    runLiveGames,
+    runResultsFixtures,
     runStandings,
     runContent,
     runTrendsOdds,

@@ -138,6 +138,10 @@ export function DashboardPage() {
     return nextUp ?? featuredGame ?? null
   }, [liveGames, featuredGame, allGames])
 
+  // Egress 2026-09: useLiveGames YA pollea cada 30s vía refetchInterval
+  // (pausado en tabs ocultas por TanStack). Este efecto solo refresca el
+  // featured durante partidos en vivo — antes refetcheaba live TAMBIÉN,
+  // duplicando esos polls (~2x requests cada 30s con vivos).
   useEffect(() => {
     if (liveGames.length === 0) return
     let intervalId: ReturnType<typeof setInterval>
@@ -145,7 +149,6 @@ export function DashboardPage() {
     const startPolling = () => {
       intervalId = setInterval(() => {
         refetchFeatured()
-        refetchLive()
       }, 30000)
     }
 

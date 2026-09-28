@@ -11,11 +11,14 @@ async function getNews(req, res, next) {
     if (!resolved) return;
     const entityId = resolved.competitionId;
 
+    // Egress 2026-09: paginar en la query (range/OFFSET) en vez de traer
+    // 100 filas y cortar en JS — cada fila trae su JSONB completo.
+    const offset = (page - 1) * limit;
     const { data, error } = await db.query('news', {
       select: 'data',
       eq: { scope, entity_id: entityId },
       order: { column: 'publish_date', asc: false },
-      limit: 100,
+      range: [offset, offset + limit - 1],
     });
     if (error) throw error;
     const allNews = (data || []).map(r => {
@@ -31,8 +34,7 @@ async function getNews(req, res, next) {
       };
     });
 
-    const offset = (page - 1) * limit;
-    res.json(allNews.slice(offset, offset + limit));
+    res.json(allNews);
   } catch (err) {
     next(err);
   }

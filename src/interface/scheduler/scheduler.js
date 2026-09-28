@@ -41,9 +41,15 @@ async function start() {
   // disparaba el grupo entero, multiplicando el tráfico por 4-6x.
   // =====================================================================
 
-  // Partidos en vivo (games + detalles/live stats) — 60s. Los datos en vivo
-  // cambian rápido, pero 15s era redundante y el `jobGuard` evita solapamiento.
-  every('*/60 * * * * *', 'syncGames', () => sync.runGames());
+  // Partidos en vivo — 60s. Solo live (cambia en segundos).
+  // Egress 2026-09: results + fixtures salieron de este tick (iban cada
+  // 60s × N comps sin necesidad — cambian en minutos/horas) y pasaron al
+  // cron de 15min de abajo. El `jobGuard` evita solapamiento.
+  every('*/60 * * * * *', 'syncLiveGames', () => sync.runLiveGames());
+
+  // Results + fixtures — cada 15 min (suficiente: resultados se consolidan
+  // en minutos y fixtures en horas; el dashboard lee de DB cacheada).
+  every('*/15 * * * *', 'syncResultsFixtures', () => sync.runResultsFixtures());
 
   // Live stats (overviews/h2h/lineups/stats de partidos en vivo) — 60s.
   every('*/60 * * * * *', 'syncLiveStats', () => sync.runDetails());
