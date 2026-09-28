@@ -84,8 +84,9 @@ router.get('/athletes/:id/career', edge(3600), athleteController.getAthleteCaree
 router.get('/athletes/:id/trophies', edge(3600), athleteController.getAthleteTrophies);
 router.get('/athletes/:id/transfers', edge(3600), athleteController.getAthleteTransfers);
 
-// Team routes
+// Team routes (search ANTES de :id o "search" cae en el param)
 router.get('/teams', edge(600), teamController.getTeams);
+router.get('/teams/search', edge(300), teamController.searchTeams);
 router.get('/teams/:id', edge(300), teamController.getTeamById);
 router.get('/teams/:id/info', edge(300), teamEnhancementsController.getTeamInfo);
 router.get('/teams/:id/recent-form', edge(120), teamEnhancementsController.getTeamRecentForm);

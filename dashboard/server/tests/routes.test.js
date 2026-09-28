@@ -219,6 +219,25 @@ describe('GET /api/football/athletes', () => {
   });
 });
 
+describe('GET /api/football/teams/search', () => {
+  it('devuelve 200 con array (no cae en /teams/:id)', async () => {
+    mockQuery.mockResolvedValueOnce({
+      rows: [{ id: 1, name: 'Real Madrid', shortName: 'RMA', imageVersion: '5', countryId: '21' }],
+    });
+    const res = await request(app).get('/api/football/teams/search?q=madrid');
+    expect(res.status).toBe(200);
+    expect(Array.isArray(res.body)).toBe(true);
+    expect(res.body[0].name).toBe('Real Madrid');
+  });
+
+  it('query corta (<2) devuelve [] sin tocar DB', async () => {
+    const res = await request(app).get('/api/football/teams/search?q=a');
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual([]);
+    expect(mockQuery).not.toHaveBeenCalled();
+  });
+});
+
 describe('Multi-comp endpoints', () => {
   it('GET /competitions devuelve las 2 activas', async () => {
     mockQuery.mockResolvedValueOnce({ rows: ACTIVE_COMPETITIONS_SEED });

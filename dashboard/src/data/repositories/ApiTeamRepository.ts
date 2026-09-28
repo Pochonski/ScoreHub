@@ -25,4 +25,11 @@ export class ApiTeamRepository implements TeamRepository {
     })
     return mapGames(raw)
   }
+
+  async searchTeams(query: string): Promise<Team[]> {
+    const res = await apiClient.get<Team[]>(ENDPOINTS.teamsSearch, {
+      params: { q: query },
+    })
+    return res ?? []
+  }
 }

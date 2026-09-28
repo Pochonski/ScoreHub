@@ -5,4 +5,5 @@ export interface TeamRepository {
   getTeams(nationalOnly?: boolean, competitionId?: number): Promise<Team[]>
   getTeamById(id: number): Promise<Team | null>
   getTeamMatches(id: number, competitionId?: number): Promise<Game[]>
+  searchTeams(query: string): Promise<Team[]>
 }

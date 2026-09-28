@@ -35,6 +35,7 @@ export const ENDPOINTS = {
   athleteTrophies: (id: number | string) => `/athletes/${id}/trophies`,
   athleteTransfers: (id: number | string) => `/athletes/${id}/transfers`,
   teams: `/teams`,
+  teamsSearch: `/teams/search`,
   teamById: (id: number | string) => `/teams/${id}`,
   teamMatches: (id: number | string) => `/teams/${id}/matches`,
   countries: `/countries`,

@@ -26,6 +26,9 @@ const HistoryEditionPage = lazy(() =>
 const MatchDetailPage = lazy(() =>
   import('@/presentation/pages/MatchDetailPage').then((m) => ({ default: m.MatchDetailPage }))
 )
+const BuscarPage = lazy(() =>
+  import('@/presentation/pages/BuscarPage').then((m) => ({ default: m.BuscarPage }))
+)
 const PreviaPage = lazy(() =>
   import('@/presentation/pages/PreviaPage').then((m) => ({ default: m.PreviaPage }))
 )
@@ -79,6 +82,7 @@ export default function App() {
             <Route path="/analisis" element={<RedirectToActiveCompTab tab="analysis" />} />
             <Route path="/noticias" element={<RedirectToActiveCompTab tab="news" />} />
             <Route path="/competiciones" element={<CompeticionesPage />} />
+            <Route path="/buscar" element={<BuscarPage />} />
             {/* /competicion (singular, legacy) → redirige a la home de la comp primary */}
             <Route
               path="/competicion"

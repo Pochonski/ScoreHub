@@ -51,6 +51,42 @@ async function getTeams(req, res, next) {
   }
 }
 
+// Auditoría 2026-Q3 S8: escape de LIKE wildcards (igual que athletes).
+function escapeLike(s) {
+  return String(s).replace(/[\\%_]/g, '\\$&');
+}
+
+/**
+ * GET /teams/search?q=madrid — búsqueda global de equipos (slim, sin comp).
+ * Para el buscador global del navbar. ILIKE con escape, límite 10.
+ */
+async function searchTeams(req, res, next) {
+  try {
+    const q = String(req.query.q || req.query.search || '').trim();
+    if (q.length < 2) return res.json([]);
+    const limit = Math.min(20, parseInt(req.query.limit, 10) || 10);
+    const rows = await db.execAdvanced(
+      `SELECT id, name, data->>'shortName' as "shortName", data->>'imageVersion' as "imageVersion", data->>'countryId' as "countryId"
+         FROM competitors
+        WHERE name ILIKE $1
+        ORDER BY length(name) ASC, name ASC
+        LIMIT $2`,
+      [`%${escapeLike(q)}%`, limit]
+    );
+    res.json(
+      rows.map((r) => ({
+        id: r.id,
+        name: r.name,
+        shortName: r.shortName || null,
+        countryId: r.countryId != null ? Number(r.countryId) : null,
+        badgeUrl: images.getTeamBadgeUrl(r.id, Number(r.imageVersion) || 1),
+      }))
+    );
+  } catch (err) {
+    next(err);
+  }
+}
+
 async function getTeamById(req, res, next) {
   try {
     const { id } = req.params;
@@ -111,4 +147,4 @@ async function getTeamMatches(req, res, next) {
   }
 }
 
-module.exports = { getTeams, getTeamById, getTeamMatches };
+module.exports = { getTeams, getTeamById, getTeamMatches, searchTeams };

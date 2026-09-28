@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useMemo } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
-import { PlayerSearch } from '@/presentation/components/explorer/PlayerSearch'
+import { GlobalSearch } from '@/presentation/components/explorer/GlobalSearch'
 import { useCompetitions } from '@/presentation/hooks/useCompetitions'
 import { useFeaturedGamesByComp } from '@/presentation/hooks/useGames'
 import { useActiveCompetition } from '@/presentation/context/ActiveCompetitionContext'
@@ -207,16 +207,16 @@ export function Navbar() {
           })}
         </nav>
 
-        {/* PlayerSearch: desktop inline, mobile via icon toggle. */}
+        {/* GlobalSearch: desktop inline, mobile via icon toggle. */}
         <div className="hidden shrink-0 md:block">
-          <PlayerSearch />
+          <GlobalSearch />
         </div>
 
-        {/* Botón search en mobile: abre PlayerSearch debajo del header. */}
+        {/* Botón search en mobile: abre GlobalSearch debajo del header. */}
         <button
           onClick={() => setSearchOpen(!searchOpen)}
           className="focus-visible hover:bg-bg-card -mr-2 rounded-lg p-2.5 md:hidden"
-          aria-label={searchOpen ? 'Cerrar búsqueda' : 'Buscar jugador'}
+          aria-label={searchOpen ? 'Cerrar búsqueda' : 'Buscar jugador, equipo o competición'}
           aria-expanded={searchOpen}
         >
           <svg
@@ -237,7 +237,7 @@ export function Navbar() {
       {/* Panel de búsqueda desplegable en mobile. */}
       {searchOpen && (
         <div className="bg-bg-card border-border-card animate-fade-in-up border-b px-4 py-3 md:hidden">
-          <PlayerSearch onSelect={() => setSearchOpen(false)} />
+          <GlobalSearch onSelect={() => setSearchOpen(false)} />
         </div>
       )}
     </header>
