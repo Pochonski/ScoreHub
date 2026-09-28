@@ -499,7 +499,7 @@ export function DashboardPage() {
       <div className="lg:grid lg:h-full lg:grid-cols-[280px_minmax(0,1fr)_320px] lg:gap-5 lg:px-4 lg:pt-4">
         {/* Rail izquierdo — ligas + partidos compactos */}
         <aside
-          className="hidden lg:block lg:h-full lg:overflow-y-auto lg:overscroll-contain lg:pb-4"
+          className="hidden lg:block lg:h-full lg:overflow-y-auto lg:pb-4"
           aria-label="Ligas y partidos"
         >
           <LeaguesRail
@@ -517,13 +517,13 @@ export function DashboardPage() {
         </aside>
 
         {/* Centro */}
-        <section className="lg:h-full lg:overflow-y-auto lg:overscroll-contain lg:pb-8">
+        <section className="lg:h-full lg:overflow-y-auto lg:pb-8">
           {centerColumn}
         </section>
 
         {/* Rail derecho — goleadores · tabla · noticias */}
         <aside
-          className="hidden lg:block lg:h-full lg:overflow-y-auto lg:overscroll-contain lg:pb-4"
+          className="hidden lg:block lg:h-full lg:overflow-y-auto lg:pb-4"
           aria-label="Estadísticas"
         >
           <div className="space-y-4">
