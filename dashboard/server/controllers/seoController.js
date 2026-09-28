@@ -205,6 +205,9 @@ async function botMeta(req, res, next) {
     if (!meta) return next();
     res.set('Content-Type', 'text/html; charset=utf-8');
     res.set('Cache-Control', 'public, max-age=0, s-maxage=3600, stale-while-revalidate=3600');
+    // Crítico: el edge cachea por URL; sin Vary, la variante bot se le
+    // serviría a navegadores (y viceversa). Separa ambas variantes.
+    res.set('Vary', 'User-Agent');
     res.send(metaPage(`${SITE_URL}${req.path}`, meta));
   } catch {
     next();
