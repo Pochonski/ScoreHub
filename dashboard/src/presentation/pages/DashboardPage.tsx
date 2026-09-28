@@ -12,7 +12,6 @@ import { LeaguesRail } from '@/presentation/components/dashboard/LeaguesRail'
 import { StatsRail } from '@/presentation/components/dashboard/StatsRail'
 import { StandingsRail } from '@/presentation/components/dashboard/StandingsRail'
 import { NewsRail } from '@/presentation/components/dashboard/NewsRail'
-import { Footer } from '@/presentation/components/layout/Footer'
 import {
   useFeaturedGame,
   useLiveGames,
@@ -478,11 +477,6 @@ export function DashboardPage() {
         </div>
       )}
 
-      {/* Footer inyectado dentro del scroll del centro para que sea alcanzable
-          en desktop sin necesidad de un scroll a nivel de documento. */}
-      <div className="mt-8 hidden lg:block">
-        <Footer />
-      </div>
     </div>
   )
 

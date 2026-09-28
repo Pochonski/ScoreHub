@@ -1,7 +1,6 @@
 import type { ReactNode } from 'react'
 import { Navbar } from './Navbar'
 import { BottomNav } from './BottomNav'
-import { Footer } from './Footer'
 import { ErrorBoundary } from '@/infrastructure/errors'
 
 interface PageShellProps {
@@ -33,10 +32,6 @@ export function PageShell({ children }: PageShellProps) {
         >
           {children}
         </main>
-
-        {/* Footer: en lg+ el DashboardPage lo inyecta dentro del scroll del centro,
-            para que no quede duplicado cuando el main está bloqueado al viewport. */}
-        <Footer className="lg:hidden" />
 
         <BottomNav />
       </div>
