@@ -163,7 +163,7 @@ export function PreviaPage() {
 
       {preview.h2h.h2hGames.length > 0 && (
         <SectionCard title={`Cara a cara (${preview.h2h.h2hGames.length})`}>
-          <MatchGrid games={preview.h2h.h2hGames} onSelect={goGame} dateOrder="desc" />
+          <MatchGrid games={preview.h2h.h2hGames} onSelect={goGame} dateOrder="desc" hideHeaderLink />
         </SectionCard>
       )}
 

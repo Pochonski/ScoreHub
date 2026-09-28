@@ -17,6 +17,8 @@ interface MatchGridProps {
    *   - 'desc' → más recientes primero (útil para "último partido")
    */
   dateOrder?: 'asc' | 'desc'
+  /** Oculta el título-link "Partidos →" de cada grupo (ej. en previa). */
+  hideHeaderLink?: boolean
 }
 
 function groupByDate(
@@ -78,6 +80,7 @@ export function MatchGrid({
   competitionName,
   competitionId,
   dateOrder = 'asc',
+  hideHeaderLink = false,
 }: MatchGridProps) {
   if (games.length === 0) {
     return (
@@ -108,18 +111,20 @@ export function MatchGrid({
               </span>
               <div className="via-border-card h-px flex-1 bg-gradient-to-r from-transparent to-transparent" />
             </div>
-            <Link
-              to={compInfoHref}
-              className="group block text-center"
-              aria-label={`Ver información de ${headerName}`}
-            >
-              <h2 className="font-display text-accent-gold/90 group-hover:text-accent-gold text-xl font-bold tracking-wide transition-colors sm:text-2xl">
-                {headerName}
-                <span className="text-accent-gold/50 group-hover:text-accent-gold ml-2 inline-block transition-all group-hover:translate-x-0.5">
-                  →
-                </span>
-              </h2>
-            </Link>
+            {!hideHeaderLink && (
+              <Link
+                to={compInfoHref}
+                className="group block text-center"
+                aria-label={`Ver información de ${headerName}`}
+              >
+                <h2 className="font-display text-accent-gold/90 group-hover:text-accent-gold text-xl font-bold tracking-wide transition-colors sm:text-2xl">
+                  {headerName}
+                  <span className="text-accent-gold/50 group-hover:text-accent-gold ml-2 inline-block transition-all group-hover:translate-x-0.5">
+                    →
+                  </span>
+                </h2>
+              </Link>
+            )}
             <div className="mt-2 flex items-center justify-center gap-2">
               <span className="font-body text-text-dim text-[11px]">
                 {group.games.length} partido{group.games.length !== 1 ? 's' : ''}
