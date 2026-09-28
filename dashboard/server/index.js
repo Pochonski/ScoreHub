@@ -15,9 +15,18 @@ const app = express();
 const PORT = process.env.DASHBOARD_PORT || 3002;
 const isDev = process.env.NODE_ENV !== 'production';
 
+const pino = require('pino');
+const serverLogger = pino({
+  transport: isDev ? { target: 'pino-pretty', options: { colorize: true } } : undefined,
+  level: process.env.LOG_LEVEL || 'info',
+});
+
 // Auditoría 2026-Q3 S9: whitelist restrictivo en default.
 // Si CORS_ORIGINS no está seteado, sólo se permite localhost (desarrollo).
 // En PRODUCCIÓN, CORS_ORIGINS DEBE estar seteado en env.
+// NOTA: el logger debe inicializarse ANTES de este bloque — antes estaba
+// después y tumbaba la function en Vercel (ReferenceError en import) cuando
+// NODE_ENV=production y CORS_ORIGINS faltaba, dejando todos los /api/* en 500.
 const whitelist = process.env.CORS_ORIGINS
   ? process.env.CORS_ORIGINS.split(',').map((s) => s.trim()).filter(Boolean)
   : ['http://localhost:5173'];
@@ -27,11 +36,6 @@ if (!process.env.CORS_ORIGINS && process.env.NODE_ENV === 'production') {
   );
 }
 
-const pino = require('pino');
-const serverLogger = pino({
-  transport: isDev ? { target: 'pino-pretty', options: { colorize: true } } : undefined,
-  level: process.env.LOG_LEVEL || 'info',
-});
 installProcessGuard({ name: 'dashboard-server', logger: serverLogger });
 app.use(pinoHttp({
   logger: serverLogger,
@@ -54,11 +58,23 @@ app.use('/api/', rateLimit({
   legacyHeaders: false,
 }));
 
+// Health: siempre JSON, nunca redirect ni HTML del SPA.
+// Incluye diagnóstico sin secretos para distinguir tras una pausa de Supabase:
+//   - dbStrategy http+pg-fallback vs pg-only (dice si SUPABASE_URL/KEY están seteadas)
+//   - pool: max/idle del pg fallback (sin connection string ni password)
+//   - error + errorCode del pg cuando está disconnected (p.ej. password rotada,
+//     pooler en puerto 5432 saturado, proyecto aún pausado)
 app.get('/api/football/health', async (req, res) => {
   try {
     const { pool } = require('../../database/connection');
-    const { isEnabled: supabaseEnabled } = require('../../database/supabaseClient');
-    const dbStats = require('../../utils/dbStats');
+    const supabaseClient = require('../../database/supabaseClient');
+    const supabaseEnabled = supabaseClient.isEnabled();
+    let dbStats = null;
+    try {
+      dbStats = require('../../utils/dbStats').getStats();
+    } catch (_) {
+      dbStats = null;
+    }
     const r = await pool.query('SELECT NOW() as now');
     res.json({
       status: 'ok',
@@ -66,18 +82,37 @@ app.get('/api/football/health', async (req, res) => {
       cache: 'supabase',
       db: 'connected',
       dbTime: r.rows[0]?.now,
+      supabaseEnabled,
       dbStrategy: supabaseEnabled ? 'http+pg-fallback' : 'pg-only',
+      pool: {
+        max: pool.options?.max,
+        idleTimeoutMillis: pool.options?.idleTimeoutMillis,
+        waitingCount: pool.waitingCount,
+        idleCount: pool.idleCount,
+        totalCount: pool.totalCount,
+      },
+      corsOriginsConfigured: Boolean(process.env.CORS_ORIGINS),
       uptime: process.uptime(),
-      dbStats: dbStats.getStats(),
+      dbStats,
       timestamp: new Date().toISOString(),
     });
   } catch (e) {
+    let supabaseEnabled = false;
+    try {
+      supabaseEnabled = require('../../database/supabaseClient').isEnabled();
+    } catch (_) {
+      supabaseEnabled = false;
+    }
     res.status(500).json({
       status: 'error',
       datasource: '365scores',
       cache: 'supabase',
       db: 'disconnected',
       error: e.message,
+      errorCode: e.code || null,
+      supabaseEnabled,
+      dbStrategy: supabaseEnabled ? 'http+pg-fallback' : 'pg-only',
+      corsOriginsConfigured: Boolean(process.env.CORS_ORIGINS),
       uptime: process.uptime(),
       timestamp: new Date().toISOString(),
     });
