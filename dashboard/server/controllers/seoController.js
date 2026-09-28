@@ -103,8 +103,10 @@ async function metaForMatch(id) {
     );
     const g = rows[0];
     if (!g) return null;
-    const score =
-      g.home_score != null && g.away_score != null ? ` ${g.home_score}-${g.away_score}` : '';
+    // 365scores usa -1 para marcador desconocido (próximos): no mostrarlo.
+    const hs = g.home_score != null && g.home_score >= 0 ? g.home_score : null;
+    const as = g.away_score != null && g.away_score >= 0 ? g.away_score : null;
+    const score = hs != null && as != null ? ` ${hs}-${as}` : '';
     return {
       title: `${g.home_name || 'Local'}${score} ${g.away_name || 'Visita'} · ScoreHub`,
       description: `Partido${score} — previa, estadísticas, alineaciones y tendencias en ScoreHub.`,
