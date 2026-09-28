@@ -4,7 +4,11 @@ require('dotenv').config();
 const { Pool } = require('pg');
 
 const poolConfig = {
-  max: 1,
+  // 2 y no 1: el lock global (pg_advisory_lock) mantiene un cliente
+  // permanentemente checked-out durante toda la corrida; con max:1 los
+  // pool.query() de trabajo nunca obtienen conexión (deadlock → timeout).
+  // Con max:1 este runner no podía aplicar NADA.
+  max: 2,
   connectionTimeoutMillis: 10000,
   statement_timeout: 60000,
   query_timeout: 60000,
