@@ -2,4 +2,4 @@ User-agent: *
 Allow: /
 Disallow: /api/
 
-Sitemap: https://dashboard.mundialista.com/sitemap.xml
+Sitemap: https://scorehub-pocho.vercel.app/sitemap.xml

@@ -10,6 +10,7 @@ import { MatchTimeline } from '@/presentation/components/match-detail/MatchTimel
 import { MatchPredictions } from '@/presentation/components/match-detail/MatchPredictions'
 import { MatchTips } from '@/presentation/components/match-detail/MatchTips'
 import { MatchNews } from '@/presentation/components/match-detail/MatchNews'
+import { ShareButton } from '@/presentation/components/ui/ShareButton'
 
 export function MatchDetailPage() {
   const { id } = useParams<{ id: string }>()
@@ -79,6 +80,11 @@ export function MatchDetailPage() {
       <MatchPredictions predictions={predictions} />
       <MatchTips tips={tips} />
       <MatchNews news={news} />
+      <div className="flex justify-center">
+        <ShareButton
+          title={`${game.homeTeam.name} vs ${game.awayTeam.name} · ScoreHub`}
+        />
+      </div>
     </div>
   )
 }

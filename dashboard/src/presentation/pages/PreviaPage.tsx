@@ -3,6 +3,7 @@ import { useMatchPreview, type PreviewFormEntry } from '@/presentation/hooks/use
 import { MatchHeader } from '@/presentation/components/match-detail/MatchHeader'
 import { MatchGrid } from '@/presentation/components/matches/MatchGrid'
 import { MatchPredictions } from '@/presentation/components/match-detail/MatchPredictions'
+import { ShareButton } from '@/presentation/components/ui/ShareButton'
 import { BetTrendRow } from '@/presentation/components/trends/BetTrendRow'
 import { ErrorState } from '@/presentation/components/ui/ErrorState'
 import type { Game } from '@/domain/entities/Game'
@@ -179,7 +180,7 @@ export function PreviaPage() {
 
       <MatchPredictions predictions={preview.predictions} />
 
-      <div className="flex justify-center">
+      <div className="flex flex-wrap justify-center gap-3">
         <button
           type="button"
           onClick={() => navigate(`/partido/${preview.gameId}`)}
@@ -187,6 +188,7 @@ export function PreviaPage() {
         >
           Ver ficha del partido →
         </button>
+        <ShareButton title={`${homeName} vs ${awayName} (previa) · ScoreHub`} />
       </div>
     </div>
   )

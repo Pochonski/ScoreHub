@@ -144,6 +144,9 @@ app.use('/api/football', footballRoutes);
 // Mounted directamente para evitar el prefix /api/football (semánticamente
 // no es parte del dominio "football", es de "news").
 app.get('/api/news/image', newsImageProxyController.proxyNewsImage);
+// SEO: sitemap dinámico + metas OG para bots de preview (antes del static).
+const { getSitemap, botMeta } = require('./controllers/seoController');
+app.get('/sitemap.xml', getSitemap);
 app.use(errorHandler);
 
 // 404 JSON para rutas /api/* no matcheadas (evita devolver el HTML del SPA
@@ -153,6 +156,7 @@ app.use('/api', (req, res) => {
 });
 
 const distPath = path.join(__dirname, '..', 'dist');
+app.use(botMeta);
 app.use(express.static(distPath));
 app.get('*', (req, res) => {
   if (!req.path.startsWith('/api')) {
