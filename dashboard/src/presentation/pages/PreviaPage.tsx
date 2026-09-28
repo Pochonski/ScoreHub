@@ -7,36 +7,51 @@ import { BetTrendRow } from '@/presentation/components/trends/BetTrendRow'
 import { ErrorState } from '@/presentation/components/ui/ErrorState'
 import type { Game } from '@/domain/entities/Game'
 
-function FormBadges({ entries }: { entries: PreviewFormEntry[] }) {
+function resultClasses(result: 'W' | 'D' | 'L') {
+  return result === 'W'
+    ? 'bg-accent-live/15 text-accent-live'
+    : result === 'D'
+      ? 'bg-text-dim/15 text-text-muted'
+      : 'bg-accent-red/15 text-accent-red'
+}
+
+function FormBadges({ teamId, entries }: { teamId: number; entries: PreviewFormEntry[] }) {
   if (entries.length === 0) {
     return <p className="font-body text-text-dim text-xs">Sin partidos recientes registrados</p>
   }
+  const wins = entries.filter((e) => e.result === 'W').length
+  const draws = entries.filter((e) => e.result === 'D').length
+  const losses = entries.filter((e) => e.result === 'L').length
   return (
-    <div className="flex flex-col gap-2">
-      <div className="flex gap-1.5">
-        {entries.map((e) => (
-          <span
-            key={e.gameId}
-            title={`${e.scoreFor}-${e.scoreAgainst}`}
-            className={`font-mono flex h-6 w-6 items-center justify-center rounded-md text-[11px] font-bold ${
-              e.result === 'W'
-                ? 'bg-accent-live/15 text-accent-live'
-                : e.result === 'D'
-                  ? 'bg-text-dim/15 text-text-muted'
-                  : 'bg-accent-red/15 text-accent-red'
-            }`}
-          >
-            {e.result}
-          </span>
-        ))}
-      </div>
-      <ul className="space-y-1">
-        {entries.map((e) => (
-          <li key={e.gameId} className="font-body text-text-muted text-[11px]">
-            {e.scoreFor}-{e.scoreAgainst} ·{' '}
-            {e.startTime ? new Date(e.startTime).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' }) : ''}
-          </li>
-        ))}
+    <div className="flex flex-col gap-3">
+      <p className="font-body text-text-dim text-[11px] tracking-wide uppercase">
+        Últimos {entries.length}: {wins}V · {draws}E · {losses}D
+      </p>
+      <ul className="space-y-2">
+        {entries.map((e) => {
+          const isHome = e.game.homeTeam.id === teamId
+          const opponent = isHome ? e.game.awayTeam.name : e.game.homeTeam.name
+          return (
+            <li key={e.gameId} className="flex items-center gap-2.5">
+              <span
+                className={`font-mono flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-xs font-bold ${resultClasses(e.result)}`}
+              >
+                {e.result}
+              </span>
+              <span className="font-mono text-text-primary text-sm font-bold">
+                {e.scoreFor}-{e.scoreAgainst}
+              </span>
+              <span className="font-body text-text-muted min-w-0 flex-1 truncate text-xs">
+                vs {opponent} · {isHome ? 'Casa' : 'Fuera'}
+              </span>
+              <span className="font-body text-text-dim shrink-0 text-[11px]">
+                {e.startTime
+                  ? new Date(e.startTime).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })
+                  : ''}
+              </span>
+            </li>
+          )
+        })}
       </ul>
     </div>
   )
@@ -113,11 +128,11 @@ export function PreviaPage() {
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
           <div>
             <p className="font-body text-text-primary mb-2 text-sm font-semibold">{homeName}</p>
-            <FormBadges entries={preview.form.home} />
+            <FormBadges teamId={preview.homeTeamId} entries={preview.form.home} />
           </div>
           <div>
             <p className="font-body text-text-primary mb-2 text-sm font-semibold">{awayName}</p>
-            <FormBadges entries={preview.form.away} />
+            <FormBadges teamId={preview.awayTeamId} entries={preview.form.away} />
           </div>
         </div>
       </SectionCard>
