@@ -41,14 +41,14 @@ export function BroadcastScore({
   const hasScore = homeScore != null && awayScore != null
 
   return (
-    <div className="relative flex items-center justify-center gap-4 sm:gap-8 md:gap-12">
+    <div className="relative flex items-center justify-center gap-4 max-sm:gap-3 sm:gap-8 md:gap-12">
       {isLive && animate && (
         <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
           <div className="goal-ray via-accent-gold absolute top-1/2 right-0 left-0 h-0.5 -translate-y-1/2 bg-gradient-to-r from-transparent to-transparent" />
         </div>
       )}
 
-      <div className="flex max-w-[120px] flex-1 flex-col items-center gap-2">
+      <div className="flex max-w-[120px] flex-1 flex-col items-center gap-2 max-sm:max-w-[96px]">
         <div className="bg-bg-elevated flex h-16 w-16 items-center justify-center overflow-hidden rounded-full sm:h-20 sm:w-20 md:h-24 md:w-24">
           {homeBadge ? (
             <img src={homeBadge} alt={homeTeam} className="h-full w-full object-contain" loading="eager" />
@@ -56,7 +56,7 @@ export function BroadcastScore({
             <span className="font-display text-text-muted text-2xl font-bold">{homeTeam.charAt(0)}</span>
           )}
         </div>
-        <span className="font-body text-text-primary text-center text-xs leading-tight font-medium sm:text-sm">
+        <span className="font-body text-text-primary line-clamp-2 max-w-full text-center text-xs leading-tight font-medium break-words sm:text-sm">
           {homeTeam}
         </span>
       </div>
@@ -77,7 +77,7 @@ export function BroadcastScore({
         </div>
       </div>
 
-      <div className="flex max-w-[120px] flex-1 flex-col items-center gap-2">
+      <div className="flex max-w-[120px] flex-1 flex-col items-center gap-2 max-sm:max-w-[96px]">
         <div className="bg-bg-elevated flex h-16 w-16 items-center justify-center overflow-hidden rounded-full sm:h-20 sm:w-20 md:h-24 md:w-24">
           {awayBadge ? (
             <img src={awayBadge} alt={awayTeam} className="h-full w-full object-contain" loading="eager" />
@@ -85,7 +85,7 @@ export function BroadcastScore({
             <span className="font-display text-text-muted text-2xl font-bold">{awayTeam.charAt(0)}</span>
           )}
         </div>
-        <span className="font-body text-text-primary text-center text-xs leading-tight font-medium sm:text-sm">
+        <span className="font-body text-text-primary line-clamp-2 max-w-full text-center text-xs leading-tight font-medium break-words sm:text-sm">
           {awayTeam}
         </span>
       </div>

@@ -36,3 +36,11 @@
 ### Iconos (verificado `icons: bell arrow navigation` → Phosphor)
 - Verificado: `Bell` (Phosphor, `import { Bell } from '@phosphor-icons/react'`, `<Bell size={20} weight="regular" />`), `ArrowLeft` (back/breadcrumb), `Compass` (navegación). Regla semántica: decorativo junto a texto → `aria-hidden`; significativo sin texto → alternativa textual; en control → nombre accesible + estado.
 - Estado actual: SVG inline propio consistente (stroke 1.8, 24px en BottomNav, 14-16px en ticker/filtros) — **mantener**; si se migra, usar Phosphor con mismos tamaños/pesos. Queries deportivas (`live ball trophy whistle`, `trophy football navigation`) → **sin match verificado** (doble intento vacío); no inventar iconos deportivos, usar general + fallback Heroicons.
+
+### Responsive mobile/tablet (auditoría 2026-09-27, verificado `ux: Touch Friendly/Touch Spacing/Touch Target Size`, `web: Safe Area`)
+- **Umbral:** 44px primario (PWA iOS), piso 24px WCAG AA solo secundario. 23 targets con `min-h/min-w-[44px]` (calendario, flechas, tabs, filtros, X modales, season options).
+- **Piso tipográfico:** 0 restos `text-[9/10px]` sin variante `sm:` (todo con `text-[11px] sm:text-[...]`).
+- **Hero 360px:** `BroadcastScore` con `max-sm:gap-3`, `max-sm:max-w-[96px]`, nombres `line-clamp-2 break-words` (desktop intacto vía `sm:`).
+- **Grids densos:** `TransfersTab` p-3/gap-2 en mobile; stats grids con `px-2 + truncate + max-sm:text-[11px]` en centro.
+- **Modales:** calendario unificado al patrón `TrendDetailModal` (X 44px + Escape + `useFocusTrap` + `body overflow hidden` + `max-h-[85dvh]`); dropdowns con `dvh` + `max-w-[calc(100vw-2rem)]`.
+- **Matriz:** 360/375/390/430 + iPad 768/834/1024 portrait/landscape + regresión desktop 1440; `typecheck` limpio, `lint` 0 errores, `vitest` 153 passed, `vite build` OK.

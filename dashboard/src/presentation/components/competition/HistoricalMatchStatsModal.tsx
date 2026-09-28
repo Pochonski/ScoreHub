@@ -103,7 +103,7 @@ export function HistoricalMatchStatsModal({ seasonNum, competitionId, onClose }:
           </div>
           <button
             onClick={onClose}
-            className="hover:bg-bg-elevated text-text-muted hover:text-text-primary focus-visible -mr-2 rounded-lg p-2.5 transition-colors"
+            className="hover:bg-bg-elevated text-text-muted hover:text-text-primary focus-visible -mr-2 flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg transition-colors"
             aria-label="Cerrar"
           >
             <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="2">
@@ -127,11 +127,11 @@ export function HistoricalMatchStatsModal({ seasonNum, competitionId, onClose }:
                 <div className="bg-border-card font-body grid grid-cols-3 gap-px text-xs">
                   {matchStats.stats.map((stat, i) => (
                     <div key={i} className="contents">
-                      <div className="bg-bg-card text-text-muted px-3 py-2 text-right">{stat.home}</div>
-                      <div className="bg-bg-card text-text-dim px-3 py-2 text-center font-medium">
+                      <div className="bg-bg-card text-text-muted px-2 py-2 text-right sm:px-3">{stat.home}</div>
+                      <div className="bg-bg-card text-text-dim truncate px-2 py-2 text-center font-medium max-sm:text-[11px] sm:px-3">
                         {stat.name}
                       </div>
-                      <div className="bg-bg-card text-text-muted px-3 py-2">{stat.away}</div>
+                      <div className="bg-bg-card text-text-muted px-2 py-2 sm:px-3">{stat.away}</div>
                     </div>
                   ))}
                 </div>

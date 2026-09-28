@@ -371,7 +371,7 @@ export function DashboardPage() {
                   type="button"
                   data-active={scope.kind === 'one' && scope.id === c.id}
                   onClick={() => handleScopeChange({ kind: 'one', id: c.id })}
-                  className={`font-body focus-visible shrink-0 rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
+                  className={`font-body focus-visible min-h-[44px] shrink-0 rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
                     scope.kind === 'one' && scope.id === c.id
                       ? 'bg-accent-gold/10 text-accent-gold'
                       : 'bg-bg-card text-text-muted hover:text-text-primary'
@@ -385,7 +385,7 @@ export function DashboardPage() {
                   type="button"
                   data-active={scope.kind === 'all'}
                   onClick={() => handleScopeChange({ kind: 'all' })}
-                  className={`font-body focus-visible shrink-0 rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
+                  className={`font-body focus-visible min-h-[44px] shrink-0 rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
                     scope.kind === 'all'
                       ? 'bg-accent-gold/10 text-accent-gold'
                       : 'bg-bg-card text-text-muted hover:text-text-primary'

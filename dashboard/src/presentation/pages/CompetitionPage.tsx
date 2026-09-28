@@ -117,7 +117,7 @@ function SeasonSelector({
       <button
         type="button"
         onClick={() => setOpen(!open)}
-        className={`font-body focus-visible flex items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-medium transition-colors ${
+        className={`font-body focus-visible flex min-h-[44px] items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-medium transition-colors ${
           isViewingPast
             ? 'bg-accent-gold/15 text-accent-gold ring-1 ring-accent-gold/30'
             : 'bg-bg-elevated/60 text-text-muted hover:text-text-primary'
@@ -155,7 +155,7 @@ function SeasonSelector({
       {open && (
         <ul
           role="listbox"
-          className="bg-bg-card border-border-card animate-fade-in-up absolute top-full right-0 left-auto z-30 mt-2 max-h-80 w-56 overflow-y-auto rounded-xl border p-1 shadow-lg"
+          className="bg-bg-card border-border-card animate-fade-in-up absolute top-full right-0 left-auto z-30 mt-2 max-h-[70dvh] w-56 max-w-[calc(100vw-2rem)] overflow-y-auto rounded-xl border p-1 shadow-lg"
         >
           <li>
             <button
@@ -163,7 +163,7 @@ function SeasonSelector({
               role="option"
               aria-selected={selectedSeason === activeSeasonNum}
               onClick={() => selectSeason(activeSeasonNum)}
-              className={`font-body focus-visible flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-xs transition-colors ${
+              className={`font-body focus-visible flex min-h-[44px] w-full items-center justify-between rounded-lg px-3 py-2 text-left text-xs transition-colors ${
                 selectedSeason === activeSeasonNum
                   ? 'bg-accent-gold/10 text-accent-gold font-semibold'
                   : 'text-text-primary hover:bg-bg-elevated'
@@ -187,7 +187,7 @@ function SeasonSelector({
                   role="option"
                   aria-selected={selectedSeason === s}
                   onClick={() => selectSeason(s)}
-                  className={`font-body focus-visible flex w-full items-center justify-between rounded-lg px-3 py-1.5 text-left text-xs transition-colors ${
+                  className={`font-body focus-visible flex min-h-[44px] w-full items-center justify-between rounded-lg px-3 py-1.5 text-left text-xs transition-colors ${
                     selectedSeason === s
                       ? 'bg-accent-gold/10 text-accent-gold font-semibold'
                       : 'text-text-primary hover:bg-bg-elevated'

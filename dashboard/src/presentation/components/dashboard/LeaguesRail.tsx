@@ -104,7 +104,7 @@ export function LeaguesRail({
           <button
             type="button"
             onClick={() => stepDate(-1)}
-            className="hover:bg-bg-elevated focus-visible text-text-muted hover:text-text-primary rounded-lg p-1.5 transition-colors"
+            className="hover:bg-bg-elevated focus-visible text-text-muted hover:text-text-primary flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg transition-colors"
             aria-label="Día anterior"
           >
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
@@ -114,7 +114,7 @@ export function LeaguesRail({
           <button
             type="button"
             onClick={() => setCalendarOpen((o) => !o)}
-            className="font-body text-text-primary hover:bg-bg-elevated focus-visible flex items-center gap-1.5 rounded-lg px-3 py-1 text-sm font-semibold transition-colors"
+            className="font-body text-text-primary hover:bg-bg-elevated focus-visible flex min-h-[44px] items-center gap-1.5 rounded-lg px-3 py-1 text-sm font-semibold transition-colors"
             aria-haspopup="dialog"
             aria-expanded={calendarOpen}
             title="Elegir día"
@@ -128,7 +128,7 @@ export function LeaguesRail({
           <button
             type="button"
             onClick={() => stepDate(1)}
-            className="hover:bg-bg-elevated focus-visible text-text-muted hover:text-text-primary rounded-lg p-1.5 transition-colors"
+            className="hover:bg-bg-elevated focus-visible text-text-muted hover:text-text-primary flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg transition-colors"
             aria-label="Día siguiente"
           >
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
@@ -141,7 +141,7 @@ export function LeaguesRail({
           <button
             type="button"
             onClick={() => onFilterChange('live')}
-            className={`font-body flex items-center justify-center gap-1.5 py-2 text-xs font-semibold transition-colors ${
+            className={`font-body flex min-h-[44px] items-center justify-center gap-1.5 py-2 text-xs font-semibold transition-colors ${
               filter === 'live' ? 'text-accent-live' : 'text-text-muted hover:text-text-primary'
             }`}
             aria-pressed={filter === 'live'}

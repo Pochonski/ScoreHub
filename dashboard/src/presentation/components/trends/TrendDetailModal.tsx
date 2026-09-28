@@ -74,7 +74,7 @@ export function TrendDetailModal({ trend, onClose }: Props) {
           </div>
           <button
             onClick={onClose}
-            className="hover:bg-bg-elevated text-text-muted hover:text-text-primary focus-visible -mr-2 rounded-lg p-2.5 transition-colors"
+            className="hover:bg-bg-elevated text-text-muted hover:text-text-primary focus-visible -mr-2 flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg transition-colors"
             aria-label="Cerrar"
           >
             <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="2">

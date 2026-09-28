@@ -54,7 +54,7 @@ export function DatePickerCalendar({ selected, onSelect }: DatePickerCalendarPro
         <button
           type="button"
           onClick={() => shiftMonth(-1)}
-          className="hover:bg-bg-elevated focus-visible text-text-muted hover:text-text-primary rounded-lg p-1.5 transition-colors"
+          className="hover:bg-bg-elevated focus-visible text-text-muted hover:text-text-primary flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg transition-colors"
           aria-label="Mes anterior"
         >
           <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
@@ -67,7 +67,7 @@ export function DatePickerCalendar({ selected, onSelect }: DatePickerCalendarPro
         <button
           type="button"
           onClick={() => shiftMonth(1)}
-          className="hover:bg-bg-elevated focus-visible text-text-muted hover:text-text-primary rounded-lg p-1.5 transition-colors"
+          className="hover:bg-bg-elevated focus-visible text-text-muted hover:text-text-primary flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg transition-colors"
           aria-label="Mes siguiente"
         >
           <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
@@ -96,7 +96,7 @@ export function DatePickerCalendar({ selected, onSelect }: DatePickerCalendarPro
               key={i}
               type="button"
               onClick={() => onSelect(date)}
-              className={`focus-visible font-body flex h-8 items-center justify-center rounded-lg text-xs transition-colors ${
+              className={`focus-visible font-body flex min-h-[44px] items-center justify-center rounded-lg text-xs transition-colors ${
                 isSelected
                   ? 'bg-accent-gold text-bg-base font-bold'
                   : isToday
@@ -117,14 +117,14 @@ export function DatePickerCalendar({ selected, onSelect }: DatePickerCalendarPro
         <button
           type="button"
           onClick={() => onSelect(null)}
-          className="font-body text-text-muted hover:text-text-primary focus-visible rounded-lg px-2 py-1 text-xs font-medium transition-colors"
+          className="font-body text-text-muted hover:text-text-primary focus-visible min-h-[44px] rounded-lg px-3 py-1 text-xs font-medium transition-colors"
         >
           Todos los días
         </button>
         <button
           type="button"
           onClick={() => onSelect(today)}
-          className="font-body text-accent-blue hover:text-accent-blue/80 focus-visible rounded-lg px-2 py-1 text-xs font-semibold transition-colors"
+          className="font-body text-accent-blue hover:text-accent-blue/80 focus-visible min-h-[44px] rounded-lg px-3 py-1 text-xs font-semibold transition-colors"
         >
           Hoy
         </button>

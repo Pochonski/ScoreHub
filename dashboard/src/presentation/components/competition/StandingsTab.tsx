@@ -51,7 +51,7 @@ export function StandingsTab({ competitionId, seasonNum }: Props) {
                 key={s.id}
                 type="button"
                 onClick={() => setStageNum(s.id)}
-                className={`font-body focus-visible rounded-full px-3 py-1 text-xs font-medium transition-colors ${
+                className={`font-body focus-visible min-h-[44px] rounded-full px-3 py-1 text-xs font-medium transition-colors ${
                   stageNum === s.id
                     ? 'bg-accent-gold/15 text-accent-gold'
                     : 'text-text-muted hover:text-text-primary'

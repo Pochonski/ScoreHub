@@ -128,9 +128,9 @@ export function HistoryEditionPage() {
             <div className="bg-border-card font-body grid grid-cols-3 gap-px text-xs">
               {matchStats.stats.map((stat, i) => (
                 <div key={i} className={`contents ${i % 2 === 0 ? 'bg-bg-elevated/20' : 'bg-bg-card'}`}>
-                  <div className="text-text-muted px-3 py-2 text-right">{stat.home}</div>
-                  <div className="text-text-dim px-3 py-2 text-center font-medium">{stat.name}</div>
-                  <div className="text-text-muted px-3 py-2">{stat.away}</div>
+                  <div className="text-text-muted px-2 py-2 text-right sm:px-3">{stat.home}</div>
+                  <div className="text-text-dim truncate px-2 py-2 text-center font-medium max-sm:text-[11px] sm:px-3">{stat.name}</div>
+                  <div className="text-text-muted px-2 py-2 sm:px-3">{stat.away}</div>
                 </div>
               ))}
             </div>
