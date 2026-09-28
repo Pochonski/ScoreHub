@@ -90,13 +90,52 @@ async function query(table, options = {}) {
 }
 
 /**
+ * Columnas JSONB escritas por string (los callers hacen `data: JSON.stringify(x)`).
+ * Por pg, un string se castea text→jsonb y queda como OBJETO. Por PostgREST
+ * (HTTP) el mismo string queda guardado como scalar jsonb (string), y de ahí
+ * los callers leen `row.data.<campo>` → undefined → endpoints vacíos.
+ * Caso real 2026-09: readThrough de standings/tournament_stats para la comp
+ * nueva 7016 guardó strings vía HTTP y standings/scorers devolvían [].
+ * Esta normalización iguala ambas rutas: parsea strings JSON solo en las
+ * columnas jsonb conocidas (`data`, `config`). El resto de columnas viaja
+ * intacto (un TEXT con pinta de JSON no se toca).
+ */
+const JSONB_STRING_COLS = new Set(['data', 'config']);
+
+function normalizeJsonStringCols(value) {
+  if (value == null || typeof value !== 'object' || Array.isArray(value)) return value;
+  let changed = false;
+  const out = { ...value };
+  for (const col of JSONB_STRING_COLS) {
+    const v = out[col];
+    if (typeof v === 'string') {
+      const t = v.trim();
+      if (t.startsWith('{') || t.startsWith('[')) {
+        try {
+          out[col] = JSON.parse(t);
+          changed = true;
+        } catch {
+          /* no es JSON válido: se deja el string tal cual */
+        }
+      }
+    }
+  }
+  return changed ? out : value;
+}
+
+function normalizeRows(rows) {
+  const arr = Array.isArray(rows) ? rows : [rows];
+  return arr.map(normalizeJsonStringCols);
+}
+
+/**
  * INSERT rows into a table. Returns { data, error }.
  */
 async function insert(table, rows, { onConflict = null, select = null } = {}) {
   if (!isEnabled()) return insertViaPg(table, rows, { onConflict, select });
   try {
     recordSupabaseCall();
-    let q = getClient().from(table).insert(rows);
+    let q = getClient().from(table).insert(normalizeRows(rows));
     if (onConflict) q = q.onConflict(onConflict);
     if (select) q = q.select(select);
     const { data, error } = await q;
@@ -117,7 +156,7 @@ async function upsert(table, rows, onConflict, { select = null } = {}) {
   if (!isEnabled()) return upsertViaPg(table, rows, onConflict, { select });
   try {
     recordSupabaseCall();
-    let q = getClient().from(table).upsert(rows, { onConflict });
+    let q = getClient().from(table).upsert(normalizeRows(rows), { onConflict });
     if (select) q = q.select(select);
     const { data, error } = await q;
     if (error) recordSupabaseError();
@@ -136,7 +175,7 @@ async function update(table, updates, filter) {
   if (!isEnabled()) return updateViaPg(table, updates, filter);
   try {
     recordSupabaseCall();
-    let q = getClient().from(table).update(updates);
+    let q = getClient().from(table).update(normalizeJsonStringCols(updates));
     if (filter.eq) {
       for (const [col, val] of Object.entries(filter.eq)) {
         q = q.eq(col, val);
@@ -430,6 +469,8 @@ module.exports = {
   _internal: {
     assertIdent,
     assertSelectList,
+    normalizeJsonStringCols,
+    normalizeRows,
   },
 };
 
