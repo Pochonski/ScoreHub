@@ -48,5 +48,20 @@ module.exports = {
         NODE_ENV: 'production',
       },
     },
+    {
+      name: 'scorehub-monitor',
+      script: 'src/interface/monitor/monitor.js',
+      exec_mode: 'fork',
+      instances: 1,
+      autorestart: true,
+      max_memory_restart: '200M',
+      time: true,
+      // Sin watch: el monitor es estable y un restart por cambio de código
+      // se hace con `pm2 restart scorehub-monitor`.
+      watch: false,
+      env: {
+        NODE_ENV: 'production',
+      },
+    },
   ],
 }

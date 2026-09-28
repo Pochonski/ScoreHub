@@ -76,6 +76,23 @@ app.get('/api/football/health', async (req, res) => {
       dbStats = null;
     }
     const r = await pool.query('SELECT NOW() as now');
+    // Estado del sync (tabla sync_health, migración 027). Best-effort y
+    // barato: una sola query chica; si falla, el health sigue en ok.
+    let sync = null;
+    try {
+      const { evaluateFreshness } = require('../../src/interface/monitor/checks');
+      const { rows: hb } = await pool.query(
+        'SELECT job_name, last_run_at, last_ok, last_error FROM sync_health'
+      );
+      const issues = evaluateFreshness(hb);
+      sync = {
+        ok: !issues.some((i) => i.severity === 'critical'),
+        jobs: hb.length,
+        stale: issues.map((i) => i.key),
+      };
+    } catch (_) {
+      sync = null;
+    }
     res.json({
       status: 'ok',
       datasource: '365scores',
@@ -83,6 +100,7 @@ app.get('/api/football/health', async (req, res) => {
       db: 'connected',
       dbTime: r.rows[0]?.now,
       supabaseEnabled,
+      sync,
       dbStrategy: supabaseEnabled ? 'http+pg-fallback' : 'pg-only',
       pool: {
         max: pool.options?.max,
