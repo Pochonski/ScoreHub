@@ -275,12 +275,13 @@ async function getMatchStats(req, res, next) {
     const { id } = req.params;
     const gid = Number(id);
 
-    const gameRow = await getGameDetailBy('games', gid);
-    const gameData = gameRow?.data;
+    // getGameDetailBy ya devuelve el JSONB (no la fila): no hay `.data`.
+    const gameData = await getGameDetailBy('games', gid);
     const homeId = gameData?.homeCompetitor?.id ?? gameData?.homeCompetitorId;
     const awayId = gameData?.awayCompetitor?.id ?? gameData?.awayCompetitorId;
 
-    // DB-first con write-back (Fase 8.4).
+    // DB-first con write-back (Fase 8.4). readThrough devuelve la FILA
+    // ({ data: <jsonb> }), así que se accede con doble nivel.
     const { data: statsRow, source } = await db.readThrough(
       'game_stats',
       { select: 'data', eq: { game_id: gid }, maybeSingle: true },
@@ -293,7 +294,8 @@ async function getMatchStats(req, res, next) {
     );
 
     if (source !== '365-error' && statsRow) {
-      const flat = statsRow?.statistics || statsRow?.stats || [];
+      const doc = statsRow?.data ?? null;
+      const flat = doc?.statistics || doc?.stats || [];
       if (flat.length) {
         const stats = pivotStats(flat, homeId, awayId);
         if (stats.length) return res.json(stats);
@@ -311,10 +313,20 @@ async function getMatchH2h(req, res, next) {
     const { id } = req.params;
     const gid = Number(id);
 
-    const row = await getGameDetailBy('game_h2h', gid);
-    if (!row?.data) return res.json({ recentGames: [], h2hGames: [] });
-
-    const doc = row.data;
+    // DB-first con write-back: el H2H se auto-puebla al primer view
+    // (igual que stats/lineups). TTL largo: no cambia tras el pitazo final.
+    const { data: h2hRow } = await db.readThrough(
+      'game_h2h',
+      { select: 'data', eq: { game_id: gid }, maybeSingle: true },
+      async () => {
+        const live = await scores365.getGameH2H(gid, undefined, true);
+        if (!live) return null;
+        return { game_id: gid, data: JSON.stringify(live) };
+      },
+      { onConflict: 'game_id', ttlMs: 60 * 60 * 1000 },
+    );
+    const doc = h2hRow?.data ?? null;
+    if (!doc) return res.json({ recentGames: [], h2hGames: [] });
     const result = { recentGames: [], h2hGames: [] };
     if (doc?.game?.homeCompetitor?.recentGames) {
       result.recentGames = doc.game.homeCompetitor.recentGames.map(enrichGame);
@@ -336,8 +348,8 @@ async function getMatchLineups(req, res, next) {
     const { id } = req.params;
     const gid = Number(id);
 
-    const gameRow = await getGameDetailBy('games', gid);
-    const gameData = gameRow?.data;
+    // getGameDetailBy ya devuelve el JSONB (no la fila): no hay `.data`.
+    const gameData = await getGameDetailBy('games', gid);
     const homeId = gameData?.homeCompetitor?.id ?? gameData?.homeCompetitorId;
     const awayId = gameData?.awayCompetitor?.id ?? gameData?.awayCompetitorId;
 
@@ -379,10 +391,18 @@ async function getMatchPreStats(req, res, next) {
     const { id } = req.params;
     const gid = Number(id);
 
-    const row = await getGameDetailBy('game_pre_stats', gid);
-    if (!row?.data) return res.json([]);
-
-    const apiData = row.data;
+    // DB-first con write-back: pre-stats se auto-pueblan al primer view.
+    const { data: preRow } = await db.readThrough(
+      'game_pre_stats',
+      { select: 'data', eq: { game_id: gid }, maybeSingle: true },
+      async () => {
+        const live = await scores365.getGamePreStats(gid);
+        if (!live?.statistics?.length) return null;
+        return { game_id: gid, data: JSON.stringify(live) };
+      },
+      { onConflict: 'game_id', ttlMs: 60 * 60 * 1000 },
+    );
+    const apiData = preRow?.data ?? null;
     if (!apiData?.statistics?.length) return res.json([]);
 
     const byTeam = {};
@@ -547,7 +567,7 @@ async function getMatchPredictions(req, res, next) {
       { onConflict: 'game_id', ttlMs: 30 * 60 * 1000 },
     );
 
-    const ovPp = row?.game?.promotedPredictions;
+    const ovPp = row?.data?.game?.promotedPredictions;
     if (ovPp?.predictions?.length) {
       const mapped = mapPredictions(ovPp.predictions);
       if (mapped.length) return res.json(mapped);
@@ -583,7 +603,7 @@ async function getMatchTimeline(req, res, next) {
       { onConflict: 'game_id', ttlMs: 30 * 1000 },
     );
 
-    const rawEvents = ovRow?.game?.events || [];
+    const rawEvents = ovRow?.data?.game?.events || [];
     if (!rawEvents.length) return res.json([]);
 
     const playerIds = [...new Set(rawEvents.flatMap(e => [e.playerId, ...(e.extraPlayers || [])]).filter(Boolean))];
@@ -631,13 +651,12 @@ async function getMatchSuggestions(req, res, next) {
     const { id } = req.params;
     const gid = Number(id);
 
-    const row = await getGameDetailBy('game_overviews', gid);
-    if (!row?.data) return res.json([]);
+    // getGameDetailBy ya devuelve el JSONB (no la fila): no hay `.data`.
+    const game = await getGameDetailBy('game_overviews', gid);
+    if (!game?.game) return res.json([]);
+    const gameDoc = game.game;
 
-    const game = row?.game;
-    if (!game) return res.json([]);
-
-    const predictions = game.promotedPredictions?.predictions || [];
+    const predictions = gameDoc.promotedPredictions?.predictions || [];
     const data = predictions.map(p => {
       const totalVotes = (p.options || []).reduce((acc, o) => acc + (o.vote?.count || 0), 0);
       return {

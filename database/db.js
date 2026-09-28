@@ -581,12 +581,13 @@ async function doReadThrough(table, queryOpts, fetcher, opts) {
   }
 
   if (fresh != null && !upstreamError) {
+    const rows = Array.isArray(fresh) ? fresh : [fresh];
+    const storable = rows.map(r => {
+      if (typeof r === 'object' && r !== null && !Array.isArray(r)) return r;
+      return { data: r };
+    });
     try {
-      const rows = Array.isArray(fresh) ? fresh : [fresh];
-      await upsert(table, rows.map(r => {
-        if (typeof r === 'object' && r !== null && !Array.isArray(r)) return r;
-        return { data: r };
-      }), onConflict);
+      await upsert(table, storable, onConflict);
       try {
         require('../utils/dbStats').recordUpsertFromCacheMiss();
       } catch {}
@@ -594,7 +595,16 @@ async function doReadThrough(table, queryOpts, fetcher, opts) {
       const logger = require('../utils/logger');
       logger.warn({ err: persistErr.message, table }, 'readThrough write-back failed');
     }
-    return { data: fresh, error: null, source: '365+writeback' };
+    // Devolver las filas NORMALIZADAS (data como objeto, no string), igual
+    // que vendrían de DB: si no, el request que dispara el write-back recibe
+    // `data` string y responde [] aunque el dato exista (bug visto en
+    // standings/stats de la 7016 y en match stats/timeline).
+    const normalized = normalizeRows(storable);
+    return {
+      data: Array.isArray(fresh) ? normalized : normalized[0],
+      error: null,
+      source: '365+writeback',
+    };
   }
 
   if (hasData) {
