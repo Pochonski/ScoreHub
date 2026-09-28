@@ -44,10 +44,101 @@ const ALLOWED_DOMAINS = [
   'mundodeportivo.com',
   // El Confidencial (images.ecestaticos.com)
   'ecestaticos.com',
+  // Olé Argentina (www.ole.com.ar) — el mayor volumen de imgs en DB.
+  'ole.com.ar',
+  // La Página Millonaria (River)
+  'lapaginamillonaria.com',
+  // Futbol Total México
+  'futboltotal.com.mx',
+  // Cooperativa Chile
+  'cooperativa.cl',
+  // StudioFútbol Ecuador
+  'studiofutbol.com.ec',
+  // Fútbol Finanzas
+  'futbolfinanzas.com',
+  // La Prensa Honduras
+  'laprensa.hn',
+  // Guatefútbol
+  'guatefutbol.com',
+  // El Gráfico Argentina
+  'elgrafico.com.ar',
+  // Fútbol Peruano CDN
+  'cdn.futbolperuano.com',
+  // Fichajes.net
+  'fichajes.net',
+  // Fútbol Ecuador / Fútbol Sapiens / Futbolete
+  'futbolecuador.com',
+  'futbolsapiens.com',
+  'futbolete.com',
+  // Marca Deportiva / Colombia.com / Win Sports / Cápsulas / Nación Deportes
+  'marcadeportiva.com',
+  'cdn.colombia.com',
+  'winsports.co',
+  'capsulas.com.co',
+  'naciondeportes.com',
+  // Prensa Ibérica regionales (dominios propios, no subdominios)
+  'lne.es',
+  'superdeporte.es',
+  // PRISA media CDN (img.asmedia.epimg.net)
+  'epimg.net',
+  // La Vinotinto / Mundo Millos / Los Millonarios / El Derribador
+  'lavinotinto.com',
+  'mundomillos.com',
+  'losmillonarios.net.co',
+  'elderribador.com',
+  // Balonazos / Bendito Fútbol / Milanadictos / Vamos Mi Sevilla / CarpetasFCB
+  'balonazos.com',
+  'benditofutbol.com',
+  'milanadictos.net',
+  'vamosmisevillafc.com',
+  'carpetasfcb.com',
+  // Sitios de clubes/hinchadas Argentina
+  'sitioboca.com.ar',
+  'riverdesdelatribuna.com.ar',
+  'locoxelrojo.com',
+  'infiernorojo.com',
+  'racingclub.com.ar',
+  'argentinosjuniors.com.ar',
+  'clubtalleres.com.ar',
+  'sanlorenzowebsite.com.ar',
+  'catigre.com.ar',
+  'estudiantesdelaplata.com',
+  'eternoboca.com',
+  'clubaunion.com.ar',
+  'unidostodoesposible.com',
   // Si aparecen más dominios, añadir aquí.
 ];
 
+/**
+ * Hosts exactos (match `===` únicamente, SIN subdominios).
+ * Para CDNs genéricos multi-tenant (tadevel, imgfoot, Photon, etc.) NO se
+ * agrega el dominio base: abrirlo permitiría proxear CUALQUIER tenant del
+ * CDN (superficie SSRF). Solo los hosts observados en news.image.
+ */
+const ALLOWED_EXACT_HOSTS = new Set([
+  // Doble Amarilla (España) vía tadevel CDN
+  'dobleamarilla-assets.tadevel-cdn.com',
+  'dobleamarilla-app.tadevel-cdn.com',
+  // Foot Africa CDN
+  'assets-es.imgfoot.com',
+  // Llorente y Cuenca statics
+  'statics-maker.llt-services.com',
+  // WordPress Photon + wordpress.org assets
+  'i0.wp.com',
+  'i1.wp.com',
+  'i2.wp.com',
+  's.w.org',
+  // Substack / Google storage / X images / Dailymotion
+  'substackcdn.com',
+  'storage.googleapis.com',
+  'pbs.twimg.com',
+  's1.dmcdn.net',
+  // Fan blog en wordpress.com
+  'tabloideingles155065357.wordpress.com',
+]);
+
 function isAllowedHost(hostname) {
+  if (ALLOWED_EXACT_HOSTS.has(hostname)) return true;
   return ALLOWED_DOMAINS.some((domain) => {
     return hostname === domain || hostname.endsWith('.' + domain);
   });
@@ -141,4 +232,4 @@ async function proxyNewsImage(req, res) {
   }
 }
 
-module.exports = { proxyNewsImage, isAllowedHost, ALLOWED_DOMAINS };
+module.exports = { proxyNewsImage, isAllowedHost, ALLOWED_DOMAINS, ALLOWED_EXACT_HOSTS };

@@ -197,4 +197,27 @@ describe('isAllowedHost — SLD+1 matching', () => {
     expect(isAllowedHost('imagenes2.mundodeportivo.com')).toBe(true);
     expect(isAllowedHost('images.ecestaticos.com')).toBe(true);
   });
+
+  test('acepta medios latinos de alto volumen (auditoría news.image)', () => {
+    expect(isAllowedHost('www.ole.com.ar')).toBe(true);
+    expect(isAllowedHost('media.lapaginamillonaria.com')).toBe(true);
+    expect(isAllowedHost('media.futboltotal.com.mx')).toBe(true);
+    expect(isAllowedHost('www.cooperativa.cl')).toBe(true);
+    expect(isAllowedHost('studiofutbol.com.ec')).toBe(true);
+    expect(isAllowedHost('www.laprensa.hn')).toBe(true);
+    expect(isAllowedHost('guatefutbol.com')).toBe(true);
+    expect(isAllowedHost('www.elgrafico.com.ar')).toBe(true);
+    expect(isAllowedHost('cdn.futbolperuano.com')).toBe(true);
+    expect(isAllowedHost('img.asmedia.epimg.net')).toBe(true);
+  });
+
+  test('acepta hosts exactos de CDNs genéricos sin abrir el dominio base', () => {
+    expect(isAllowedHost('dobleamarilla-assets.tadevel-cdn.com')).toBe(true);
+    expect(isAllowedHost('dobleamarilla-app.tadevel-cdn.com')).toBe(true);
+    expect(isAllowedHost('assets-es.imgfoot.com')).toBe(true);
+    expect(isAllowedHost('i0.wp.com')).toBe(true);
+    // Pero otros tenants del mismo CDN siguen bloqueados (SSRF):
+    expect(isAllowedHost('otro-sitio.tadevel-cdn.com')).toBe(false);
+    expect(isAllowedHost('evil.imgfoot.com')).toBe(false);
+  });
 });
