@@ -85,7 +85,7 @@ export function Navbar() {
         <div ref={dropdownRef} className="relative shrink-0">
           <button
             onClick={() => setDropdownOpen(!dropdownOpen)}
-            className="font-body focus-visible text-text-muted hover:text-text-primary flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm font-medium transition-colors"
+            className="font-body focus-visible text-text-muted hover:text-text-primary flex min-h-[44px] items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm font-medium transition-colors"
             aria-haspopup="menu"
             aria-expanded={dropdownOpen}
           >
@@ -109,7 +109,7 @@ export function Navbar() {
           {dropdownOpen && (
             <div
               role="menu"
-              className="bg-bg-card border-border-card animate-fade-in-up absolute top-full left-0 right-auto z-50 mt-2 flex max-h-[70dvh] w-80 max-w-[calc(100vw-2rem)] flex-col overflow-hidden rounded-xl border shadow-xl"
+              className="bg-bg-card border-border-card animate-fade-in-up absolute top-full right-0 left-auto z-50 mt-2 flex max-h-[70dvh] w-80 max-w-[calc(100vw-2rem)] flex-col overflow-hidden rounded-xl border shadow-xl"
             >
               <div className="overflow-y-auto p-1.5">
                 {competitions.length === 0 && (
