@@ -254,13 +254,12 @@ export function DashboardPage() {
   const activeComp =
     activeCompId != null ? featuredSorted.find((c) => c.id === activeCompId) : undefined
 
-  // Highlights del centro (desktop): próximos partidos, o resultados recientes
-  // si ya no quedan próximos. Es una selección curada, no el listado completo
-  // (ese vive en el rail izquierdo).
+  // Highlights del centro (desktop): próximos partidos + resultados
+  // recientes en dos secciones. Es una selección curada, no el listado
+  // completo (ese vive en el rail izquierdo).
   const highlightGames = useMemo(() => {
     // Si el usuario eligió un día en el calendario (dateOffset != null), el
-    // centro muestra los partidos de ESE día. Sin día elegido, la selección
-    // curada de siempre (próximos / resultados recientes).
+    // centro muestra los partidos de ESE día en una sola sección.
     if (dateOffset != null) {
       const d = new Date()
       d.setDate(d.getDate() + dateOffset)
@@ -275,16 +274,17 @@ export function DashboardPage() {
       const dayGames = [...filteredGames].sort(
         (a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
       )
-      return { title: `Partidos · ${label}`, games: dayGames }
+      return { mode: 'day' as const, title: `Partidos · ${label}`, games: dayGames }
     }
     const upcoming = allGames
       .filter((g) => g.status === 'upcoming')
       .sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime())
-    if (upcoming.length > 0) return { title: 'Próximos partidos', games: upcoming.slice(0, 6) }
+      .slice(0, 6)
     const finished = allGames
       .filter((g) => g.status === 'finished')
       .sort((a, b) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime())
-    return { title: 'Resultados recientes', games: finished.slice(0, 6) }
+      .slice(0, 6)
+    return { mode: 'highlights' as const, upcoming, finished }
   }, [dateOffset, filteredGames, allGames])
 
   // Equipo de la jornada (once ideal) de la competición activa — llena y
@@ -430,33 +430,74 @@ export function DashboardPage() {
         )}
       </div>
 
-      {/* Highlights desktop: selección curada (próximos o resultados recientes). */}
-      <div className="mt-6 hidden lg:block">
-        <div className="mb-3 flex items-center justify-between gap-2">
-          <h2 className="font-display text-text-primary text-lg font-semibold">{highlightGames.title}</h2>
-          <button
-            onClick={() => navigate('/analisis')}
-            className="font-body text-accent-blue hover:text-accent-blue/80 focus-visible rounded px-1 py-0.5 text-xs transition-colors"
-          >
-            Análisis →
-          </button>
-        </div>
+      {/* Highlights desktop: próximos + resultados recientes en dos secciones. */}
+      <div className="mt-6 hidden space-y-8 lg:block">
         {gamesLoading ? (
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             {Array.from({ length: 4 }).map((_, i) => (
               <MatchCardSkeleton key={i} />
             ))}
           </div>
-        ) : highlightGames.games.length > 0 ? (
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            {highlightGames.games.map((g) => (
-              <MatchCard key={g.id} game={g} onSelect={handleSelectGame} />
-            ))}
-          </div>
+        ) : highlightGames.mode === 'day' ? (
+          <section>
+            <div className="mb-3 flex items-center justify-between gap-2">
+              <h2 className="font-display text-text-primary text-lg font-semibold">{highlightGames.title}</h2>
+              <button
+                onClick={() => navigate('/analisis')}
+                className="font-body text-accent-blue hover:text-accent-blue/80 focus-visible rounded px-1 py-0.5 text-xs transition-colors"
+              >
+                Análisis →
+              </button>
+            </div>
+            {highlightGames.games.length > 0 ? (
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                {highlightGames.games.map((g) => (
+                  <MatchCard key={g.id} game={g} onSelect={handleSelectGame} />
+                ))}
+              </div>
+            ) : (
+              <p className="text-text-muted font-body py-8 text-center text-sm">
+                No hay partidos para mostrar
+              </p>
+            )}
+          </section>
         ) : (
-          <p className="text-text-muted font-body py-8 text-center text-sm">
-            No hay partidos para mostrar
-          </p>
+          <>
+            {highlightGames.upcoming.length > 0 && (
+              <section aria-label="Próximos partidos">
+                <div className="mb-3 flex items-center justify-between gap-2">
+                  <h2 className="font-display text-text-primary text-lg font-semibold">Próximos partidos</h2>
+                </div>
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  {highlightGames.upcoming.map((g) => (
+                    <MatchCard key={g.id} game={g} onSelect={handleSelectGame} />
+                  ))}
+                </div>
+              </section>
+            )}
+            <section aria-label="Resultados recientes">
+              <div className="mb-3 flex items-center justify-between gap-2">
+                <h2 className="font-display text-text-primary text-lg font-semibold">Resultados recientes</h2>
+                <button
+                  onClick={() => navigate('/analisis')}
+                  className="font-body text-accent-blue hover:text-accent-blue/80 focus-visible rounded px-1 py-0.5 text-xs transition-colors"
+                >
+                  Análisis →
+                </button>
+              </div>
+              {highlightGames.finished.length > 0 ? (
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  {highlightGames.finished.map((g) => (
+                    <MatchCard key={g.id} game={g} onSelect={handleSelectGame} />
+                  ))}
+                </div>
+              ) : (
+                <p className="text-text-muted font-body py-8 text-center text-sm">
+                  No hay partidos para mostrar
+                </p>
+              )}
+            </section>
+          </>
         )}
       </div>
 

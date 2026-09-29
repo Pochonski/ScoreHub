@@ -47,6 +47,10 @@ export const MatchCard = memo(function MatchCard({ game, onSelect, compact = fal
     [game, onSelect]
   )
 
+  const dateLabel = formatShortDate(game.startTime)
+  const timeLabel = formatShortTime(game.startTime)
+  const showDateFooter = !compact && (game.status === 'upcoming' || isFinished) && dateLabel
+
   return (
     <div
       className={`bg-bg-card border-border-card hover:border-border-hover focus-visible cursor-pointer rounded-xl border transition-all duration-200 ${
@@ -56,7 +60,7 @@ export const MatchCard = memo(function MatchCard({ game, onSelect, compact = fal
       onKeyDown={handleKeyDown}
       tabIndex={0}
       role="button"
-      aria-label={`${game.homeTeam.name} vs ${game.awayTeam.name}${hasScore ? `, ${game.homeTeam.score} - ${game.awayTeam.score}` : ''}`}
+      aria-label={`${game.homeTeam.name} vs ${game.awayTeam.name}${hasScore ? `, ${game.homeTeam.score} - ${game.awayTeam.score}` : ''}${showDateFooter ? `, ${dateLabel}${timeLabel ? ` ${timeLabel}` : ''}` : ''}`}
     >
       <div className="mb-2 flex items-center justify-between">
         <LiveIndicator status={game.status} minute={game.minute} />
@@ -106,10 +110,10 @@ export const MatchCard = memo(function MatchCard({ game, onSelect, compact = fal
         </div>
       </div>
 
-      {!compact && game.status === 'upcoming' && (
+      {showDateFooter && (
         <div className="mt-2 text-center">
           <span className="text-text-dim font-mono text-xs">
-            {formatShortDate(game.startTime)} · {formatShortTime(game.startTime)}
+            {dateLabel}{timeLabel ? ` · ${timeLabel}` : ''}
           </span>
         </div>
       )}
