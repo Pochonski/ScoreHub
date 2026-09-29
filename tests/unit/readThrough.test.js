@@ -226,3 +226,46 @@ describe('unit/readThrough — inFlight lock (concurrencia)', () => {
     expect(fetcher).toHaveBeenCalledTimes(2);
   });
 });
+describe('unit/readThrough — TTL necesita updated_at en el select', () => {
+  test("con ttlMs el SELECT incluye updated_at aunque el caller pida solo 'data'", async () => {
+    const { pgQueryRetry } = require('../../database/connection');
+    pgQueryRetry.mockResolvedValueOnce({
+      rows: [{ id: 1, data: { foo: 'fresh' }, updated_at: new Date().toISOString() }],
+      rowCount: 1,
+    });
+    const fetcher = jest.fn();
+
+    const result = await db.readThrough(
+      'whatever',
+      { select: 'data', eq: { id: 1 }, maybeSingle: true },
+      fetcher,
+      { onConflict: 'id', ttlMs: 30 * 1000 }
+    );
+
+    expect(pgQueryRetry.mock.calls[0][0]).toMatch(/updated_at/);
+    expect(result.source).toBe('db');
+    expect(fetcher).not.toHaveBeenCalled();
+  });
+
+  test('fila stale (con updated_at viejo) → revalida aunque el select original era solo data', async () => {
+    const staleIso = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+    const { pgQueryRetry } = require('../../database/connection');
+    pgQueryRetry
+      .mockResolvedValueOnce({
+        rows: [{ id: 1, data: { foo: 'old' }, updated_at: staleIso }],
+        rowCount: 1,
+      })
+      .mockResolvedValueOnce({ rows: [], rowCount: 0 });
+
+    const fetcher = jest.fn().mockResolvedValue({ id: 1, foo: 'fresh' });
+    const result = await db.readThrough(
+      'whatever',
+      { select: 'data', eq: { id: 1 }, maybeSingle: true },
+      fetcher,
+      { onConflict: 'id', ttlMs: 30 * 1000 }
+    );
+
+    expect(fetcher).toHaveBeenCalledTimes(1);
+    expect(result.data).toEqual({ id: 1, foo: 'fresh' });
+  });
+});

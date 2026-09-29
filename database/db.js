@@ -550,8 +550,16 @@ async function readThrough(table, queryOpts, fetcher, opts = {}) {
 async function doReadThrough(table, queryOpts, fetcher, opts) {
   const { onConflict = 'id', ttlMs = null } = opts;
 
-  // 1. Intentar DB
-  const { data: row, error } = await query(table, queryOpts);
+  // 1. Intentar DB. El chequeo de TTL necesita updated_at, pero los callers
+  // suelen pedir solo 'data' — sin esa columna todo se considera fresco para
+  // siempre (bug: servía stats pre-partido en pleno vivo). Se agrega al
+  // select cuando hay TTL (todas las tablas de caché la tienen).
+  let readOpts = queryOpts;
+  const sel = queryOpts?.select;
+  if (ttlMs != null && typeof sel === 'string' && sel.trim() !== '*' && !/(^|,)\s*updated_at\s*(,|$)/i.test(sel)) {
+    readOpts = { ...queryOpts, select: `${sel}, updated_at` };
+  }
+  const { data: row, error } = await query(table, readOpts);
   if (error) return { data: null, error, source: 'db-error' };
 
   const hasData = row && (Array.isArray(row) ? row.length > 0 : true);
