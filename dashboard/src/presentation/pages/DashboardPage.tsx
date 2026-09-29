@@ -120,6 +120,23 @@ export function DashboardPage() {
   const { games: liveGames, error: liveError, refetch: refetchLive } = useLiveGames(liveParams)
   const { games: allGames, loading: gamesLoading, error: gamesError, refetch: refetchGames } =
     useGames(competitionParam)
+
+  // Highlights desktop: queries dedicadas por estado. El endpoint sin
+  // statusGroup ordena ASC y corta en 20 por defecto (los más viejos),
+  // así que los próximos nunca llegaban a `allGames` y la sección de
+  // futuros quedaba siempre vacía.
+  const highlightBaseParams = scope.kind === 'all' ? { all: true } : { competitionId: scope.id }
+  const { games: highlightUpcoming, loading: highlightUpcomingLoading } = useGames({
+    ...highlightBaseParams,
+    statusGroup: '2',
+    limit: 12,
+  })
+  const { games: highlightFinished, loading: highlightFinishedLoading } = useGames({
+    ...highlightBaseParams,
+    statusGroup: '4',
+    limit: 12,
+  })
+  const highlightsLoading = gamesLoading || highlightUpcomingLoading || highlightFinishedLoading
   const [heroCompact, setHeroCompact] = useState(false)
   const heroRef = useRef<HTMLDivElement>(null)
   const tabsRef = useRef<HTMLDivElement>(null)
@@ -276,16 +293,25 @@ export function DashboardPage() {
       )
       return { mode: 'day' as const, title: `Partidos · ${label}`, games: dayGames }
     }
-    const upcoming = allGames
-      .filter((g) => g.status === 'upcoming')
+    // Fuente primaria: las queries dedicadas (orden del backend: upcoming
+    // ASC, finished DESC). Fallback a `allGames` si vienen vacías (error de
+    // red / caché) para no dejar las secciones vacías pudiendo mostrar algo.
+    const upcomingPool =
+      highlightUpcoming.length > 0
+        ? highlightUpcoming
+        : allGames.filter((g) => g.status === 'upcoming')
+    const finishedPool =
+      highlightFinished.length > 0
+        ? highlightFinished
+        : allGames.filter((g) => g.status === 'finished')
+    const upcoming = [...upcomingPool]
       .sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime())
       .slice(0, 6)
-    const finished = allGames
-      .filter((g) => g.status === 'finished')
+    const finished = [...finishedPool]
       .sort((a, b) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime())
       .slice(0, 6)
     return { mode: 'highlights' as const, upcoming, finished }
-  }, [dateOffset, filteredGames, allGames])
+  }, [dateOffset, filteredGames, allGames, highlightUpcoming, highlightFinished])
 
   // Equipo de la jornada (once ideal) de la competición activa — llena y
   // balancea el centro en desktop. Comparte el fetch con el rail derecho.
@@ -432,7 +458,7 @@ export function DashboardPage() {
 
       {/* Highlights desktop: próximos + resultados recientes en dos secciones. */}
       <div className="mt-6 hidden space-y-8 lg:block">
-        {gamesLoading ? (
+        {highlightsLoading ? (
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             {Array.from({ length: 4 }).map((_, i) => (
               <MatchCardSkeleton key={i} />

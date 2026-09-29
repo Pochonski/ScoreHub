@@ -19,6 +19,8 @@ export function useGames(params?: GetGamesParams) {
     params?.teamId ?? null,
     params?.competitionId ?? null,
     params?.all ?? false,
+    params?.limit ?? null,
+    params?.seasonNum ?? null,
   ] as const
 
   const { data, isLoading, error, refetch } = useQuery<Game[]>({
