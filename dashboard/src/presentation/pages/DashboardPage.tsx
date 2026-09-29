@@ -23,6 +23,7 @@ import { useActiveCompetition } from '@/presentation/context/ActiveCompetitionCo
 import { ErrorState } from '@/presentation/components/ui/ErrorState'
 import { HeroSkeleton, MatchCardSkeleton } from '@/presentation/components/ui/Skeleton'
 import { useTournamentStats } from '@/presentation/hooks/useTournamentStats'
+import { useMatchesRange, offsetToISODate } from '@/presentation/hooks/useMatchesRange'
 import { TeamOfWeekPitch } from '@/presentation/components/stats/TeamOfWeekPitch'
 
 type FilterValue = 'all' | 'live' | 'upcoming' | 'finished'
@@ -274,6 +275,12 @@ export function DashboardPage() {
   // Highlights del centro (desktop): próximos partidos + resultados
   // recientes en dos secciones. Es una selección curada, no el listado
   // completo (ese vive en el rail izquierdo).
+  // Vista por día: con fecha elegida los partidos vienen del endpoint por
+  // rango (multi-comp, sin el tope de 20) en vez de filtrar el set local.
+  const rangeDay = dateOffset != null ? offsetToISODate(dateOffset) : null
+  const { games: rangeGames, loading: rangeLoading } = useMatchesRange(
+    scope.kind === 'all' ? { day: rangeDay, all: true } : { day: rangeDay, competitionId: scope.id }
+  )
   const highlightGames = useMemo(() => {
     // Si el usuario eligió un día en el calendario (dateOffset != null), el
     // centro muestra los partidos de ESE día en una sola sección.
@@ -288,7 +295,9 @@ export function DashboardPage() {
             : dateOffset === -1
               ? 'Ayer'
               : d.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })
-      const dayGames = [...filteredGames].sort(
+      // Fuente primaria: rango del día; mientras carga, fallback al local.
+      const pool = !rangeLoading ? rangeGames : filteredGames
+      const dayGames = [...pool].sort(
         (a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
       )
       return { mode: 'day' as const, title: `Partidos · ${label}`, games: dayGames }
@@ -311,7 +320,10 @@ export function DashboardPage() {
       .sort((a, b) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime())
       .slice(0, 6)
     return { mode: 'highlights' as const, upcoming, finished }
-  }, [dateOffset, filteredGames, allGames, highlightUpcoming, highlightFinished])
+  }, [dateOffset, filteredGames, allGames, highlightUpcoming, highlightFinished, rangeGames, rangeLoading])
+
+  const dayLoading =
+    dateOffset != null && rangeLoading && highlightGames.mode === 'day' && highlightGames.games.length === 0
 
   // Equipo de la jornada (once ideal) de la competición activa — llena y
   // balancea el centro en desktop. Comparte el fetch con el rail derecho.
@@ -458,7 +470,7 @@ export function DashboardPage() {
 
       {/* Highlights desktop: próximos + resultados recientes en dos secciones. */}
       <div className="mt-6 hidden space-y-8 lg:block">
-        {highlightsLoading ? (
+        {highlightsLoading || dayLoading ? (
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             {Array.from({ length: 4 }).map((_, i) => (
               <MatchCardSkeleton key={i} />

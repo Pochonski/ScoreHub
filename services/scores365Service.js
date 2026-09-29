@@ -221,6 +221,14 @@ const api = {
     return get('/web/games/', params.join('&'))
   },
 
+  // Agenda por rango de fechas (vista calendario multi-comp).
+  // Fechas en DD/MM/YYYY como las pide el upstream.
+  getGamesByRange: (startDate, endDate, competitions = '') => {
+    const params = [`startDate=${startDate}`, `endDate=${endDate}`]
+    if (competitions) params.push(`competitions=${competitions}`)
+    return get('/web/games/', params.join('&'))
+  },
+
   // Búsqueda global.
   search: (query, opts = {}) => {
     const params = [`query=${encodeURIComponent(query)}`]

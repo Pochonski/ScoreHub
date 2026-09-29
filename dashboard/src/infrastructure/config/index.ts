@@ -4,6 +4,7 @@ export const ENDPOINTS = {
   matches: `/matches`,
   matchesLive: `/matches/live`,
   matchesFeatured: `/matches/featured`,
+  matchesRange: `/matches/range`,
   matchById: (id: number | string) => `/matches/${id}`,
   matchStats: (id: number | string) => `/matches/${id}/stats`,
   matchH2h: (id: number | string) => `/matches/${id}/h2h`,

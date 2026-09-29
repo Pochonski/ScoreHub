@@ -216,6 +216,48 @@ async function getLiveMatches(req, res, next) {
   }
 }
 
+/**
+ * GET /matches/range?startDate=YYYY-MM-DD&endDate=YYYY-MM-DD&competitionId=X|all=true
+ * Agenda por rango de fechas directo del upstream (/web/games/). Es la vista
+ * calendario multi-comp: no depende de la tabla games ni del filtro de
+ * temporada. Rango máximo 14 días para acotar egress.
+ */
+async function getMatchesRange(req, res, next) {
+  try {
+    const toDDMMYYYY = (iso) => {
+      const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(iso || ''));
+      if (!m) return null;
+      return `${m[3]}/${m[2]}/${m[1]}`;
+    };
+    const start = toDDMMYYYY(req.query.startDate);
+    const end = toDDMMYYYY(req.query.endDate);
+    if (!start || !end) {
+      return res.status(400).json({ error: 'startDate y endDate (YYYY-MM-DD) requeridos' });
+    }
+    const days = (new Date(req.query.endDate) - new Date(req.query.startDate)) / 86400000;
+    if (!Number.isFinite(days) || days < 0 || days > 14) {
+      return res.status(400).json({ error: 'rango inválido (máx 14 días)' });
+    }
+
+    let competitions = '';
+    if (req.query.all === 'true') {
+      const ids = await resolveCompetitionIds(req, res);
+      if (ids === null) return;
+      competitions = ids.join(',');
+    } else {
+      const resolved = await resolveCompetition(req, res);
+      if (!resolved) return;
+      competitions = String(resolved.competitionId);
+    }
+
+    const data = await scores365.getGamesByRange(start, end, competitions).catch(() => null);
+    const games = data?.games ?? [];
+    res.json(games.map(enrichGame).filter(Boolean));
+  } catch (err) {
+    next(err);
+  }
+}
+
 async function getFeaturedMatch(req, res, next) {
   try {
     const resolved = await resolveCompetition(req, res);
@@ -932,6 +974,7 @@ module.exports = {
   getMatchPredictions,
   getMatchTimeline,
   getMatchPlayByPlay,
+  getMatchesRange,
   getMatchSuggestions,
   getMatchPreview,
 };

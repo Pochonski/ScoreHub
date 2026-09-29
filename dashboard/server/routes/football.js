@@ -38,6 +38,7 @@ function edge(ttlSeconds, swrSeconds) {
 router.get('/matches', edge(30), matchController.getMatches);
 router.get('/matches/live', edge(20), matchController.getLiveMatches);
 router.get('/matches/featured', edge(20), matchController.getFeaturedMatch);
+router.get('/matches/range', edge(120), matchController.getMatchesRange);
 router.get('/matches/:id', edge(60), matchController.getMatchById);
 router.get('/matches/:id/stats', edge(60), matchController.getMatchStats);
 router.get('/matches/:id/h2h', edge(300), matchController.getMatchH2h);
