@@ -596,6 +596,76 @@ const EVENT_TYPE_MAP = {
   1000: 'substitution',
 };
 
+/**
+ * GET /matches/:id/playbyplay
+ * Relato en vivo del partido (comentario jugada a jugada de 365scores).
+ * La URL del feed viene en el overview (game.playByPlay.feedURL); se fuerza
+ * lang=14 (español). Sin caché en DB: el frontend pollea cada 30s en vivo.
+ * Si no hay feed (sin overview o partido sin cobertura), devuelve [].
+ */
+async function getMatchPlayByPlay(req, res, next) {
+  try {
+    const { id } = req.params;
+    const gid = Number(id);
+    if (!Number.isFinite(gid)) return res.status(400).json({ error: 'id inválido' });
+
+    const overview = await getGameDetailBy('game_overviews', gid);
+    let feedUrl = overview?.game?.playByPlay?.feedURL || null;
+    if (!feedUrl && overview?.playByPlay?.feedURL) feedUrl = overview.playByPlay.feedURL;
+    if (!feedUrl || typeof feedUrl !== 'string') {
+      // Hidratar al vuelo: el overview cacheado puede ser pre-partido (sin
+      // feed) o no existir. No se persiste: solo se necesita la feedURL.
+      try {
+        const fresh = await scores365.getGameOverview(gid);
+        feedUrl = fresh?.game?.playByPlay?.feedURL || null;
+      } catch {
+        feedUrl = null;
+      }
+    }
+    if (!feedUrl || typeof feedUrl !== 'string') return res.json([]);
+    // Español (nuestro langId) + quitar preview (queremos el relato completo).
+    feedUrl = feedUrl.replace(/([?&])lang=\d+/, '$1lang=14').replace(/&onlyPreview=true/, '');
+
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 8000);
+    let payload;
+    try {
+      const r = await fetch(feedUrl, {
+        signal: ctrl.signal,
+        headers: { 'User-Agent': 'ScoreHub/1.0', Accept: 'application/json' },
+      });
+      if (!r.ok) return res.json([]);
+      payload = await r.json();
+    } catch {
+      return res.json([]);
+    } finally {
+      clearTimeout(timer);
+    }
+
+    const messages = Array.isArray(payload?.Messages) ? payload.Messages : [];
+    const data = messages.map(m => ({
+      minute: m.Timeline != null ? Number(m.Timeline) : null,
+      type: m.TypeName || null,
+      title: (m.Title || '').trim() || null,
+      comment: m.Comment || '',
+      isMajor: m.IsMajor === true,
+      team: m.CompetitorNum ?? null,
+      period: m.Period != null ? String(m.Period) : null,
+      players: Array.isArray(m.Players)
+        ? m.Players.map(p => ({
+            name: p.PlayerName || p.PlayerSName || null,
+            shortName: p.PlayerSName || null,
+            athleteId: p.AthleteID ?? null,
+            jersey: p.JerseyNum ?? null,
+          })).filter(p => p.name)
+        : [],
+    })).filter(m => m.comment);
+    res.json(data);
+  } catch (err) {
+    next(err);
+  }
+}
+
 async function getMatchTimeline(req, res, next) {
   try {
     const { id } = req.params;
@@ -861,6 +931,7 @@ module.exports = {
   getMatchTrends,
   getMatchPredictions,
   getMatchTimeline,
+  getMatchPlayByPlay,
   getMatchSuggestions,
   getMatchPreview,
 };

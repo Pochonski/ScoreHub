@@ -9,6 +9,7 @@ import { MatchScoreCard } from '@/presentation/components/match-detail/MatchScor
 import { MatchStatsTable } from '@/presentation/components/match-detail/MatchStatsTable'
 import { MatchLineups } from '@/presentation/components/match-detail/MatchLineups'
 import { MatchTimeline } from '@/presentation/components/match-detail/MatchTimeline'
+import { MatchPlayByPlay } from '@/presentation/components/match-detail/MatchPlayByPlay'
 import { MatchPreviewEmbed } from '@/presentation/components/match-detail/MatchPreviewEmbed'
 import { MatchPredictions } from '@/presentation/components/match-detail/MatchPredictions'
 import { MatchTips } from '@/presentation/components/match-detail/MatchTips'
@@ -132,6 +133,7 @@ export function MatchDetailPage() {
         )}
       </div>
       <MatchTimeline timeline={timeline} homeTeamId={game.homeTeam.id} awayTeamId={game.awayTeam.id} />
+      <MatchPlayByPlay gameId={game.id} live={game.status === 'live'} />
       <MatchPreviewEmbed
         gameId={game.id}
         homeTeamId={game.homeTeam.id}

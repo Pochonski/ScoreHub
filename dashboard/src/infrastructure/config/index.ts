@@ -13,6 +13,7 @@ export const ENDPOINTS = {
   matchTrends: (id: number | string) => `/matches/${id}/trends`,
   matchPredictions: (id: number | string) => `/matches/${id}/predictions`,
   matchTimeline: (id: number | string) => `/matches/${id}/timeline`,
+  matchPlayByPlay: (id: number | string) => `/matches/${id}/playbyplay`,
   matchSuggestions: (id: number | string) => `/matches/${id}/suggestions`,
   matchPreview: (id: number | string) => `/matches/${id}/preview`,
   standings: `/standings`,

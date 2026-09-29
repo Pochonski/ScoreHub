@@ -47,6 +47,7 @@ router.get('/matches/:id/tips', edge(120), matchController.getMatchTips);
 router.get('/matches/:id/trends', edge(120), matchController.getMatchTrends);
 router.get('/matches/:id/predictions', edge(120), matchController.getMatchPredictions);
 router.get('/matches/:id/timeline', edge(30), matchController.getMatchTimeline);
+router.get('/matches/:id/playbyplay', edge(30), matchController.getMatchPlayByPlay);
 router.get('/matches/:id/suggestions', edge(300), matchController.getMatchSuggestions);
 router.get('/matches/:id/preview', edge(120), matchController.getMatchPreview);
 

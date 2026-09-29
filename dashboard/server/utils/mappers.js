@@ -108,6 +108,10 @@ function enrichGame(game) {
     startTime: game.startTime,
     statusText: game.statusText || null,
     minute: game.minute ?? game.gameTime ?? (typeof game.statusText === 'string' ? parseInt(game.statusText) || null : null),
+    officials: Array.isArray(game.officials)
+      ? game.officials.map(o => o?.name).filter(n => typeof n === 'string' && n)
+      : undefined,
+    hasPlayByPlay: Boolean(game.playByPlay?.feedURL),
     homeTeam: enrichTeam(homeComp, game.homeCompetitor?.imageVersion),
     awayTeam: enrichTeam(awayComp, game.awayCompetitor?.imageVersion),
   };

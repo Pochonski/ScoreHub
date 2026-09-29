@@ -52,6 +52,10 @@ export function mapGame(raw: Record<string, unknown>): Game {
     },
     statusText: (raw.statusText as string) || undefined,
     minute: (raw.minute as number) || undefined,
+    officials: Array.isArray(raw.officials)
+      ? (raw.officials as unknown[]).filter((o): o is string => typeof o === 'string' && o.length > 0)
+      : undefined,
+    hasPlayByPlay: raw.hasPlayByPlay === true,
     events: raw.events as Game['events'],
     stats: raw.stats as Game['stats'],
   }

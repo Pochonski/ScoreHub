@@ -57,6 +57,12 @@ export const MatchScoreCard = memo(function MatchScoreCard({ game }: MatchScoreC
             </span>
           </div>
         </div>
+
+        {game.officials && game.officials.length > 0 && (
+          <p className="font-body text-text-dim mt-4 text-center text-[11px]">
+            Árbitro: <span className="text-text-muted">{game.officials.join(' · ')}</span>
+          </p>
+        )}
       </div>
     </div>
   )

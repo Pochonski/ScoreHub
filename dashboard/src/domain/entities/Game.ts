@@ -41,6 +41,10 @@ export interface Game {
   awayTeam: TeamInfo
   statusText?: string
   minute?: number
+  /** Árbitros (nombres) cuando el overview los trae. */
+  officials?: string[]
+  /** Si hay relato en vivo disponible. */
+  hasPlayByPlay?: boolean
   events?: MatchEvent[]
   stats?: GameStat[]
 }
