@@ -89,6 +89,9 @@ export function LeaguesRail({
     return Math.round((target.getTime() - today.getTime()) / 86400000)
   }
   const selectedDate = dateOffset == null ? null : offsetToDate(dateOffset)
+  // En modo Vivo la fecha se ignora (el vivo siempre es "ahora"): el
+  // navegador se atenúa para comunicarlo.
+  const isLiveMode = filter === 'live'
 
   // Flechas: mueven un día (sin límite). Base "hoy" cuando es "Todos los días".
   const stepDate = (dir: -1 | 1) => {
@@ -97,9 +100,15 @@ export function LeaguesRail({
 
   return (
     <div className="space-y-4">
-      {/* Navegador de fecha (con calendario) */}
+      {/* Navegador de fecha (con calendario). En modo Vivo se atenúa: la fecha no aplica. */}
       <div className="relative" ref={calendarRef}>
-      <div className="bg-bg-card border-border-card overflow-hidden rounded-xl border">
+      <div
+        className={`bg-bg-card border-border-card overflow-hidden rounded-xl border transition-opacity ${
+          isLiveMode ? 'pointer-events-none opacity-50' : ''
+        }`}
+        aria-disabled={isLiveMode}
+        title={isLiveMode ? 'En modo Vivo la fecha no aplica' : undefined}
+      >
         <div className="flex items-center justify-between px-2 py-2">
           <button
             type="button"
@@ -235,7 +244,7 @@ export function LeaguesRail({
                   <div className="px-1.5 pb-2">
                     {games.length === 0 ? (
                       <p className="text-text-dim font-body px-2 py-3 text-center text-xs">
-                        Sin partidos para esta fecha
+                        {isLiveMode ? 'Sin partidos en vivo ahora mismo' : 'Sin partidos para esta fecha'}
                       </p>
                     ) : (
                       <>

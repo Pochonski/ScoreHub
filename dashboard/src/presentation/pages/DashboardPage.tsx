@@ -325,6 +325,17 @@ export function DashboardPage() {
   const dayLoading =
     dateOffset != null && rangeLoading && highlightGames.mode === 'day' && highlightGames.games.length === 0
 
+  // Juegos del rail izquierdo: en modo Vivo se alimenta de liveGames
+  // (polling 30s, incluye grupo 3) porque allGames solo trae finalizados
+  // viejos; en modo día usa el rango multi-comp; si no, el filtrado local.
+  const railGames = useMemo(() => {
+    if (filter === 'live') {
+      return [...liveGames].sort((a, b) => (b.minute ?? -1) - (a.minute ?? -1))
+    }
+    if (dateOffset != null && !rangeLoading) return rangeGames
+    return filteredGames
+  }, [filter, liveGames, dateOffset, rangeLoading, rangeGames, filteredGames])
+
   // Equipo de la jornada (once ideal) de la competición activa — llena y
   // balancea el centro en desktop. Comparte el fetch con el rail derecho.
   const { teamOfWeek } = useTournamentStats(activeCompId ?? null, activeComp?.seasonNum ?? null)
@@ -458,7 +469,7 @@ export function DashboardPage() {
           </div>
         ) : (
           <MatchGrid
-            games={filteredGames}
+            games={railGames}
             onSelect={handleSelectGame}
             featuredId={heroGame?.id}
             competitionName={competitionHeaderName}
@@ -594,7 +605,7 @@ export function DashboardPage() {
             competitions={featuredSorted}
             scope={scope}
             onScopeChange={handleScopeChange}
-            games={filteredGames}
+            games={railGames}
             liveCount={liveGames.length}
             onSelectGame={handleSelectGame}
             filter={filter}
