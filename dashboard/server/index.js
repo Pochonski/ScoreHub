@@ -41,7 +41,27 @@ app.use(pinoHttp({
   logger: serverLogger,
   quietReqLogger: true,
 }));
-app.use(helmet());
+// CSP de helmet alineada con el <meta> de dashboard/index.html (Fase 7.1).
+// helmet() por defecto manda `img-src 'self' data:` y, como el servidor
+// Express sirve el index.html de las rutas entidad (/player/*, /partido/*,
+// /competicion/*, /equipo/*), esa cabecera intersecta con el meta y bloquea
+// los badges de imagecache.365scores.com. Mantener ambas en sync.
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      'default-src': ["'self'"],
+      'script-src': ["'self'"],
+      'style-src': ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
+      'img-src': ["'self'", 'https://imagecache.365scores.com', 'data:'],
+      'font-src': ["'self'", 'https://fonts.gstatic.com', 'data:'],
+      'connect-src': ["'self'", 'https://jcfulxsqayscvqgxemhv.supabase.co'],
+      'worker-src': ["'self'"],
+      'manifest-src': ["'self'"],
+      'base-uri': ["'self'"],
+      'form-action': ["'self'"],
+    },
+  },
+}));
 app.set('trust proxy', 1);
 app.use(cors({ origin: whitelist }));
 app.use(express.json({ limit: '100kb' }));

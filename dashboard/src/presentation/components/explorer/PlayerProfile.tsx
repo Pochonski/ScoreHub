@@ -7,6 +7,7 @@ import type {
   AthleteLastMatch,
 } from '@/domain/entities/Athlete'
 import { formatShortDate } from '@/presentation/utils/dates'
+import { ImageWithFallback } from '@/presentation/components/ui/ImageWithFallback'
 import {
   formatDate,
   contractYear,
@@ -65,13 +66,16 @@ export function PlayerProfile({ athlete, career, trophies, transfers, partialDat
       <div className="flex flex-col items-center gap-4 sm:flex-row sm:items-start sm:gap-6">
         <div className="relative shrink-0">
           <div className="bg-bg-elevated border-border-card h-24 w-24 overflow-hidden rounded-full border-2 sm:h-32 sm:w-32">
-            {athlete.photoUrl ? (
-              <img src={athlete.photoUrl} alt={athlete.name} className="h-full w-full object-cover" />
-            ) : (
-              <span className="font-display text-text-muted flex h-full w-full items-center justify-center text-3xl">
-                {athlete.name.charAt(0)}
-              </span>
-            )}
+            <ImageWithFallback
+              src={athlete.photoUrl}
+              alt={athlete.name}
+              className="h-full w-full object-cover"
+              fallback={
+                <span className="font-display text-text-muted flex h-full w-full items-center justify-center text-3xl">
+                  {athlete.name.charAt(0)}
+                </span>
+              }
+            />
           </div>
           {athlete.jerseyNum != null && (
             <span
@@ -265,20 +269,16 @@ export function PlayerProfile({ athlete, career, trophies, transfers, partialDat
                   key={i}
                   className="border-border-card/30 flex items-center gap-3 border-b py-2 last:border-0"
                 >
-                  {s.badge ? (
-                    <img
-                      src={s.badge}
-                      alt=""
-                      className="bg-bg-elevated h-5 w-5 shrink-0 rounded-full object-contain"
-                      onError={(e) => {
-                        ;(e.target as HTMLImageElement).style.display = 'none'
-                      }}
-                    />
-                  ) : (
-                    <span className="bg-bg-elevated font-body text-text-dim flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[11px] sm:text-[10px]">
-                      {s.team.charAt(0)}
-                    </span>
-                  )}
+                  <ImageWithFallback
+                    src={s.badge ?? undefined}
+                    alt=""
+                    className="h-5 w-5 shrink-0 rounded-full object-contain"
+                    fallback={
+                      <span className="bg-bg-elevated font-body text-text-dim flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[11px]">
+                        {s.team.charAt(0)}
+                      </span>
+                    }
+                  />
                   <div className="min-w-0 flex-1">
                     <span className="font-body text-text-primary text-sm font-medium">{s.team}</span>
                     <span className="font-body text-text-dim/60 ml-2 text-[11px]">{s.label}</span>
