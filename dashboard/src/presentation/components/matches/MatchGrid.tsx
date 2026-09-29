@@ -115,7 +115,7 @@ export function MatchGrid({
       return dateOrder === 'desc' ? -diff : diff
     })
     return (
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-3">
         {ordered.map((game, index) => card(game, index))}
       </div>
     )
