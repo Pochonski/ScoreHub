@@ -116,7 +116,7 @@ export function PreviaPage() {
 
       {preview.h2h.h2hGames.length > 0 && (
         <SectionCard title={`Cara a cara (${preview.h2h.h2hGames.length})`}>
-          <MatchGrid games={preview.h2h.h2hGames} onSelect={goGame} dateOrder="desc" hideHeaderLink />
+          <MatchGrid games={preview.h2h.h2hGames} onSelect={goGame} dateOrder="desc" compact />
         </SectionCard>
       )}
 
@@ -126,13 +126,13 @@ export function PreviaPage() {
             {preview.h2h.homeRecent.length > 0 && (
               <div>
                 <p className="font-body text-text-primary mb-2 text-sm font-semibold">{homeName}</p>
-                <MatchGrid games={preview.h2h.homeRecent} onSelect={goGame} dateOrder="desc" hideHeaderLink />
+                <MatchGrid games={preview.h2h.homeRecent} onSelect={goGame} dateOrder="desc" compact />
               </div>
             )}
             {preview.h2h.awayRecent.length > 0 && (
               <div>
                 <p className="font-body text-text-primary mb-2 text-sm font-semibold">{awayName}</p>
-                <MatchGrid games={preview.h2h.awayRecent} onSelect={goGame} dateOrder="desc" hideHeaderLink />
+                <MatchGrid games={preview.h2h.awayRecent} onSelect={goGame} dateOrder="desc" compact />
               </div>
             )}
           </div>

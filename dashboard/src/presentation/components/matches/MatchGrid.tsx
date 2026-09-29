@@ -19,6 +19,12 @@ interface MatchGridProps {
   dateOrder?: 'asc' | 'desc'
   /** Oculta el título-link "Partidos →" de cada grupo (ej. en previa). */
   hideHeaderLink?: boolean
+  /**
+   * Modo compacto: grilla plana sin cabeceras de fecha (ej. H2H y últimos
+   * partidos en la previa, donde cada grupo suele tener 1 partido y la
+   * tarjeta ya muestra su fecha). Mantiene el orden por fecha.
+   */
+  compact?: boolean
 }
 
 function groupByDate(
@@ -81,11 +87,36 @@ export function MatchGrid({
   competitionId,
   dateOrder = 'asc',
   hideHeaderLink = false,
+  compact = false,
 }: MatchGridProps) {
   if (games.length === 0) {
     return (
       <div className="py-12 text-center">
         <p className="text-text-muted font-body text-sm">{emptyMessage || 'No hay partidos para mostrar'}</p>
+      </div>
+    )
+  }
+
+  const card = (game: Game, index: number) => (
+    <div
+      key={game.id}
+      className={`card-enter transition-all duration-200 ${
+        game.id === featuredId ? 'ring-accent-gold/30 scale-[1.02] rounded-xl ring-2' : ''
+      }`}
+      style={{ animationDelay: `${index * 50}ms` }}
+    >
+      <MatchCard game={game} onSelect={onSelect} />
+    </div>
+  )
+
+  if (compact) {
+    const ordered = [...games].sort((a, b) => {
+      const diff = new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
+      return dateOrder === 'desc' ? -diff : diff
+    })
+    return (
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        {ordered.map((game, index) => card(game, index))}
       </div>
     )
   }
@@ -133,17 +164,7 @@ export function MatchGrid({
           </div>
 
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
-            {group.games.map((game, index) => (
-              <div
-                key={game.id}
-                className={`card-enter transition-all duration-200 ${
-                  game.id === featuredId ? 'ring-accent-gold/30 scale-[1.02] rounded-xl ring-2' : ''
-                }`}
-                style={{ animationDelay: `${index * 50}ms` }}
-              >
-                <MatchCard game={game} onSelect={onSelect} />
-              </div>
-            ))}
+            {group.games.map((game, index) => card(game, index))}
           </div>
         </div>
       ))}
