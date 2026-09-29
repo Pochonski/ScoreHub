@@ -46,6 +46,15 @@ export const AthleteSchema = z.object({
   shortBio: z.string().optional(),
   photoUrl: z.string().optional(),
   thumbnailUrl: z.string().optional(),
+  jerseyNum: z.number().optional(),
+  nationalityName: z.string().optional(),
+  onLoanFrom: z.number().nullable().optional(),
+  onLoanUntil: z.string().optional(),
+  // Ficha y destacados: validación suelta (el upstream varía por deporte);
+  // el mapper los normaliza a los tipos de dominio.
+  playerDetails: z.unknown().optional(),
+  highlightStats: z.unknown().optional(),
+  lastMatches: z.unknown().optional(),
 })
 
 export const StandingRowSchema = z.object({
