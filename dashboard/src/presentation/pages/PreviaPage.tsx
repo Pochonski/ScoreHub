@@ -57,8 +57,13 @@ export function PreviaPage() {
     t != null && (t.won != null || t.drawn != null || t.lost != null)
       ? `${t.won ?? '–'}G · ${t.drawn ?? '–'}E · ${t.lost ?? '–'}P`
       : null
-  const homeRecord = tableRecord(home)
-  const awayRecord = tableRecord(away)
+  // Solo mostrar el récord si algún lado tiene > 0 (evita "0G · 0E · 0P").
+  const showRecord =
+    ((home?.won ?? 0) > 0 || (away?.won ?? 0) > 0 ||
+      (home?.drawn ?? 0) > 0 || (away?.drawn ?? 0) > 0 ||
+      (home?.lost ?? 0) > 0 || (away?.lost ?? 0) > 0)
+  const homeRecord = showRecord ? tableRecord(home) : null
+  const awayRecord = showRecord ? tableRecord(away) : null
 
   return (
     <div className="mx-auto max-w-4xl space-y-6 px-4 py-8">
