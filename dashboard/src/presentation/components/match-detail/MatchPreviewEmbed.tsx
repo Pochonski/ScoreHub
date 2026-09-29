@@ -50,13 +50,9 @@ function CompareRow({
           {away ?? '–'}
         </span>
       </div>
-      <div className="mt-1 flex h-1.5 gap-0.5 overflow-hidden rounded-full" aria-hidden="true">
-        <div className="flex flex-1 justify-end rounded-full bg-bg-elevated">
-          <div className="bg-accent-blue rounded-full" style={{ width: `${hPct}%` }} />
-        </div>
-        <div className="flex-1 rounded-full bg-bg-elevated">
-          <div className="bg-accent-gold rounded-full" style={{ width: `${100 - hPct}%` }} />
-        </div>
+      <div className="mt-1 flex h-1.5 overflow-hidden rounded-full bg-bg-elevated" aria-hidden="true">
+        <div className="bg-accent-blue h-full" style={{ width: `${hPct}%` }} />
+        <div className="bg-accent-gold h-full flex-1" />
       </div>
     </div>
   )
