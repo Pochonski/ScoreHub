@@ -77,8 +77,46 @@ describe('StandingMapper — multi-comp fields', () => {
   })
 })
 
-describe('StandingGroup — displayName + isCurrentStage', () => {
-  it('mapea displayName e isCurrentStage', () => {
+describe('StandingGroup — happy path conserva trend/nextMatch', () => {
+  it('no pierde trend, nextMatch ni hasPointsDeduction cuando el parse es válido', () => {
+    const groups = mapStandings([
+      {
+        name: 'Grupo A',
+        rows: [
+          {
+            position: 1,
+            team: { id: 18, name: 'QPR', badgeUrl: 'qpr.png' },
+            played: 5,
+            won: 3,
+            drawn: 1,
+            lost: 1,
+            goalsFor: 8,
+            goalsAgainst: 4,
+            goalDiff: 4,
+            points: 10,
+            recentForm: ['W', 'D', 'W'],
+            trend: 2,
+            hasPointsDeduction: true,
+            nextMatch: {
+              id: 999,
+              startTime: '2026-10-05T18:00:00-06:00',
+              homeCompetitor: { id: 18, name: 'QPR' },
+              awayCompetitor: { id: 23, name: 'Preston', badgeUrl: 'p.png' },
+            },
+          },
+        ],
+      },
+    ])
+    const row = groups[0].rows[0]
+    expect(row.trend).toBe(2)
+    expect(row.hasPointsDeduction).toBe(true)
+    expect(row.nextMatch?.id).toBe(999)
+    expect(row.nextMatch?.isHome).toBe(true)
+    expect(row.nextMatch?.opponent?.name).toBe('Preston')
+  })
+})
+
+describe('StandingGroup — displayName + isCurrentStage', () => {  it('mapea displayName e isCurrentStage', () => {
     const groups = mapStandings([
       {
         name: 'Tabla',

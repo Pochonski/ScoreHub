@@ -79,6 +79,9 @@ export function mapStandingGroup(raw: Record<string, unknown>): StandingGroup {
       ...parsed.data,
       displayName: (raw.displayName as string) || parsed.data.name,
       isCurrentStage: raw.isCurrentStage as boolean | undefined,
+      // Las filas SIEMPRE se mapean a mano: zod elimina trend, nextMatch y
+      // hasPointsDeduction, que la entidad sí declara.
+      rows: ((raw.rows as Record<string, unknown>[]) || []).map(mapStandingRow),
     }
   }
 

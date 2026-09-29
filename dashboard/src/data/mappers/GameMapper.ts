@@ -25,11 +25,12 @@ export function mapGame(raw: Record<string, unknown>): Game {
 
   return {
     id: d.id,
+    competitionId: typeof raw.competitionId === 'number' ? raw.competitionId : undefined,
     statusGroup: d.statusGroup as GameStatusGroup,
     status: mapGameStatus(d.statusGroup as GameStatusGroup),
     stage: (raw.stageName as string) || '',
     stageName: d.stage || '',
-    groupNum: ((raw.groupNum as number | undefined) ?? d.statusGroup === 2) ? undefined : undefined,
+    groupNum: typeof raw.groupNum === 'number' ? raw.groupNum : undefined,
     startTime: d.startTime || '',
     homeTeam: {
       id: ht?.id ?? ((raw.homeTeam as Record<string, unknown>)?.id as number),
@@ -37,6 +38,7 @@ export function mapGame(raw: Record<string, unknown>): Game {
       shortName: ht?.name || ((raw.homeTeam as Record<string, unknown>)?.shortName as string),
       score: ht?.score ?? undefined,
       badgeUrl: (raw.homeTeam as Record<string, unknown>)?.badgeUrl as string,
+      flagUrl: (raw.homeTeam as Record<string, unknown>)?.flagUrl as string | undefined,
     },
     awayTeam: {
       id: at?.id ?? ((raw.awayTeam as Record<string, unknown>)?.id as number),
@@ -44,6 +46,7 @@ export function mapGame(raw: Record<string, unknown>): Game {
       shortName: at?.name || ((raw.awayTeam as Record<string, unknown>)?.shortName as string),
       score: at?.score ?? undefined,
       badgeUrl: (raw.awayTeam as Record<string, unknown>)?.badgeUrl as string,
+      flagUrl: (raw.awayTeam as Record<string, unknown>)?.flagUrl as string | undefined,
     },
     statusText: (raw.statusText as string) || undefined,
     minute: (raw.minute as number) || undefined,

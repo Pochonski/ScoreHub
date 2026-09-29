@@ -1,5 +1,5 @@
 import type { News } from '@/domain/entities/News'
-import { NewsSchema, NewsArraySchema } from '@/infrastructure/validation/schemas'
+import { NewsSchema } from '@/infrastructure/validation/schemas'
 import { AppError, ErrorCode } from '@/infrastructure/errors/AppError'
 
 export function mapNews(raw: Record<string, unknown>): News {
@@ -7,9 +7,12 @@ export function mapNews(raw: Record<string, unknown>): News {
   if (!parsed.success) {
     throw new AppError('News data validation failed', ErrorCode.VALIDATION_ERROR)
   }
+  if (typeof raw.url !== 'string' || raw.url.trim() === '') {
+    throw new AppError('News data validation failed', ErrorCode.VALIDATION_ERROR)
+  }
 
   return {
-    id: raw.id as string,
+    id: String(raw.id),
     title: raw.title as string,
     publishDate: raw.publishDate as string,
     image: (raw.image as string) || undefined,
@@ -20,9 +23,18 @@ export function mapNews(raw: Record<string, unknown>): News {
 }
 
 export function mapNewsList(raw: Record<string, unknown>[]): News[] {
-  const parsed = NewsArraySchema.safeParse(raw)
-  if (!parsed.success) {
+  if (!Array.isArray(raw)) {
     throw new AppError('News list validation failed', ErrorCode.VALIDATION_ERROR)
   }
-  return raw.map(mapNews)
+  // Tolerante por item: una noticia rota (URL relativa, sin título) se
+  // descarta sin tumbar toda la lista.
+  const out: News[] = []
+  for (const item of raw) {
+    try {
+      out.push(mapNews(item))
+    } catch {
+      continue
+    }
+  }
+  return out
 }

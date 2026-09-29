@@ -29,6 +29,7 @@ export interface GameStat {
 
 export interface Game {
   id: number
+  competitionId?: number
   statusGroup: GameStatusGroup
   status: GameStatus
   stage: string

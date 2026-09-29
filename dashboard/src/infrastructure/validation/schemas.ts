@@ -22,9 +22,9 @@ export const GameSchema = z.object({
 })
 
 export const NewsSchema = z.object({
-  id: z.number().or(z.string().transform(Number)).optional(),
+  id: z.number().or(z.string()).optional(),
   title: z.string(),
-  url: z.string().url().optional(),
+  url: z.string().optional(),
   image: z.string().optional(),
   publishDate: z.string().optional(),
   source: z.string().optional(),
