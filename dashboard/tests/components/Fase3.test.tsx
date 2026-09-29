@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { findTablePosition } from '@/presentation/pages/TeamDetailPage'
+import { teamResult } from '@/presentation/pages/TeamDetailPage'
 import { parseOutrights, mapRawGames } from '@/presentation/components/competition/analysisUtils'
 import { StatsTab } from '@/presentation/components/competition/StatsTab'
 import { useTournamentStats } from '@/presentation/hooks/useTournamentStats'
@@ -36,6 +37,31 @@ describe('findTablePosition', () => {
   })
 })
 
+describe('teamResult — G/E/P desde el marcador', () => {
+  const mk = (hs: number, as: number, homeId = 131, awayId = 20): RawGame =>
+    ({
+      id: 1,
+      startTime: '2026-09-01T00:00:00Z',
+      statusGroup: 4,
+      statusText: 'Fin',
+      homeCompetitor: { id: homeId, name: 'A' },
+      awayCompetitor: { id: awayId, name: 'B' },
+      scores: [hs, as],
+    }) as RawGame
+
+  it('local que gana, visita que pierde, empate', () => {
+    expect(teamResult(mk(2, 1), 131)?.label).toBe('G')
+    expect(teamResult(mk(2, 1, 20, 131), 131)?.label).toBe('P')
+    expect(teamResult(mk(1, 1), 131)?.label).toBe('E')
+  })
+
+  it('ignora outcome y scores desconocidos', () => {
+    // Elche 2-3 Madrid con outcome=1 (relativo al equipo): por marcador es G.
+    expect(teamResult({ ...mk(2, 3, 10, 131), outcome: 1 }, 131)?.label).toBe('G')
+    expect(teamResult({ ...mk(2, 1), scores: [-1, -1] }, 131)).toBeNull()
+    expect(teamResult({ ...mk(2, 1), scores: undefined }, 131)).toBeNull()
+  })
+})
 describe('parseOutrights', () => {
   it('parsea lista de cuotas', () => {
     expect(

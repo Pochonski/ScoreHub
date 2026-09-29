@@ -125,19 +125,27 @@ async function getTeamRecentForm(req, res, next) {
 
 /**
  * GET /teams/:id/upcoming
- * DB_ONLY vía team_upcoming (hydrate-on-demand).
+ * Próximos partidos del equipo desde la tabla games (por equipo, sin filtro
+ * de temporada). ANTES usaba scores365.getFixtures(id), que es un endpoint
+ * por COMPETICIÓN (competitions=${id}): para el equipo 131 (Real Madrid)
+ * devolvía los fixtures de la competición 131 (Eliteserien).
  */
 async function getTeamUpcoming(req, res, next) {
   try {
     const id = parseInt(req.params.id, 10);
     if (!Number.isFinite(id)) return res.status(400).json({ error: 'id inválido' });
 
-    const { data } = await readOrHydrate(
-      'team_upcoming',
-      id,
-      () => scores365.getFixtures(id).then(d => d?.games ?? null),
+    const { enrichGame } = require('../utils/mappers');
+    const rows = await db.execAdvanced(
+      `SELECT data FROM games
+         WHERE (home_competitor_id = $1 OR away_competitor_id = $1)
+           AND status_group = 2
+           AND start_time > NOW() - INTERVAL '3 hours'
+         ORDER BY start_time ASC
+         LIMIT 8`,
+      [id]
     );
-    res.json(data ?? []);
+    res.json(rows.map(r => enrichGame(r.data)));
   } catch (err) {
     next(err);
   }

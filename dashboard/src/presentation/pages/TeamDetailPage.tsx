@@ -36,15 +36,24 @@ function formatDate(iso?: string): string {
   }
 }
 
-function outcomeLabel(outcome: number | undefined, homeId: number, awayId: number, teamId: number): { label: string; color: string } | null {
-  if (outcome == null) return null
-  // outcome: 0 = pending?, 1 = home win, 2 = away win, 3 = draw
-  if (outcome === 3) return { label: 'E', color: 'text-text-muted bg-bg-elevated' }
-  const won = (outcome === 1 && homeId === teamId) || (outcome === 2 && awayId === teamId)
-  const lost = (outcome === 1 && awayId === teamId) || (outcome === 2 && homeId === teamId)
-  if (won) return { label: 'G', color: 'text-white bg-accent-green' }
-  if (lost) return { label: 'P', color: 'text-white bg-accent-red' }
-  return null
+/**
+ * Resultado desde el marcador (scores [local, visita]) para el equipo.
+ * No usa `outcome`: en recent-form el upstream lo manda relativo al equipo
+ * (1 = ganó, 0 = perdió) y el mapeo anterior lo interpretaba a nivel partido,
+ * ignorando las derrotas.
+ */
+// eslint-disable-next-line react-refresh/only-export-components
+export function teamResult(game: RawGame, teamId: number): { label: string; color: string } | null {
+  const scores = game.scores
+  const hs = Array.isArray(scores) ? scores[0] : undefined
+  const as = Array.isArray(scores) ? scores[1] : undefined
+  if (typeof hs !== 'number' || typeof as !== 'number' || hs < 0 || as < 0) return null
+  const isHome = game.homeCompetitor?.id === teamId
+  const mine = isHome ? hs : as
+  const theirs = isHome ? as : hs
+  if (mine > theirs) return { label: 'G', color: 'text-white bg-accent-green' }
+  if (mine < theirs) return { label: 'P', color: 'text-white bg-accent-red' }
+  return { label: 'E', color: 'text-text-muted bg-bg-elevated' }
 }
 
 export function TeamDetailPage() {
@@ -115,18 +124,15 @@ export function TeamDetailPage() {
     )
   }
 
-  // Stats rápidas: contar W/D/L en forma reciente.
+  // Stats rápidas: G/E/P desde el marcador de cada partido.
   // Cálculo directo (no useMemo) — es barato y respeta Rules of Hooks
   // al no declararse después de un early return.
   let formW = 0, formD = 0, formL = 0
   for (const g of recentForm) {
-    const homeId = g.homeCompetitor?.id
-    const awayId = g.awayCompetitor?.id
-    const oc = g.outcome
-    if (oc === undefined) continue
-    if (oc === 3) formD++
-    else if ((oc === 1 && homeId === teamId) || (oc === 2 && awayId === teamId)) formW++
-    else if ((oc === 1 && awayId === teamId) || (oc === 2 && homeId === teamId)) formL++
+    const r = teamId != null ? teamResult(g, teamId) : null
+    if (r?.label === 'G') formW++
+    else if (r?.label === 'E') formD++
+    else if (r?.label === 'P') formL++
   }
   const formStats = { w: formW, d: formD, l: formL }
 
@@ -190,14 +196,11 @@ export function TeamDetailPage() {
                 if (!g) {
                   return <span key={i} className="bg-bg-elevated h-6 w-6 rounded-full" />
                 }
-                const homeId = g.homeCompetitor?.id
-                const awayId = g.awayCompetitor?.id
-                const oc = g.outcome
-                const oc_lbl = outcomeLabel(oc, homeId ?? 0, awayId ?? 0, teamId ?? 0)
+                const oc_lbl = teamId != null ? teamResult(g, teamId) : null
                 return (
                   <span
                     key={i}
-                    title={`${g.homeCompetitor?.name} vs ${g.awayCompetitor?.name} · ${g.homeCompetitor?.score ?? 0}-${g.awayCompetitor?.score ?? 0}`}
+                    title={`${g.homeCompetitor?.name} ${g.homeCompetitor?.score ?? 0}-${g.awayCompetitor?.score ?? 0} ${g.awayCompetitor?.name}`}
                     className={`font-body flex h-6 w-6 items-center justify-center rounded-full text-[11px] font-bold ${
                       oc_lbl?.color ?? 'bg-bg-elevated text-text-dim'
                     }`}
