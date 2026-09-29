@@ -35,6 +35,12 @@ export const MatchPreviewEmbed = memo(function MatchPreviewEmbed({
   const { home, away } = preview.table
   const hasTable = home != null || away != null
   if (!hasForm && !hasTable) return null
+  const record = (t: typeof home) =>
+    t != null && (t.won != null || t.drawn != null || t.lost != null)
+      ? `${t.won ?? '–'}G · ${t.drawn ?? '–'}E · ${t.lost ?? '–'}P`
+      : null
+  const homeRecord = record(home)
+  const awayRecord = record(away)
 
   return (
     <SectionCard title="Previa · forma y tabla">
@@ -59,6 +65,9 @@ export const MatchPreviewEmbed = memo(function MatchPreviewEmbed({
               <p className="font-body text-text-muted text-[11px]">
                 {home?.points ?? '–'} pts · {home?.played ?? '–'} PJ
               </p>
+              {homeRecord && (
+                <p className="font-body text-text-dim mt-0.5 text-[11px]">{homeRecord}</p>
+              )}
             </div>
             <div className="flex items-center justify-center">
               <span className="font-body text-text-dim text-xs">POS · PTS · PJ</span>
@@ -69,6 +78,9 @@ export const MatchPreviewEmbed = memo(function MatchPreviewEmbed({
               <p className="font-body text-text-muted text-[11px]">
                 {away?.points ?? '–'} pts · {away?.played ?? '–'} PJ
               </p>
+              {awayRecord && (
+                <p className="font-body text-text-dim mt-0.5 text-[11px]">{awayRecord}</p>
+              )}
             </div>
           </div>
         )}

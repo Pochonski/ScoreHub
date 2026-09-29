@@ -2,10 +2,30 @@ import { useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useTeamInfo, useTeamRecentForm, useTeamUpcoming, useCompetitionTransfers } from '@/presentation/hooks/useTransfersAndMore'
 import { useCompetitions } from '@/presentation/hooks/useCompetitions'
+import { useStandings } from '@/presentation/hooks/useStandings'
+import { mapRawGame } from '@/data/mappers/GameMapper'
 import { TeamBadge } from '@/presentation/components/ui/TeamBadge'
+import { MatchCard } from '@/presentation/components/matches/MatchCard'
 import { MatchCardSkeleton } from '@/presentation/components/ui/Skeleton'
 import { ErrorState } from '@/presentation/components/ui/ErrorState'
 import type { RawGame } from '@/domain/entities/RawGame'
+import type { StandingGroup } from '@/domain/entities/Standing'
+
+export interface TablePosition {
+  position: number
+  points: number
+  group: string
+}
+
+/** Busca al equipo en los grupos de la tabla y devuelve su posición. */
+// eslint-disable-next-line react-refresh/only-export-components
+export function findTablePosition(groups: StandingGroup[], teamId: number): TablePosition | null {
+  for (const g of groups) {
+    const row = g.rows.find((r) => r.team.id === teamId)
+    if (row) return { position: row.position, points: row.points, group: g.displayName || g.name }
+  }
+  return null
+}
 
 function formatDate(iso?: string): string {
   if (!iso) return ''
@@ -49,6 +69,20 @@ export function TeamDetailPage() {
     return competitions?.find(c => c.id === mainCompetitionId)?.displayName
       ?? `competición #${mainCompetitionId}`
   }, [mainCompetitionId, competitions])
+  // Posición en la tabla de su competición principal (Fase 3).
+  // Cálculo directo (no useMemo): barato y evita el conflicto con el React
+  // Compiler, igual que formStats más abajo.
+  const { groups: standingGroups } = useStandings(mainCompetitionId ?? null)
+  const tablePosition = teamId != null ? findTablePosition(standingGroups, teamId) : null
+  // Últimos resultados mapeados a Game para tarjetas navegables (Fase 3).
+  const recentGames: ReturnType<typeof mapRawGame>[] = []
+  for (const g of recentForm.slice(0, 5)) {
+    try {
+      recentGames.push(mapRawGame(g))
+    } catch {
+      continue
+    }
+  }
 
   if (infoLoading) {
     return (
@@ -131,6 +165,16 @@ export function TeamDetailPage() {
                   <span className="text-text-dim">·</span> rank {info.popularityRank}
                 </span>
               )}
+              {tablePosition && mainCompetitionId && (
+                <button
+                  type="button"
+                  onClick={() => navigate(`/competicion/${mainCompetitionId}/standings`)}
+                  className="font-body bg-accent-gold/10 text-accent-gold hover:bg-accent-gold/20 focus-visible rounded-full px-2 py-0.5 text-xs font-medium transition-colors"
+                  title={tablePosition.group}
+                >
+                  {tablePosition.position}° · {tablePosition.points} pts
+                </button>
+              )}
             </div>
           </div>
 
@@ -212,9 +256,36 @@ export function TeamDetailPage() {
             </div>
           ) : (
             <div className="space-y-2">
-              {upcoming.slice(0, 8).map(g => (
-                <GameRow key={g.id} game={g} teamId={teamId!} onClick={() => navigate(`/partido/${g.id}`)} />
+              {upcoming.slice(0, 8).map((g, i) => (
+                <div key={g.id}>
+                  <GameRow game={g} teamId={teamId!} onClick={() => navigate(`/partido/${g.id}`)} />
+                  {i === 0 && (
+                    <div className="mt-1 flex justify-end">
+                      <button
+                        type="button"
+                        onClick={() => navigate(`/partido/${g.id}/previa`)}
+                        className="font-body text-accent-blue hover:text-accent-blue/80 focus-visible rounded px-1 py-0.5 text-xs transition-colors"
+                      >
+                        Ver previa del próximo rival →
+                      </button>
+                    </div>
+                  )}
+                </div>
               ))}
+            </div>
+          )}
+
+          {/* Últimos resultados */}
+          {recentGames.length > 0 && (
+            <div className="mt-6">
+              <h2 className="font-display text-text-primary mb-3 text-lg font-semibold">
+                Últimos resultados
+              </h2>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                {recentGames.map((g) => (
+                  <MatchCard key={g.id} game={g} onSelect={(sg) => navigate(`/partido/${sg.id}`)} />
+                ))}
+              </div>
             </div>
           )}
         </section>

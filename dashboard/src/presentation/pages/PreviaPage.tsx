@@ -53,6 +53,12 @@ export function PreviaPage() {
     : null
   const goGame = (g: Game) => navigate(`/partido/${g.id}`)
   const { home, away } = preview.table
+  const tableRecord = (t: typeof home) =>
+    t != null && (t.won != null || t.drawn != null || t.lost != null)
+      ? `${t.won ?? '–'}G · ${t.drawn ?? '–'}E · ${t.lost ?? '–'}P`
+      : null
+  const homeRecord = tableRecord(home)
+  const awayRecord = tableRecord(away)
 
   return (
     <div className="mx-auto max-w-4xl space-y-6 px-4 py-8">
@@ -87,6 +93,9 @@ export function PreviaPage() {
               <p className="font-body text-text-muted text-[11px]">
                 {home?.points ?? '–'} pts · {home?.played ?? '–'} PJ
               </p>
+              {homeRecord && (
+                <p className="font-body text-text-dim mt-0.5 text-[11px]">{homeRecord}</p>
+              )}
             </div>
             <div className="flex items-center justify-center">
               <span className="font-body text-text-dim text-xs">POS · PTS · PJ</span>
@@ -97,6 +106,9 @@ export function PreviaPage() {
               <p className="font-body text-text-muted text-[11px]">
                 {away?.points ?? '–'} pts · {away?.played ?? '–'} PJ
               </p>
+              {awayRecord && (
+                <p className="font-body text-text-dim mt-0.5 text-[11px]">{awayRecord}</p>
+              )}
             </div>
           </div>
         </SectionCard>
@@ -105,6 +117,25 @@ export function PreviaPage() {
       {preview.h2h.h2hGames.length > 0 && (
         <SectionCard title={`Cara a cara (${preview.h2h.h2hGames.length})`}>
           <MatchGrid games={preview.h2h.h2hGames} onSelect={goGame} dateOrder="desc" hideHeaderLink />
+        </SectionCard>
+      )}
+
+      {(preview.h2h.homeRecent.length > 0 || preview.h2h.awayRecent.length > 0) && (
+        <SectionCard title="Últimos partidos de cada equipo">
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+            {preview.h2h.homeRecent.length > 0 && (
+              <div>
+                <p className="font-body text-text-primary mb-2 text-sm font-semibold">{homeName}</p>
+                <MatchGrid games={preview.h2h.homeRecent} onSelect={goGame} dateOrder="desc" hideHeaderLink />
+              </div>
+            )}
+            {preview.h2h.awayRecent.length > 0 && (
+              <div>
+                <p className="font-body text-text-primary mb-2 text-sm font-semibold">{awayName}</p>
+                <MatchGrid games={preview.h2h.awayRecent} onSelect={goGame} dateOrder="desc" hideHeaderLink />
+              </div>
+            )}
+          </div>
         </SectionCard>
       )}
 

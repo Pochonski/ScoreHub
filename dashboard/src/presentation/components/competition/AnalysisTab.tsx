@@ -5,7 +5,10 @@ import type { Game } from '@/domain/entities/Game'
 import { BettingTrends } from '@/presentation/components/trends/BettingTrends'
 import { BetTrendRow } from '@/presentation/components/trends/BetTrendRow'
 import { TeamBadge } from '@/presentation/components/ui/TeamBadge'
+import { MatchCard } from '@/presentation/components/matches/MatchCard'
 import { useGames, useFeaturedGame } from '@/presentation/hooks/useGames'
+import { useCompetitionInsights } from '@/presentation/hooks/useTransfersAndMore'
+import { parseOutrights, mapRawGames } from './analysisUtils'
 import { useMatchTipsForGames } from '@/presentation/hooks/useMatchTips'
 import { useTrends } from '@/presentation/hooks/useTrends'
 
@@ -168,6 +171,20 @@ export function AnalysisTab({ competitionId }: { competitionId?: number; competi
   // (el más próximo / destacado) para dejar claro de qué partido hablamos.
   const cards = matchesWithTips.length > 0 ? matchesWithTips : analysisGames.slice(0, 1)
 
+  // Insights de la competición (Fase 3): fallback cuando no hay tips y
+  // cuotas de campeón (solo si traen datos reales).
+  const navigate = useNavigate()
+  const { insights } = useCompetitionInsights(competitionId ?? null)
+  const insightsUpcoming = useMemo(
+    () => mapRawGames(insights?.upcoming?.items ?? []).slice(0, 4),
+    [insights]
+  )
+  const outrights = useMemo(
+    () => (insights?.outrights?.available ? parseOutrights(insights.outrights.data) : null),
+    [insights]
+  )
+  const showUpcomingFallback = matchesWithTips.length === 0 && insightsUpcoming.length > 0
+
   const hasTrends = !trendsLoading && trends.length > 0
   const initialLoading =
     gamesLoading ||
@@ -186,7 +203,7 @@ export function AnalysisTab({ competitionId }: { competitionId?: number; competi
     )
   }
 
-  if (cards.length === 0 && !hasTrends) {
+  if (cards.length === 0 && !hasTrends && !showUpcomingFallback && !outrights) {
     return (
       <div className="bg-bg-card rounded-xl p-6 text-center">
         <p className="font-body text-text-muted text-sm">
@@ -213,6 +230,42 @@ export function AnalysisTab({ competitionId }: { competitionId?: number; competi
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
             {cards.map((g) => (
               <MatchTipCard key={g.id} game={g} tips={tipsByGame.get(g.id) ?? null} />
+            ))}
+          </div>
+        </section>
+      )}
+
+      {outrights && (
+        <section>
+          <h2 className="font-display text-text-primary mb-3 text-lg font-semibold">
+            Favoritos al título
+          </h2>
+          <div className="bg-bg-card border-border-card rounded-2xl border p-4">
+            <ul className="divide-border-card/40 divide-y">
+              {outrights.slice(0, 5).map((o, i) => (
+                <li key={i} className="flex items-center justify-between gap-3 py-1.5">
+                  <span className="font-body text-text-primary truncate text-sm">
+                    <span className="text-text-dim mr-2 font-mono">{i + 1}</span>
+                    {o.label}
+                  </span>
+                  <span className="text-accent-gold shrink-0 font-mono text-sm font-bold tabular-nums">
+                    {o.value}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </section>
+      )}
+
+      {showUpcomingFallback && (
+        <section>
+          <h2 className="font-display text-text-primary mb-3 text-lg font-semibold">
+            Próximos de la competición
+          </h2>
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+            {insightsUpcoming.map((g) => (
+              <MatchCard key={g.id} game={g} onSelect={(sg) => navigate(`/partido/${sg.id}`)} />
             ))}
           </div>
         </section>

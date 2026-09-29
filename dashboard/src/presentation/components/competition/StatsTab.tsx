@@ -32,17 +32,27 @@ export function StatsTab({ competitionId, seasonNum }: { competitionId?: number;
     )
   }
 
-  const lists: { title: string; node: ReactNode }[] = []
-  if (scorers.length > 0)
-    lists.push({ title: 'Goleadores', node: <TopScorers scorers={scorers} hideTitle /> })
-  if (assists.length > 0)
-    lists.push({ title: 'Asistencias', node: <Assists assists={assists} hideTitle /> })
-  if (ratings.length > 0)
-    lists.push({ title: 'Valoraciones', node: <Ratings ratings={ratings} hideTitle /> })
+  const lists: { title: string; empty: string; node: ReactNode }[] = [
+    {
+      title: 'Goleadores',
+      empty: 'Esta competición no publica goleadores',
+      node: scorers.length > 0 ? <TopScorers scorers={scorers} hideTitle /> : null,
+    },
+    {
+      title: 'Asistencias',
+      empty: 'Esta competición no publica asistencias',
+      node: assists.length > 0 ? <Assists assists={assists} hideTitle /> : null,
+    },
+    {
+      title: 'Valoraciones',
+      empty: 'Esta competición no publica valoraciones',
+      node: ratings.length > 0 ? <Ratings ratings={ratings} hideTitle /> : null,
+    },
+  ]
 
   const hasTeamOfWeek = !!teamOfWeek && teamOfWeek.players.length > 0
 
-  if (lists.length === 0 && !hasTeamOfWeek) {
+  if (lists.every((l) => !l.node) && !hasTeamOfWeek) {
     return (
       <div className="bg-bg-card rounded-xl p-6 text-center">
         <p className="font-body text-text-muted text-sm">Estadísticas del torneo no disponibles</p>
@@ -50,21 +60,17 @@ export function StatsTab({ competitionId, seasonNum }: { competitionId?: number;
     )
   }
 
-  // Columnas según cuántas listas hay (evita una card sola muy ancha).
-  const gridCols =
-    lists.length >= 3 ? 'lg:grid-cols-3' : lists.length === 2 ? 'lg:grid-cols-2' : 'lg:grid-cols-1'
-
   return (
     <div className="space-y-4">
-      {lists.length > 0 && (
-        <div className={`grid grid-cols-1 gap-4 ${gridCols}`}>
-          {lists.map((l) => (
-            <StatCard key={l.title} title={l.title}>
-              {l.node}
-            </StatCard>
-          ))}
-        </div>
-      )}
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+        {lists.map((l) => (
+          <StatCard key={l.title} title={l.title}>
+            {l.node ?? (
+              <p className="font-body text-text-dim px-2 py-6 text-center text-xs">{l.empty}</p>
+            )}
+          </StatCard>
+        ))}
+      </div>
 
       {hasTeamOfWeek && teamOfWeek && (
         <div className="bg-bg-card border-border-card rounded-2xl border p-5">
