@@ -7,6 +7,9 @@ import { ShareButton } from '@/presentation/components/ui/ShareButton'
 import { BetTrendRow } from '@/presentation/components/trends/BetTrendRow'
 import { ErrorState } from '@/presentation/components/ui/ErrorState'
 import { FormBadges, SectionCard } from '@/presentation/components/match-detail/PreviewShared'
+import { MatchGroupTable } from '@/presentation/components/match-detail/MatchGroupTable'
+import { findSharedGroup } from '@/presentation/components/match-detail/MatchPreviewEmbed'
+import { useStandings } from '@/presentation/hooks/useStandings'
 import type { Game } from '@/domain/entities/Game'
 
 export function PreviaPage() {
@@ -14,6 +17,8 @@ export function PreviaPage() {
   const navigate = useNavigate()
   const gameId = id ? parseInt(id, 10) : null
   const { preview, loading, error, refetch } = useMatchPreview(gameId)
+  // Mini-tabla del grupo compartido (antes de los returns: hook incondicional).
+  const { groups: standingGroups } = useStandings(preview?.competitionId ?? null)
 
   if (error) return <ErrorState message={error} onRetry={() => refetch()} fullPage />
   if (loading) {
@@ -53,6 +58,7 @@ export function PreviaPage() {
     : null
   const goGame = (g: Game) => navigate(`/partido/${g.id}`)
   const { home, away } = preview.table
+  const sharedGroup = findSharedGroup(standingGroups, preview.homeTeamId, preview.awayTeamId)
   const tableRecord = (t: typeof home) =>
     t != null && (t.won != null || t.drawn != null || t.lost != null)
       ? `${t.won ?? '–'}G · ${t.drawn ?? '–'}E · ${t.lost ?? '–'}P`
@@ -116,6 +122,17 @@ export function PreviaPage() {
               )}
             </div>
           </div>
+        </SectionCard>
+      )}
+
+      {sharedGroup && (
+        <SectionCard title="En su grupo">
+          <MatchGroupTable
+            group={sharedGroup}
+            competitionId={preview.competitionId}
+            homeTeamId={preview.homeTeamId}
+            awayTeamId={preview.awayTeamId}
+          />
         </SectionCard>
       )}
 

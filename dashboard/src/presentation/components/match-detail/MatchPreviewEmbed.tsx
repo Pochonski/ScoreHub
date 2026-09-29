@@ -4,7 +4,7 @@ import { useMatchPreview } from '@/presentation/hooks/useMatchPreview'
 import { useStandings } from '@/presentation/hooks/useStandings'
 import type { StandingGroup } from '@/domain/entities/Standing'
 import { FormBadges, SectionCard } from './PreviewShared'
-import { GroupStandings } from '@/presentation/components/standings/GroupStandings'
+import { MatchGroupTable } from './MatchGroupTable'
 
 interface MatchPreviewEmbedProps {
   gameId: number
@@ -91,7 +91,10 @@ export const MatchPreviewEmbed = memo(function MatchPreviewEmbed({
 }: MatchPreviewEmbedProps) {
   const navigate = useNavigate()
   const { preview, loading } = useMatchPreview(gameId)
-  const { groups: standingGroups } = useStandings(competitionId ?? null)
+  // competitionId del preview como fallback: el game a veces viene de la
+  // tabla games sin competitionId en el doc.
+  const compId = competitionId ?? preview?.competitionId ?? null
+  const { groups: standingGroups } = useStandings(compId)
   const sharedGroup = findSharedGroup(standingGroups, homeTeamId, awayTeamId)
 
   if (loading) {
@@ -102,7 +105,7 @@ export const MatchPreviewEmbed = memo(function MatchPreviewEmbed({
   const hasForm = preview.form.home.length > 0 || preview.form.away.length > 0
   const { home, away } = preview.table
   const hasTable = home != null || away != null
-  if (!hasForm && !hasTable) return null
+  if (!hasForm && !hasTable && !sharedGroup) return null
   const hasRecord =
     home != null &&
     away != null &&
@@ -127,31 +130,15 @@ export const MatchPreviewEmbed = memo(function MatchPreviewEmbed({
             </div>
           </div>
         )}
-        {hasTable &&
-          (sharedGroup ? (
-            <div>
-              <div className="mb-2 flex items-center justify-between gap-2">
-                <p className="font-body text-text-dim text-[11px] tracking-wider uppercase">
-                  {sharedGroup.displayName || sharedGroup.name}
-                </p>
-                {competitionId != null && (
-                  <button
-                    type="button"
-                    onClick={() => navigate(`/competicion/${competitionId}/standings`)}
-                    className="font-body text-accent-blue hover:text-accent-blue/80 focus-visible rounded px-1 py-0.5 text-[11px] transition-colors"
-                  >
-                    Ver tabla →
-                  </button>
-                )}
-              </div>
-              <GroupStandings
-                groups={[sharedGroup]}
-                hideHeader
-                highlightIds={[homeTeamId, awayTeamId]}
-              />
-            </div>
-          ) : (
-            <div className="bg-bg-elevated/30 rounded-xl px-4 py-3">
+        {sharedGroup ? (
+          <MatchGroupTable
+            group={sharedGroup}
+            competitionId={compId}
+            homeTeamId={homeTeamId}
+            awayTeamId={awayTeamId}
+          />
+        ) : hasTable ? (
+          <div className="bg-bg-elevated/30 rounded-xl px-4 py-3">
             <div className="mb-3 flex items-center justify-between gap-2">
               <span className="font-body text-text-primary truncate text-sm font-semibold">{homeName}</span>
               <span className="font-display text-text-dim text-sm font-bold">VS</span>
@@ -172,7 +159,7 @@ export const MatchPreviewEmbed = memo(function MatchPreviewEmbed({
               )}
             </div>
           </div>
-        ))}
+        ) : null}
         <div className="flex justify-center">
           <button
             type="button"

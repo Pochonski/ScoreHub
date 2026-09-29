@@ -88,4 +88,21 @@ describe('MatchPreviewEmbed — mini-tabla vs barras', () => {
     expect(screen.getByText('Posición')).toBeInTheDocument()
     expect(screen.queryByText('Liga C · Grupo 3')).not.toBeInTheDocument()
   })
+
+  it('muestra la mini-tabla aunque el bundle no traiga tabla', () => {
+    mockedPreview.mockReturnValue({
+      preview: { ...previewBase, table: { home: null, away: null } },
+      loading: false,
+      error: null,
+      refetch: () => {},
+    } as never)
+    mockedStandings.mockReturnValue({ groups: [group], loading: false, error: null, refetch: () => {} } as never)
+    render(
+      <MemoryRouter>
+        <MatchPreviewEmbed {...props} />
+      </MemoryRouter>
+    )
+    expect(screen.getByText('Liga C · Grupo 3')).toBeInTheDocument()
+    expect(screen.queryByText('Posición')).not.toBeInTheDocument()
+  })
 })
