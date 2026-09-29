@@ -81,7 +81,7 @@ async function syncGameTrends() {
                 row_number() OVER (PARTITION BY competition_id ORDER BY start_time ASC) AS rn
            FROM games
           WHERE competition_id = ANY($1::int[])
-            AND status_group IN (1, 2)
+            AND status_group IN (1, 2, 3)
        ) q
        WHERE rn <= $2`,
       [ids, GAMES_PER_COMP]
@@ -231,7 +231,7 @@ async function syncOdds() {
     const comps = await getActiveCompetitions();
     const ids = comps.map(c => c.id);
     const rows = await db.execAdvanced(
-      `SELECT id FROM games WHERE competition_id = ANY($1::int[]) AND status_group IN (1, 2)
+      `SELECT id FROM games WHERE competition_id = ANY($1::int[]) AND status_group IN (1, 2, 3)
        ORDER BY start_time DESC LIMIT 30`,
       [ids]
     );

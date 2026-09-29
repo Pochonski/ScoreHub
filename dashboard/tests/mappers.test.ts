@@ -31,6 +31,11 @@ describe('GameMapper', () => {
     expect(game.status).toBe('finished')
   })
 
+  it('maps statusGroup 3 (primer tiempo) to live', () => {
+    const game = mapGame({ ...validGameRaw, statusGroup: 3 })
+    expect(game.status).toBe('live')
+  })
+
   it('throws AppError for missing required fields', () => {
     expect(() => mapGame({ id: 1 } as Record<string, unknown>)).toThrow(AppError)
   })

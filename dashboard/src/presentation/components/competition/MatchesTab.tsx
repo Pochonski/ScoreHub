@@ -14,7 +14,8 @@ type MatchesFilter = 'finished' | 'upcoming' | 'live'
 const FILTERS: { id: MatchesFilter; label: string; statusGroup: string }[] = [
   { id: 'finished', label: 'Anteriores', statusGroup: '4' },
   { id: 'upcoming', label: 'Próximos', statusGroup: '2' },
-  { id: 'live', label: 'En vivo', statusGroup: '1' },
+  // En vivo = grupos 1 (en juego) y 3 (primer tiempo).
+  { id: 'live', label: 'En vivo', statusGroup: '1,3' },
 ]
 
 const EMPTY_MESSAGES: Record<MatchesFilter, string> = {

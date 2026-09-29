@@ -98,7 +98,7 @@ async function syncGameDetails() {
     // Fase 8.1 — limit 50 → 25 (5 calls × 25 games = 125 requests; bajo control).
     // Si se necesitan más, se ejecuta varias veces (cron 10min).
     const rows = await db.execAdvanced(
-      `SELECT id FROM games WHERE competition_id = ANY($1::int[]) AND status_group IN (1, 2, 4)
+      `SELECT id FROM games WHERE competition_id = ANY($1::int[]) AND status_group IN (1, 2, 3, 4)
        ORDER BY start_time DESC LIMIT 25`,
       [ids]
     );

@@ -204,8 +204,10 @@ async function getLiveMatches(req, res, next) {
       if (!resolved) return;
       compIds = [resolved.competitionId];
     }
+    // En vivo = grupos 1 (en juego) y 3 (primer tiempo). El 3 antes se
+    // ignoraba y los partidos en primer tiempo nunca salían como live.
     const liveRows = await db.execAdvanced(
-      'SELECT data FROM games WHERE competition_id = ANY($1::int[]) AND status_group = 1 ORDER BY start_time DESC',
+      'SELECT data FROM games WHERE competition_id = ANY($1::int[]) AND status_group IN (1, 3) ORDER BY start_time DESC',
       [compIds]
     );
     res.json(liveRows.map(r => enrichGame(r.data)));
@@ -221,7 +223,7 @@ async function getFeaturedMatch(req, res, next) {
     const cid = resolved.competitionId;
 
     const live = await db.execAdvanced(
-      'SELECT data FROM games WHERE competition_id = $1 AND status_group = 1 LIMIT 1',
+      'SELECT data FROM games WHERE competition_id = $1 AND status_group IN (1, 3) LIMIT 1',
       [cid]
     );
     if (live.length) return res.json(enrichGame(live[0].data));

@@ -6,7 +6,8 @@ import { AppError, ErrorCode } from '@/infrastructure/errors/AppError'
 const STATUS_MAP: Record<GameStatusGroup, GameStatus> = {
   1: 'live',
   2: 'upcoming',
-  3: 'upcoming',
+  // 3 = primer tiempo (en juego según 365scores) → live, no upcoming.
+  3: 'live',
   4: 'finished',
 }
 
