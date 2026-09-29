@@ -140,6 +140,7 @@ export function MatchDetailPage() {
         awayTeamId={game.awayTeam.id}
         homeName={game.homeTeam.name}
         awayName={game.awayTeam.name}
+        competitionId={game.competitionId}
       />
       <MatchPredictions predictions={predictions} />
       <MatchTips tips={tips} />

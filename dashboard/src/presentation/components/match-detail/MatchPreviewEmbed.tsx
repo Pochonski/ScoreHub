@@ -1,7 +1,10 @@
 import { memo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useMatchPreview } from '@/presentation/hooks/useMatchPreview'
+import { useStandings } from '@/presentation/hooks/useStandings'
+import type { StandingGroup } from '@/domain/entities/Standing'
 import { FormBadges, SectionCard } from './PreviewShared'
+import { GroupStandings } from '@/presentation/components/standings/GroupStandings'
 
 interface MatchPreviewEmbedProps {
   gameId: number
@@ -9,6 +12,21 @@ interface MatchPreviewEmbedProps {
   awayTeamId: number
   homeName: string
   awayName: string
+  competitionId?: number
+}
+
+/** Grupo que contiene a ambos equipos, o null (distintos grupos / sin tabla). */
+// eslint-disable-next-line react-refresh/only-export-components
+export function findSharedGroup(
+  groups: StandingGroup[],
+  homeId: number,
+  awayId: number
+): StandingGroup | null {
+  for (const g of groups) {
+    const ids = new Set(g.rows.map((r) => r.team.id))
+    if (ids.has(homeId) && ids.has(awayId)) return g
+  }
+  return null
 }
 
 /**
@@ -69,9 +87,12 @@ export const MatchPreviewEmbed = memo(function MatchPreviewEmbed({
   awayTeamId,
   homeName,
   awayName,
+  competitionId,
 }: MatchPreviewEmbedProps) {
   const navigate = useNavigate()
   const { preview, loading } = useMatchPreview(gameId)
+  const { groups: standingGroups } = useStandings(competitionId ?? null)
+  const sharedGroup = findSharedGroup(standingGroups, homeTeamId, awayTeamId)
 
   if (loading) {
     return <div className="bg-bg-card skeleton h-48 rounded-xl" aria-hidden="true" />
@@ -106,8 +127,31 @@ export const MatchPreviewEmbed = memo(function MatchPreviewEmbed({
             </div>
           </div>
         )}
-        {hasTable && (
-          <div className="bg-bg-elevated/30 rounded-xl px-4 py-3">
+        {hasTable &&
+          (sharedGroup ? (
+            <div>
+              <div className="mb-2 flex items-center justify-between gap-2">
+                <p className="font-body text-text-dim text-[11px] tracking-wider uppercase">
+                  {sharedGroup.displayName || sharedGroup.name}
+                </p>
+                {competitionId != null && (
+                  <button
+                    type="button"
+                    onClick={() => navigate(`/competicion/${competitionId}/standings`)}
+                    className="font-body text-accent-blue hover:text-accent-blue/80 focus-visible rounded px-1 py-0.5 text-[11px] transition-colors"
+                  >
+                    Ver tabla →
+                  </button>
+                )}
+              </div>
+              <GroupStandings
+                groups={[sharedGroup]}
+                hideHeader
+                highlightIds={[homeTeamId, awayTeamId]}
+              />
+            </div>
+          ) : (
+            <div className="bg-bg-elevated/30 rounded-xl px-4 py-3">
             <div className="mb-3 flex items-center justify-between gap-2">
               <span className="font-body text-text-primary truncate text-sm font-semibold">{homeName}</span>
               <span className="font-display text-text-dim text-sm font-bold">VS</span>
@@ -128,7 +172,7 @@ export const MatchPreviewEmbed = memo(function MatchPreviewEmbed({
               )}
             </div>
           </div>
-        )}
+        ))}
         <div className="flex justify-center">
           <button
             type="button"

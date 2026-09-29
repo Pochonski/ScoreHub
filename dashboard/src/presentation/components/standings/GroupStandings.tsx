@@ -6,6 +6,8 @@ import { FormDot } from '@/presentation/components/ui/FormDot'
 interface GroupStandingsProps {
   groups: StandingGroup[]
   hideHeader?: boolean
+  /** Ids de equipos a resaltar (ej. los dos de un partido en la previa). */
+  highlightIds?: number[]
 }
 
 function formatMatchTime(iso?: string): string {
@@ -17,8 +19,9 @@ function formatMatchTime(iso?: string): string {
   }
 }
 
-export function GroupStandings({ groups, hideHeader }: GroupStandingsProps) {
+export function GroupStandings({ groups, hideHeader, highlightIds }: GroupStandingsProps) {
   const navigate = useNavigate()
+  const highlighted = new Set(highlightIds ?? [])
 
   if (groups.length === 0) {
     return (
@@ -94,7 +97,7 @@ export function GroupStandings({ groups, hideHeader }: GroupStandingsProps) {
                     onClick={() => navigate(`/equipo/${row.team.id}`)}
                     className={`border-border-card/50 hover:bg-bg-elevated/40 cursor-pointer border-b transition-colors ${
                       row.position === 1 ? 'bg-accent-gold/[0.05]' : ''
-                    }`}
+                    } ${highlighted.has(row.team.id) ? 'bg-accent-blue/[0.07]' : ''}`}
                   >
                     <td
                       className={`px-3 py-2.5 font-mono text-xs border-l-[3px] ${
@@ -128,7 +131,11 @@ export function GroupStandings({ groups, hideHeader }: GroupStandingsProps) {
                     <td className="px-3 py-2.5">
                       <div className="flex items-center gap-2">
                         <TeamBadge src={row.team.badgeUrl ?? null} name={row.team.name} size="sm" />
-                        <span className="font-body text-text-primary max-w-[120px] truncate text-sm font-medium sm:max-w-none">
+                        <span
+                          className={`font-body max-w-[120px] truncate text-sm font-medium sm:max-w-none ${
+                            highlighted.has(row.team.id) ? 'text-accent-gold font-semibold' : 'text-text-primary'
+                          }`}
+                        >
                           {row.team.name}
                           {row.hasPointsDeduction && (
                             <span
