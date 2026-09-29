@@ -1,4 +1,5 @@
 import { memo } from 'react'
+import { useNavigate } from 'react-router-dom'
 import type { MatchEvent } from '@/domain/entities/Game'
 
 interface MatchTimelineProps {
@@ -52,6 +53,7 @@ function EventIcon({ type }: { type: MatchEvent['type'] }) {
 }
 
 export const MatchTimeline = memo(function MatchTimeline({ timeline, homeTeamId, awayTeamId }: MatchTimelineProps) {
+  const navigate = useNavigate()
   if (!timeline || timeline.length === 0) return null
 
   return (
@@ -80,9 +82,20 @@ export const MatchTimeline = memo(function MatchTimeline({ timeline, homeTeamId,
                   <EventIcon type={ev.type} />
                 </span>
                 {/* Descripción */}
-                <span className={`flex-1 truncate ${ev.isMajor ? 'font-semibold text-text-primary' : 'text-text-muted'}`}>
-                  {ev.description || ev.playerName || ''}
-                </span>
+                {ev.playerId != null ? (
+                  <button
+                    type="button"
+                    onClick={() => navigate(`/player/${ev.playerId}`)}
+                    className={`font-body focus-visible min-h-[44px] flex-1 truncate text-left transition-colors hover:text-accent-gold hover:underline sm:min-h-0 ${ev.isMajor ? 'font-semibold text-text-primary' : 'text-text-muted'}`}
+                    title="Ver ficha del jugador"
+                  >
+                    {ev.description || ev.playerName || ''}
+                  </button>
+                ) : (
+                  <span className={`flex-1 truncate ${ev.isMajor ? 'font-semibold text-text-primary' : 'text-text-muted'}`}>
+                    {ev.description || ev.playerName || ''}
+                  </span>
+                )}
               </li>
             )
           })}

@@ -14,6 +14,7 @@ export interface MatchEvent {
   minute: number
   type: 'goal' | 'yellow_card' | 'red_card' | 'substitution' | 'penalty' | 'event'
   teamId: number
+  playerId?: number
   playerName?: string
   description?: string
   isMajor?: boolean
