@@ -117,7 +117,12 @@ function MatchTipCard({ game, tips }: { game: Game; tips: BettingTip | null }) {
               <span className="font-body text-text-muted text-[11px] sm:text-[10px] font-semibold uppercase tracking-wider">
                 Tips del partido
               </span>
-              <span className="font-mono text-accent-gold text-[11px]">{confidence}% confianza</span>
+              <span
+                className="font-mono text-accent-gold text-[11px]"
+                title="Promedio de tendencias del historial — no incluye votos de hinchas"
+              >
+                {confidence}% confianza histórica
+              </span>
             </div>
             <div className="space-y-1.5">
               {topTips.map((t, i) => (
