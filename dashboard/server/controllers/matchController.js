@@ -153,13 +153,16 @@ async function getMatches(req, res, next) {
     //   - live (1) → en vivo primero, después por inicio (ASC)
     //   - finished (4) o combinaciones → más recientes primero (DESC)
     const hasUpcoming = !statusGroup || statusGroup.split(',').map(Number).includes(2);
-    const hasLive = statusGroup && statusGroup.split(',').map(Number).includes(1);
+    const groups = statusGroup ? statusGroup.split(',').map(Number) : [];
+    const hasLive = statusGroup && (groups.includes(1) || groups.includes(3));
     const hasFinished = statusGroup && statusGroup.split(',').map(Number).includes(4);
     const onlyLive = hasLive && !hasUpcoming && !hasFinished;
     const onlyFinished = hasFinished && !hasUpcoming && !hasLive;
     if (onlyFinished) {
       query += ' ORDER BY start_time DESC';
     } else if (onlyLive) {
+      // Guarda anti-zombies: solo empezados hace < 5h.
+      query += ` AND start_time > NOW() - INTERVAL '5 hours'`;
       query += " ORDER BY status_group ASC, start_time ASC";
     } else {
       // upcoming o mixto: próximos primero
@@ -206,8 +209,11 @@ async function getLiveMatches(req, res, next) {
     }
     // En vivo = grupos 1 (en juego) y 3 (primer tiempo). El 3 antes se
     // ignoraba y los partidos en primer tiempo nunca salían como live.
+    // Guarda anti-zombies: filas con status live pero start_time de hace
+    // horas (ej. 4830022/4830024, atorados desde el 31-ago) se excluyen.
     const liveRows = await db.execAdvanced(
-      'SELECT data FROM games WHERE competition_id = ANY($1::int[]) AND status_group IN (1, 3) ORDER BY start_time DESC',
+      `SELECT data FROM games WHERE competition_id = ANY($1::int[]) AND status_group IN (1, 3)
+        AND start_time > NOW() - INTERVAL '5 hours' ORDER BY start_time DESC`,
       [compIds]
     );
     res.json(liveRows.map(r => enrichGame(r.data)));
@@ -265,7 +271,8 @@ async function getFeaturedMatch(req, res, next) {
     const cid = resolved.competitionId;
 
     const live = await db.execAdvanced(
-      'SELECT data FROM games WHERE competition_id = $1 AND status_group IN (1, 3) LIMIT 1',
+      `SELECT data FROM games WHERE competition_id = $1 AND status_group IN (1, 3)
+        AND start_time > NOW() - INTERVAL '5 hours' LIMIT 1`,
       [cid]
     );
     if (live.length) return res.json(enrichGame(live[0].data));
