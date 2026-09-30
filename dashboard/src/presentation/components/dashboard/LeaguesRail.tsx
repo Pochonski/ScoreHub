@@ -4,6 +4,7 @@ import type { Competition } from '@/domain/entities/Competition'
 import { CompactMatchRow } from './CompactMatchRow'
 import { DatePickerCalendar } from './DatePickerCalendar'
 import { CompetitionLogo } from '@/presentation/components/competition/CompetitionLogo'
+import type { LiveGroup } from './liveUtils'
 
 type FilterValue = 'all' | 'live' | 'upcoming' | 'finished'
 type CompetitionScope = { kind: 'all' } | { kind: 'one'; id: number }
@@ -14,6 +15,9 @@ interface LeaguesRailProps {
   onScopeChange: (next: CompetitionScope) => void
   /** Partidos ya filtrados por fecha/estado, del scope activo. */
   games: Game[]
+  /** Grupos live (todas las ligas) para el modo Vivo. */
+  liveGroups: LiveGroup[]
+  liveLoading: boolean
   liveCount: number
   onSelectGame: (game: Game) => void
   filter: FilterValue
@@ -37,6 +41,8 @@ export function LeaguesRail({
   scope,
   onScopeChange,
   games,
+  liveGroups,
+  liveLoading,
   liveCount,
   onSelectGame,
   filter,
@@ -186,6 +192,59 @@ export function LeaguesRail({
       </div>
 
       {/* Ligas populares */}
+      {isLiveMode ? (
+        <div className="bg-bg-card border-border-card overflow-hidden rounded-xl border">
+          <h2 className="font-body text-text-muted border-border-card flex items-center gap-1.5 border-b px-3 py-2.5 text-xs font-semibold uppercase tracking-wider">
+            <span className="bg-accent-live live-pulse h-1.5 w-1.5 rounded-full" aria-hidden="true" />
+            En vivo
+            {liveCount > 0 && <span className="text-text-dim">({liveCount})</span>}
+          </h2>
+          {liveLoading ? (
+            <div className="space-y-2 p-3" aria-hidden="true">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <div key={i} className="bg-bg-elevated skeleton h-12 rounded-lg" />
+              ))}
+            </div>
+          ) : liveGroups.length === 0 ? (
+            <p className="text-text-dim font-body px-2 py-3 text-center text-xs">
+              Sin partidos en vivo ahora mismo
+            </p>
+          ) : (
+            <div className="divide-border-card/60 divide-y">
+              {liveGroups.map(({ competition: comp, games: compGames }) => (
+                <div key={comp.id}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onScopeChange({ kind: 'one', id: comp.id })
+                      onFilterChange('all')
+                    }}
+                    className="font-body focus-visible hover:bg-bg-elevated flex w-full items-center gap-2.5 px-3 py-2.5 text-left text-sm transition-colors"
+                    title={`Ver ${comp.shortName || comp.displayName}`}
+                  >
+                    <CompetitionLogo
+                      id={comp.id}
+                      name={comp.shortName || comp.displayName}
+                      className="h-6 w-6 rounded"
+                    />
+                    <span className="text-text-primary min-w-0 flex-1 truncate font-medium">
+                      {comp.shortName || comp.displayName}
+                    </span>
+                    <span className="text-accent-live font-mono text-[11px] font-bold">
+                      {compGames.length}
+                    </span>
+                  </button>
+                  <div className="px-1.5 pb-2">
+                    {compGames.map((game) => (
+                      <CompactMatchRow key={game.id} game={game} onSelect={onSelectGame} />
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      ) : (
       <div className="bg-bg-card border-border-card overflow-hidden rounded-xl border">
         <h2 className="font-body text-text-muted border-border-card border-b px-3 py-2.5 text-xs font-semibold uppercase tracking-wider">
           Ligas populares
@@ -269,6 +328,7 @@ export function LeaguesRail({
           })}
         </div>
       </div>
+      )}
     </div>
   )
 }

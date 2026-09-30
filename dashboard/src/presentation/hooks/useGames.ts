@@ -41,11 +41,12 @@ export function useGames(params?: GetGamesParams) {
   }
 }
 
-export function useLiveGames(params?: { competitionId?: number; all?: boolean }) {
+export function useLiveGames(params?: { competitionId?: number; all?: boolean; enabled?: boolean }) {
   const qKey = ['live-games', params?.competitionId ?? null, params?.all ?? false] as const
 
   const { data, isLoading, error, refetch } = useQuery<Game[]>({
     queryKey: qKey,
+    enabled: params?.enabled ?? true,
     queryFn: async () => {
       const gameRepo = DiContainer.getInstance().getGameRepository()
       return gameRepo.getLiveGames(params)

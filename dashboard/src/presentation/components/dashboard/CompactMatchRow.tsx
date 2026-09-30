@@ -2,6 +2,7 @@ import { memo } from 'react'
 import type { Game } from '@/domain/entities/Game'
 import { TeamBadge } from '@/presentation/components/ui/TeamBadge'
 import { formatShortTime } from '@/presentation/utils/dates'
+import { formatLiveMinute } from './liveUtils'
 
 interface CompactMatchRowProps {
   game: Game
@@ -33,7 +34,7 @@ export const CompactMatchRow = memo(function CompactMatchRow({ game, onSelect }:
           <>
             <span className="bg-accent-live live-pulse mb-0.5 h-1.5 w-1.5 rounded-full" />
             <span className="text-accent-live font-mono text-[11px] sm:text-[10px] font-bold leading-none">
-              {game.minute != null ? `${game.minute}'` : 'EN VIVO'}
+              {formatLiveMinute(game.minute) ?? 'EN VIVO'}
             </span>
           </>
         ) : isFinished ? (

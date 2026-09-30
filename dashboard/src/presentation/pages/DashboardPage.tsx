@@ -9,6 +9,7 @@ import { MatchCard } from '@/presentation/components/matches/MatchCard'
 import { CompetitionInfoCard } from '@/presentation/components/competition/CompetitionInfoCard'
 import { MatchFilterBar } from '@/presentation/components/matches/MatchFilterBar'
 import { LeaguesRail } from '@/presentation/components/dashboard/LeaguesRail'
+import { LiveCenterGroups } from '@/presentation/components/dashboard/LiveCenterGroups'
 import { StatsRail } from '@/presentation/components/dashboard/StatsRail'
 import { StandingsRail } from '@/presentation/components/dashboard/StandingsRail'
 import { NewsRail } from '@/presentation/components/dashboard/NewsRail'
@@ -24,6 +25,7 @@ import { ErrorState } from '@/presentation/components/ui/ErrorState'
 import { HeroSkeleton, MatchCardSkeleton } from '@/presentation/components/ui/Skeleton'
 import { useTournamentStats } from '@/presentation/hooks/useTournamentStats'
 import { useMatchesRange, offsetToISODate } from '@/presentation/hooks/useMatchesRange'
+import { groupLiveByCompetition } from '@/presentation/components/dashboard/liveUtils'
 import { TeamOfWeekPitch } from '@/presentation/components/stats/TeamOfWeekPitch'
 
 type FilterValue = 'all' | 'live' | 'upcoming' | 'finished'
@@ -119,6 +121,18 @@ export function DashboardPage() {
   const { game: featuredGame, loading: featuredLoading, refetch: refetchFeatured } =
     useFeaturedGame(scope.kind === 'one' ? scope.id : undefined)
   const { games: liveGames, error: liveError, refetch: refetchLive } = useLiveGames(liveParams)
+  // Vista En Vivo (todas las ligas): solo se fetchea en modo live para no
+  // duplicar el polling siempre.
+  const { games: allLiveGames, loading: allLiveLoading } = useLiveGames({
+    all: true,
+    enabled: filter === 'live',
+  })
+  const liveGroups = useMemo(() => {
+    if (filter !== 'live') return []
+    const fallback =
+      scope.kind === 'one' ? (featuredSorted.find((c) => c.id === scope.id) ?? null) : null
+    return groupLiveByCompetition(allLiveGames, featuredSorted, fallback)
+  }, [filter, allLiveGames, featuredSorted, scope])
   const { games: allGames, loading: gamesLoading, error: gamesError, refetch: refetchGames } =
     useGames(competitionParam)
 
@@ -325,16 +339,19 @@ export function DashboardPage() {
   const dayLoading =
     dateOffset != null && rangeLoading && highlightGames.mode === 'day' && highlightGames.games.length === 0
 
-  // Juegos del rail izquierdo: en modo Vivo se alimenta de liveGames
-  // (polling 30s, incluye grupo 3) porque allGames solo trae finalizados
-  // viejos; en modo día usa el rango multi-comp; si no, el filtrado local.
+  // Juegos del rail izquierdo y grilla mobile. En modo Vivo se usa la vista
+  // agrupada por liga (liveGroups); el aplanado solo alimenta la grilla mobile.
   const railGames = useMemo(() => {
     if (filter === 'live') {
-      return [...liveGames].sort((a, b) => (b.minute ?? -1) - (a.minute ?? -1))
+      return liveGroups.flatMap((g) => g.games)
     }
     if (dateOffset != null && !rangeLoading) return rangeGames
     return filteredGames
-  }, [filter, liveGames, dateOffset, rangeLoading, rangeGames, filteredGames])
+  }, [filter, liveGroups, dateOffset, rangeLoading, rangeGames, filteredGames])
+  const liveGroupsTotal = useMemo(
+    () => liveGroups.reduce((n, g) => n + g.games.length, 0),
+    [liveGroups]
+  )
 
   // Equipo de la jornada (once ideal) de la competición activa — llena y
   // balancea el centro en desktop. Comparte el fetch con el rail derecho.
@@ -479,9 +496,17 @@ export function DashboardPage() {
         )}
       </div>
 
-      {/* Highlights desktop: próximos + resultados recientes en dos secciones. */}
+      {/* Centro desktop: en modo Vivo la vista cambia a todos los vivos
+          agrupados por liga; si no, highlights curados. */}
       <div className="mt-6 hidden space-y-8 lg:block">
-        {highlightsLoading || dayLoading ? (
+        {filter === 'live' ? (
+          <LiveCenterGroups
+            groups={liveGroups}
+            loading={allLiveLoading}
+            onSelectGame={handleSelectGame}
+            onShowUpcoming={() => setFilter('all')}
+          />
+        ) : highlightsLoading || dayLoading ? (
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             {Array.from({ length: 4 }).map((_, i) => (
               <MatchCardSkeleton key={i} />
@@ -606,7 +631,9 @@ export function DashboardPage() {
             scope={scope}
             onScopeChange={handleScopeChange}
             games={railGames}
-            liveCount={liveGames.length}
+            liveGroups={liveGroups}
+            liveLoading={filter === 'live' && allLiveLoading}
+            liveCount={filter === 'live' ? liveGroupsTotal : liveGames.length}
             onSelectGame={handleSelectGame}
             filter={filter}
             onFilterChange={setFilter}
