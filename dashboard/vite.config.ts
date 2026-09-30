@@ -23,7 +23,7 @@ export default defineConfig(({ mode }) => ({
       // Bumpear `version` fuerza al SW a regenerar el precache y descartar
       // la versión vieja cuando el cliente recibe la actualización.
       // Incrementar cuando hagamos cambios significativos en el bundle.
-      version: '1.1.0-multicomp',
+      version: '1.2.0-multicomp',
       includeAssets: ['favicon.svg'],
       manifest: false, // usa /public/manifest.json (multi-comp friendly)
       workbox: {

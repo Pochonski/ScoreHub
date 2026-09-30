@@ -180,6 +180,12 @@ app.use(botMeta);
 app.use(express.static(distPath));
 app.get('*', (req, res) => {
   if (!req.path.startsWith('/api')) {
+    // El HTML del SPA referencia chunks con hash que se eliminan en cada
+    // deploy. Sin no-store, un index.html cacheado (edge o SW) pide chunks
+    // viejos → el rewrite devuelve HTML con 200 → "MIME type text/html".
+    res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    res.set('Pragma', 'no-cache');
+    res.set('Expires', '0');
     res.sendFile(path.join(distPath, 'index.html'));
   }
 });
