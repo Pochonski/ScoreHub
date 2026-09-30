@@ -82,6 +82,24 @@ describe('LeaguesRail — modo Vivo', () => {
     expect(screen.getByText('Por hora')).toBeInTheDocument()
   })
 
+  it('en modo Vivo el tab Por hora sigue clicable (no hereda pointer-events-none)', () => {
+    const onFilterChange = vi.fn()
+    render(
+      <MemoryRouter>
+        <LeaguesRail {...baseProps} games={liveGames} filter="live" onFilterChange={onFilterChange} />
+      </MemoryRouter>
+    )
+    const porHora = screen.getByRole('button', { name: 'Por hora' })
+    // Ningún ancestro del toggle debe bloquear el puntero.
+    let el: HTMLElement | null = porHora
+    while (el) {
+      expect(el.className).not.toMatch(/pointer-events-none/)
+      el = el.parentElement
+    }
+    fireEvent.click(porHora)
+    expect(onFilterChange).toHaveBeenCalledWith('all')
+  })
+
   it('el tab Vivo dispara onFilterChange live', () => {
     const onFilterChange = vi.fn()
     render(
