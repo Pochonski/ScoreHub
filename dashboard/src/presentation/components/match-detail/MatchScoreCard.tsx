@@ -9,7 +9,6 @@ interface MatchScoreCardProps {
 }
 
 export const MatchScoreCard = memo(function MatchScoreCard({ game }: MatchScoreCardProps) {
-  const isUpcoming = game.status === 'upcoming'
   const isLive = game.status === 'live'
   const isFinished = game.status === 'finished'
 
@@ -37,16 +36,16 @@ export const MatchScoreCard = memo(function MatchScoreCard({ game }: MatchScoreC
                 ? `${game.homeTeam.score} — ${game.awayTeam.score}`
                 : 'vs'}
             </span>
-            {isUpcoming && (
-              <p className="font-body text-text-muted text-xs">
-                {formatDate(game.startTime)} · {formatTime(game.startTime)}
-              </p>
-            )}
             {isLive && game.statusText && (
               <span className="font-body text-accent-live text-xs">{game.statusText}</span>
             )}
             {isFinished && (
               <span className="font-body text-text-dim text-[11px] sm:text-[10px] tracking-wider uppercase">Finalizado</span>
+            )}
+            {game.startTime && (
+              <p className="font-body text-text-muted mt-1 text-xs">
+                {formatDate(game.startTime)} · {formatTime(game.startTime)}
+              </p>
             )}
           </div>
 
