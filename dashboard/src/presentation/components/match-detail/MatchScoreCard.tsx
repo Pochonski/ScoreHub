@@ -42,11 +42,6 @@ export const MatchScoreCard = memo(function MatchScoreCard({ game }: MatchScoreC
             {isFinished && (
               <span className="font-body text-text-dim text-[11px] sm:text-[10px] tracking-wider uppercase">Finalizado</span>
             )}
-            {game.startTime && (
-              <p className="font-body text-text-muted mt-1 text-xs">
-                {formatDate(game.startTime)} · {formatTime(game.startTime)}
-              </p>
-            )}
           </div>
 
           <div className="flex min-w-0 flex-col items-center gap-2">
@@ -56,6 +51,12 @@ export const MatchScoreCard = memo(function MatchScoreCard({ game }: MatchScoreC
             </span>
           </div>
         </div>
+
+        {game.startTime && (
+          <p className="font-body text-text-muted mt-4 text-center text-xs">
+            {formatDate(game.startTime)} · {formatTime(game.startTime)}
+          </p>
+        )}
 
         {game.officials && game.officials.length > 0 && (
           <p className="font-body text-text-dim mt-4 text-center text-[11px]">
