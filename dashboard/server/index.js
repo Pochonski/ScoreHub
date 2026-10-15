@@ -47,6 +47,9 @@ app.use(pinoHttp({
 // /competicion/*, /equipo/*), esa cabecera intersecta con el meta y bloquea
 // los badges de imagecache.365scores.com. Mantener ambas en sync.
 app.use(helmet({
+  // frame-ancestors below is the source of truth and permits the portfolio
+  // while X-Frame-Options can only express SAMEORIGIN/DENY.
+  frameguard: false,
   contentSecurityPolicy: {
     directives: {
       'default-src': ["'self'"],
