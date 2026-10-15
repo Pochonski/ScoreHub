@@ -30,23 +30,32 @@ interface PortoNavigateMessage {
   href?: unknown
 }
 
+function reportRoute() {
+  const url = new URL(window.location.href)
+  window.parent.postMessage(
+    { source: 'porto-site-route', href: url.origin + url.pathname },
+    '*',
+  )
+}
+
 export default function RouteReporter() {
   const location = useLocation()
 
   useEffect(() => {
-    window.parent.postMessage(
-      { source: 'porto-site-route', href: window.location.href },
-      '*',
-    )
+    reportRoute()
   }, [location.pathname, location.search, location.hash])
 
   useEffect(() => {
     const onMessage = (event: MessageEvent) => {
       const data = event.data as PortoNavigateMessage | null
-      if (!data || data.source !== 'porto-site-navigate' || typeof data.href !== 'string') {
+      if (!data || event.source !== window.parent || !isAllowedParentOrigin(event.origin)) {
         return
       }
-      if (!isAllowedParentOrigin(event.origin)) return
+      if (data.source === 'porto-site-route-request') {
+        reportRoute()
+        return
+      }
+      if (data.source !== 'porto-site-navigate' || typeof data.href !== 'string') return
       let dest: URL
       try {
         dest = new URL(data.href, window.location.origin)
