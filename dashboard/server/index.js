@@ -57,6 +57,12 @@ app.use(helmet({
       'connect-src': ["'self'", 'https://jcfulxsqayscvqgxemhv.supabase.co'],
       'worker-src': ["'self'"],
       'manifest-src': ["'self'"],
+      'frame-ancestors': [
+        "'self'",
+        'https://joseph-fonseca-dev.vercel.app',
+        'https://*.vercel.app',
+        'http://localhost:3000',
+      ],
       'base-uri': ["'self'"],
       'form-action': ["'self'"],
     },
